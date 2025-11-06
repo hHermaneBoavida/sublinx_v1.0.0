@@ -57,7 +57,7 @@ const clusterEvents = (events, zoomLevel = 1) => {
   return clusters;
 };
 
-// Componente de Pin OTIMIZADO
+// Componente de Pin OTIMIZADO COM EFEITO 3D
 const EventPin = memo(({ cluster, position, onClick, theme, isExpanded }) => {
   const { events, isCluster: isClusterGroup } = cluster;
   const mainEvent = events[0];
@@ -69,102 +69,181 @@ const EventPin = memo(({ cluster, position, onClick, theme, isExpanded }) => {
         left: `${position.x}%`, 
         top: `${position.y}%`,
       }}
-      whileHover={{ scale: 1.1, zIndex: 20 }}
+      whileHover={{ scale: 1.15, zIndex: 20, y: -5 }}
       onClick={() => onClick(cluster)}
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0 }}
-      transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+      initial={{ opacity: 0, scale: 0, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0, y: 20 }}
+      transition={{ duration: 0.4, type: "spring", stiffness: 350, damping: 20 }}
     >
-      {/* Tooltip ao Hover */}
+      {/* Tooltip ao Hover - MELHORADO */}
       <motion.div
-        initial={{ opacity: 0, y: 5 }}
-        whileHover={{ opacity: 1, y: 0 }}
-        className="absolute bottom-full mb-2 px-3 py-2 bg-black/95 backdrop-blur-xl rounded-xl text-white text-[11px] whitespace-nowrap border-2 shadow-2xl pointer-events-none"
+        initial={{ opacity: 0, y: 10, scale: 0.9 }}
+        whileHover={{ opacity: 1, y: 0, scale: 1 }}
+        className="absolute bottom-full mb-3 px-4 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-gray-900 text-xs whitespace-nowrap border-2 shadow-2xl pointer-events-none"
         style={{
-          borderColor: theme?.glowColor || 'rgba(6, 182, 212, 0.5)',
-          boxShadow: `0 0 20px ${theme?.glowColor || 'rgba(6, 182, 212, 0.5)'}`
+          borderColor: theme?.glowColor || 'rgba(6, 182, 212, 0.8)',
+          boxShadow: `0 8px 32px ${theme?.glowColor || 'rgba(6, 182, 212, 0.6)'}, 0 0 0 1px rgba(255,255,255,0.1)`
         }}
       >
         {isClusterGroup ? (
           <>
-            <div className="font-bold text-cyan-300 mb-1">
+            <div className="font-bold text-transparent bg-gradient-to-r from-cyan-600 to-purple-600 bg-clip-text mb-1 text-sm">
               {events.length} eventos próximos
             </div>
-            <div className="text-[9px] text-gray-400">
+            <div className="text-[10px] text-gray-600">
               Clique para ver todos
             </div>
           </>
         ) : (
           <>
-            <div className="font-bold text-cyan-300 mb-1 flex items-center gap-1">
-              <Music2 className="w-3 h-3" />
+            <div className="font-bold text-gray-900 mb-1.5 flex items-center gap-1.5">
+              <Music2 className="w-3.5 h-3.5 text-purple-600" />
               {mainEvent.title}
             </div>
-            <div className="flex items-center gap-2 text-[10px]">
-              <MapPin className="w-3 h-3 text-purple-400" />
-              <span className="text-gray-300 truncate max-w-[120px]">
+            <div className="flex items-center gap-2 text-[11px]">
+              <MapPin className="w-3 h-3 text-cyan-600" />
+              <span className="text-gray-700 truncate max-w-[140px]">
                 {mainEvent.location.venue_name}
               </span>
             </div>
           </>
         )}
+        
+        {/* Seta do tooltip */}
+        <div 
+          className="absolute top-full left-1/2 -translate-x-1/2 -mt-px"
+          style={{
+            width: 0,
+            height: 0,
+            borderLeft: '8px solid transparent',
+            borderRight: '8px solid transparent',
+            borderTop: `8px solid ${theme?.glowColor || 'rgba(6, 182, 212, 0.8)'}`
+          }}
+        />
       </motion.div>
 
-      {/* Pin Visual REDESENHADO */}
+      {/* Pin Visual REDESENHADO COM EFEITO 3D */}
       <motion.div 
         className="relative"
-        animate={{
-          boxShadow: [
-            `0 0 20px ${theme?.glowColor || 'rgba(6, 182, 212, 0.6)'}`,
-            `0 0 30px ${theme?.glowColor || 'rgba(6, 182, 212, 0.8)'}`,
-            `0 0 20px ${theme?.glowColor || 'rgba(6, 182, 212, 0.6)'}`
-          ]
-        }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         style={{
-          filter: `drop-shadow(0 0 ${isClusterGroup ? '12px' : '8px'} ${theme?.glowColor || 'rgba(6, 182, 212, 0.6)'})`
+          filter: `drop-shadow(0 4px 12px ${theme?.glowColor || 'rgba(6, 182, 212, 0.5)'}) drop-shadow(0 8px 24px ${theme?.glowColor || 'rgba(6, 182, 212, 0.3)'})`
         }}
       >
-        {/* Pin Principal */}
-        <div 
-          className={`${isClusterGroup ? 'w-12 h-12' : 'w-9 h-9'} rounded-full border-3 border-white/90 bg-gradient-to-br flex items-center justify-center relative`}
+        {/* Sombra 3D no chão */}
+        <div
+          className="absolute top-full left-1/2 -translate-x-1/2 mt-1"
           style={{
-            background: `linear-gradient(135deg, ${theme?.glowColor || 'rgba(6, 182, 212, 0.9)'}, ${theme?.glowColor || 'rgba(168, 85, 247, 0.9)'})`
+            width: isClusterGroup ? '48px' : '36px',
+            height: isClusterGroup ? '12px' : '8px',
+            background: `radial-gradient(ellipse, ${theme?.glowColor || 'rgba(6, 182, 212, 0.4)'} 0%, transparent 70%)`,
+            filter: 'blur(4px)',
+            opacity: 0.6
           }}
+        />
+
+        {/* Pin Principal com gradiente 3D */}
+        <motion.div 
+          className={`${isClusterGroup ? 'w-14 h-14' : 'w-10 h-10'} rounded-full border-4 border-white bg-gradient-to-br flex items-center justify-center relative overflow-hidden`}
+          style={{
+            background: `linear-gradient(135deg, 
+              ${theme?.glowColor || 'rgba(6, 182, 212, 1)'} 0%, 
+              ${theme?.glowColor || 'rgba(168, 85, 247, 1)'} 100%)`,
+            boxShadow: `
+              0 4px 16px ${theme?.glowColor || 'rgba(6, 182, 212, 0.5)'},
+              0 8px 32px ${theme?.glowColor || 'rgba(6, 182, 212, 0.3)'},
+              inset 0 -2px 8px rgba(0,0,0,0.3),
+              inset 0 2px 8px rgba(255,255,255,0.3)
+            `
+          }}
+          animate={{
+            boxShadow: [
+              `0 4px 16px ${theme?.glowColor || 'rgba(6, 182, 212, 0.5)'}, 0 8px 32px ${theme?.glowColor || 'rgba(6, 182, 212, 0.3)'}, inset 0 -2px 8px rgba(0,0,0,0.3), inset 0 2px 8px rgba(255,255,255,0.3)`,
+              `0 4px 20px ${theme?.glowColor || 'rgba(6, 182, 212, 0.7)'}, 0 8px 40px ${theme?.glowColor || 'rgba(6, 182, 212, 0.5)'}, inset 0 -2px 8px rgba(0,0,0,0.3), inset 0 2px 8px rgba(255,255,255,0.4)`,
+              `0 4px 16px ${theme?.glowColor || 'rgba(6, 182, 212, 0.5)'}, 0 8px 32px ${theme?.glowColor || 'rgba(6, 182, 212, 0.3)'}, inset 0 -2px 8px rgba(0,0,0,0.3), inset 0 2px 8px rgba(255,255,255,0.3)`
+            ]
+          }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         >
+          {/* Reflexo superior 3D */}
+          <div
+            className="absolute top-0 left-0 right-0 h-1/3 rounded-t-full"
+            style={{
+              background: 'linear-gradient(to bottom, rgba(255,255,255,0.5) 0%, transparent 100%)'
+            }}
+          />
+
+          {/* Conteúdo do pin */}
           {isClusterGroup ? (
-            <div className="text-white font-bold text-sm">
+            <div className="text-white font-bold text-base drop-shadow-lg relative z-10">
               {events.length}
             </div>
           ) : (
             <motion.div 
-              className="w-3 h-3 rounded-full bg-white"
+              className="w-4 h-4 rounded-full bg-white relative z-10"
+              style={{
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+              }}
               animate={{
-                scale: [1, 1.3, 1],
-                opacity: [1, 0.7, 1]
+                scale: [1, 1.2, 1],
+                opacity: [1, 0.8, 1]
               }}
               transition={{
-                duration: 1.5,
+                duration: 1.8,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
             />
           )}
-        </div>
 
-        {/* Halo de Glow */}
+          {/* Brilho animado interno */}
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 60%)`
+            }}
+            animate={{
+              opacity: [0.5, 0.8, 0.5],
+              scale: [1, 1.1, 1]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        </motion.div>
+
+        {/* Halo de Glow Externo */}
         <motion.div
-          className="absolute inset-0 rounded-full"
+          className="absolute inset-0 rounded-full pointer-events-none"
           style={{
-            background: `radial-gradient(circle, ${theme?.glowColor || 'rgba(6, 182, 212, 0.3)'} 0%, transparent 70%)`
+            background: `radial-gradient(circle, ${theme?.glowColor || 'rgba(6, 182, 212, 0.4)'} 0%, transparent 70%)`
           }}
           animate={{
-            scale: [1, 1.5, 1],
-            opacity: [0.5, 0, 0.5]
+            scale: [1, 1.6, 1],
+            opacity: [0.6, 0, 0.6]
           }}
           transition={{
-            duration: 2,
+            duration: 2.5,
+            repeat: Infinity,
+            ease: "easeOut"
+          }}
+        />
+
+        {/* Anel orbital brilhante */}
+        <motion.div
+          className="absolute inset-0 rounded-full border-2"
+          style={{
+            borderColor: `${theme?.glowColor || 'rgba(6, 182, 212, 0.6)'}`,
+            boxShadow: `0 0 12px ${theme?.glowColor || 'rgba(6, 182, 212, 0.6)'}`
+          }}
+          animate={{
+            scale: [1, 1.4, 1],
+            opacity: [0.8, 0, 0.8]
+          }}
+          transition={{
+            duration: 2.2,
             repeat: Infinity,
             ease: "easeOut"
           }}
@@ -324,24 +403,24 @@ export default function MapView({
         }
       }}
     >
-      {/* Background Temático DARK NEON */}
-      <div className="absolute inset-0 z-0 bg-black">
-        <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient}`} />
+      {/* Background Temático MAIS CLARO */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800">
+        <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient} opacity-30`} />
         
-        {/* Grid Cyber Sutil */}
+        {/* Grid Cyber MAIS VISÍVEL */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.08]"
           style={{
             backgroundImage: `
-              linear-gradient(to right, ${vibeTheme.glowColor} 1px, transparent 1px),
-              linear-gradient(to bottom, ${vibeTheme.glowColor} 1px, transparent 1px)
+              linear-gradient(to right, ${vibeTheme.glowColor} 1.5px, transparent 1.5px),
+              linear-gradient(to bottom, ${vibeTheme.glowColor} 1.5px, transparent 1.5px)
             `,
-            backgroundSize: '40px 40px'
+            backgroundSize: '50px 50px'
           }}
         />
       </div>
 
-      {/* Mapa OpenStreetMap DARK */}
+      {/* Mapa OpenStreetMap MUITO MAIS VISÍVEL */}
       <div className="absolute inset-0 z-1">
         <iframe
           width="100%"
@@ -351,52 +430,52 @@ export default function MapView({
           src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${userLocation.lat},${userLocation.lng}`}
           className="absolute inset-0"
           style={{
-            filter: 'grayscale(100%) invert(95%) brightness(0.35) contrast(1.2) hue-rotate(180deg)',
-            opacity: 0.6,
+            filter: 'grayscale(40%) invert(92%) brightness(0.85) contrast(1.3) saturate(0.3)',
+            opacity: 0.85,
             pointerEvents: 'none'
           }}
           loading="lazy"
         />
       </div>
 
-      {/* Overlay Gradiente */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/50 pointer-events-none z-2" />
+      {/* Overlay Gradiente MAIS SUTIL */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-slate-900/30 pointer-events-none z-2" />
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* Marcador do Usuário REDESENHADO - MENOR E MAIS ATRAENTE */}
+        {/* Marcador do Usuário COM EFEITO 3D ELEVADO */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-40"
           style={{ 
             left: `${userPosition.x}%`, 
             top: `${userPosition.y}%`,
           }}
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+          initial={{ scale: 0, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
           transition={{ 
             type: "spring", 
-            stiffness: 300, 
+            stiffness: 350, 
             damping: 25,
-            duration: 0.4
+            duration: 0.5
           }}
         >
           <div className="relative flex items-center justify-center">
-            {/* Camada 1: Glow Ambiente Difuso - REDUZIDO */}
+            {/* Camada 1: Glow Ambiente MAIS BRILHANTE */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '200px',
-                height: '200px',
+                width: '220px',
+                height: '220px',
                 background: `radial-gradient(circle at center, 
-                  ${vibeTheme.glowColor}20 0%, 
-                  ${vibeTheme.glowColor}12 30%, 
-                  ${vibeTheme.glowColor}06 60%,
+                  ${vibeTheme.glowColor}40 0%, 
+                  ${vibeTheme.glowColor}25 30%, 
+                  ${vibeTheme.glowColor}12 60%,
                   transparent 100%)`,
-                filter: 'blur(18px)',
+                filter: 'blur(20px)',
               }}
               animate={{
-                scale: [1, 1.12, 1],
-                opacity: [0.35, 0.65, 0.35],
+                scale: [1, 1.15, 1],
+                opacity: [0.5, 0.8, 0.5],
               }}
               transition={{
                 duration: 3.5,
@@ -405,20 +484,20 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 2: Rastro de Energia - REDUZIDO */}
+            {/* Camada 2: Rastro de Energia MAIS INTENSO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '150px',
-                height: '150px',
+                width: '170px',
+                height: '170px',
                 background: `radial-gradient(circle at center, 
-                  ${vibeTheme.glowColor}18 0%, 
+                  ${vibeTheme.glowColor}35 0%, 
                   transparent 65%)`,
-                filter: 'blur(12px)',
+                filter: 'blur(14px)',
               }}
               animate={{
-                scale: [1, 1.25, 1],
-                opacity: [0.5, 0, 0.5],
+                scale: [1, 1.3, 1],
+                opacity: [0.7, 0, 0.7],
               }}
               transition={{
                 duration: 2.8,
@@ -428,17 +507,17 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 3: Pulso Sonar - MAIS SUTIL */}
+            {/* Camada 3: Pulso Sonar MAIS VISÍVEL */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '10px',
-                height: '10px',
+                width: '12px',
+                height: '12px',
                 background: `radial-gradient(circle, ${vibeTheme.glowColor} 0%, transparent 70%)`,
               }}
               animate={{
-                scale: [1, 25, 1],
-                opacity: [0.9, 0, 0.9]
+                scale: [1, 28, 1],
+                opacity: [1, 0, 1]
               }}
               transition={{
                 duration: 4.5,
@@ -448,27 +527,27 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 4: Anel de Alcance - MAIS REFINADO */}
+            {/* Camada 4: Anel de Alcance MAIS CLARO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '170px',
-                height: '170px',
+                width: '190px',
+                height: '190px',
                 background: `radial-gradient(circle at center, 
-                  transparent 62%, 
-                  ${vibeTheme.glowColor}06 78%, 
-                  ${vibeTheme.glowColor}12 92%,
+                  transparent 60%, 
+                  ${vibeTheme.glowColor}12 75%, 
+                  ${vibeTheme.glowColor}25 90%,
                   transparent 100%)`,
-                border: `1px solid ${vibeTheme.glowColor}25`,
+                border: `2px solid ${vibeTheme.glowColor}50`,
                 boxShadow: `
-                  0 0 30px ${vibeTheme.glowColor}15,
-                  inset 0 0 25px ${vibeTheme.glowColor}08
+                  0 0 40px ${vibeTheme.glowColor}30,
+                  inset 0 0 30px ${vibeTheme.glowColor}15
                 `,
-                filter: 'blur(1.5px)',
+                filter: 'blur(1px)',
               }}
               animate={{
-                scale: [1, 1.015, 1],
-                opacity: [0.28, 0.48, 0.28],
+                scale: [1, 1.02, 1],
+                opacity: [0.4, 0.65, 0.4],
               }}
               transition={{
                 duration: 5.5,
@@ -477,133 +556,176 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 5: Marcador Central - MENOR E MAIS ELEGANTE */}
+            {/* Sombra 3D do marcador */}
+            <div
+              className="absolute top-full mt-2 left-1/2 -translate-x-1/2"
+              style={{
+                width: '56px',
+                height: '14px',
+                background: `radial-gradient(ellipse, rgba(0,0,0,0.5) 0%, transparent 70%)`,
+                filter: 'blur(6px)'
+              }}
+            />
+
+            {/* Camada 5: Marcador Central 3D ELEVADO */}
             <motion.div 
               className="relative z-50" 
               style={{
-                filter: `drop-shadow(0 0 20px ${vibeTheme.glowColor}) drop-shadow(0 0 40px ${vibeTheme.glowColor}70)`,
+                filter: `drop-shadow(0 6px 16px ${vibeTheme.glowColor}70) drop-shadow(0 12px 32px ${vibeTheme.glowColor}40) drop-shadow(0 0 40px ${vibeTheme.glowColor}60)`,
               }}
               animate={{
-                scale: [1, 1.06, 1],
+                scale: [1, 1.08, 1],
+                y: [0, -2, 0]
               }}
               transition={{
-                duration: 1.8,
+                duration: 2.2,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
+              whileHover={{ scale: 1.15, y: -4 }}
             >
-              {/* Núcleo Externo - REDUZIDO PARA 12x12 (48px) */}
+              {/* Núcleo Externo 3D */}
               <div 
-                className="w-12 h-12 rounded-full relative overflow-hidden"
+                className="w-14 h-14 rounded-full relative overflow-hidden"
                 style={{
                   background: `
                     radial-gradient(circle at 35% 35%, 
                       rgba(59, 130, 246, 1) 0%,
-                      rgba(99, 102, 241, 1) 35%,
+                      rgba(99, 102, 241, 1) 30%,
                       ${vibeTheme.glowColor} 100%)
                   `,
-                  border: '2.5px solid rgba(255, 255, 255, 0.95)',
+                  border: '3px solid rgba(255, 255, 255, 1)',
                   boxShadow: `
-                    0 0 25px ${vibeTheme.glowColor},
-                    0 0 50px ${vibeTheme.glowColor}70,
-                    inset 0 0 18px rgba(255, 255, 255, 0.35)
+                    0 4px 20px ${vibeTheme.glowColor}80,
+                    0 8px 40px ${vibeTheme.glowColor}60,
+                    inset 0 -3px 12px rgba(0,0,0,0.4),
+                    inset 0 3px 12px rgba(255, 255, 255, 0.5),
+                    0 0 0 2px ${vibeTheme.glowColor}30
                   `,
                 }}
               >
-                {/* Brilho Interno Animado */}
+                {/* Brilho Interno INTENSO */}
                 <motion.div
                   className="absolute inset-0 rounded-full"
                   style={{
-                    background: `radial-gradient(circle at 42% 42%, 
-                      rgba(255, 255, 255, 0.7) 0%, 
-                      transparent 55%)`,
+                    background: `radial-gradient(circle at 40% 40%, 
+                      rgba(255, 255, 255, 0.8) 0%, 
+                      rgba(255, 255, 255, 0.3) 40%,
+                      transparent 70%)`,
                   }}
                   animate={{
-                    opacity: [0.5, 0.85, 0.5],
-                    scale: [1, 1.15, 1]
+                    opacity: [0.6, 1, 0.6],
+                    scale: [1, 1.2, 1]
                   }}
                   transition={{
-                    duration: 2.2,
+                    duration: 2.5,
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
                 />
 
-                {/* Ícone de Navegação - AJUSTADO */}
+                {/* Reflexo Superior 3D */}
+                <div 
+                  className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
+                  style={{
+                    background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.4) 0%, transparent 100%)'
+                  }}
+                />
+
+                {/* Ícone de Navegação COM SOMBRA */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Navigation 
-                    className="w-5 h-5 text-white" 
-                    strokeWidth={2.8}
+                    className="w-6 h-6 text-white" 
+                    strokeWidth={3}
                     style={{
-                      filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.6))'
+                      filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.7))',
+                      strokeLinecap: 'round',
+                      strokeLinejoin: 'round'
                     }}
                   />
                 </div>
 
-                {/* Reflexo Superior */}
-                <div 
-                  className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
-                  style={{
-                    background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent)'
-                  }}
-                />
+                {/* Partículas brilhantes */}
+                {[...Array(3)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-1.5 h-1.5 rounded-full bg-white"
+                    style={{
+                      left: `${30 + i * 20}%`,
+                      top: `${20 + i * 25}%`,
+                      boxShadow: `0 0 8px rgba(255,255,255,0.8)`
+                    }}
+                    animate={{
+                      opacity: [0, 1, 0],
+                      scale: [0.5, 1, 0.5],
+                      y: [0, -5, 0]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      delay: i * 0.4,
+                      ease: "easeInOut"
+                    }}
+                  />
+                ))}
               </div>
 
-              {/* Anel Orbital Externo */}
+              {/* Anéis Orbitais Brilhantes */}
               <motion.div
-                className="absolute inset-0 rounded-full border"
+                className="absolute inset-0 rounded-full border-2"
                 style={{
-                  borderColor: `${vibeTheme.glowColor}35`,
-                  borderWidth: '1.5px',
+                  borderColor: `${vibeTheme.glowColor}60`,
+                  boxShadow: `0 0 16px ${vibeTheme.glowColor}60`
                 }}
                 animate={{
-                  scale: [1, 1.35, 1],
-                  opacity: [0.75, 0, 0.75]
+                  scale: [1, 1.4, 1],
+                  opacity: [0.9, 0, 0.9]
                 }}
                 transition={{
-                  duration: 2.3,
+                  duration: 2.5,
                   repeat: Infinity,
                   ease: "easeOut"
                 }}
               />
 
-              {/* Anel Orbital Interno */}
               <motion.div
-                className="absolute inset-0 rounded-full"
+                className="absolute inset-0 rounded-full border"
                 style={{
-                  border: `1px solid ${vibeTheme.glowColor}50`,
+                  borderColor: `${vibeTheme.glowColor}70`,
+                  boxShadow: `0 0 12px ${vibeTheme.glowColor}70`
                 }}
                 animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.6, 0, 0.6]
+                  scale: [1, 1.25, 1],
+                  opacity: [0.8, 0, 0.8]
                 }}
                 transition={{
-                  duration: 1.8,
+                  duration: 2,
                   repeat: Infinity,
                   ease: "easeOut",
-                  delay: 0.3
+                  delay: 0.4
                 }}
               />
             </motion.div>
 
-            {/* Camada 6: Partículas Flutuantes - REDUZIDAS */}
-            {[...Array(4)].map((_, i) => (
+            {/* Camada 6: Partículas Flutuantes MAIS BRILHANTES */}
+            {[...Array(5)].map((_, i) => (
               <motion.div
                 key={i}
                 className="absolute rounded-full pointer-events-none"
                 style={{
-                  width: '3px',
-                  height: '3px',
+                  width: '4px',
+                  height: '4px',
                   background: vibeTheme.glowColor,
-                  filter: `blur(${Math.random() * 1.5}px)`,
-                  left: `${25 + (i * 50 / 3)}%`,
-                  top: `${15 + (i * 70 / 3)}%`,
+                  boxShadow: `0 0 8px ${vibeTheme.glowColor}, 0 0 16px ${vibeTheme.glowColor}`,
+                  filter: `blur(${Math.random() * 1}px)`,
+                  left: `${20 + (i * 60 / 4)}%`,
+                  top: `${10 + (i * 80 / 4)}%`,
                 }}
                 animate={{
-                  y: [0, -12, 0],
-                  x: [0, Math.sin(i) * 8, 0],
-                  opacity: [0, 0.7, 0],
-                  scale: [0.6, 1.1, 0.6]
+                  y: [0, -15, 0],
+                  x: [0, Math.sin(i) * 10, 0],
+                  opacity: [0, 1, 0],
+                  scale: [0.6, 1.3, 0.6]
                 }}
                 transition={{
                   duration: 3.5 + Math.random() * 2,
@@ -633,18 +755,18 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* Header Minimalista */}
+      {/* Header Minimalista COM MAIS CONTRASTE */}
       <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 z-30 flex flex-col gap-2">
         {/* Barra de Controles */}
         <div className="flex flex-wrap gap-1.5 items-center">
           <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onOpenVibe}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border transition-all text-white text-xs"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/95 backdrop-blur-xl border-2 transition-all text-gray-900 text-xs font-semibold shadow-lg"
             style={{
               borderColor: vibeTheme.glowColor,
-              boxShadow: `0 0 15px ${vibeTheme.glowColor}40`
+              boxShadow: `0 4px 20px ${vibeTheme.glowColor}40, 0 2px 8px rgba(0,0,0,0.1)`
             }}
           >
             <Music2 className="w-3.5 h-3.5" />
@@ -652,10 +774,13 @@ export default function MapView({
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setShowRadiusInfo(!showRadiusInfo)}
-            className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-600/80 backdrop-blur-xl border border-blue-400/50 text-white text-xs"
+            className="flex items-center gap-1 px-2.5 py-2 rounded-full bg-blue-500 backdrop-blur-xl border-2 border-blue-300 text-white text-xs font-semibold shadow-lg"
+            style={{
+              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.4), 0 2px 8px rgba(0,0,0,0.1)'
+            }}
           >
             <MapPin className="w-3 h-3" />
             <span>{RADIUS_KM}km</span>
@@ -665,51 +790,51 @@ export default function MapView({
             <Button
               variant="ghost"
               size="icon"
-              className="bg-black/40 backdrop-blur-xl border-gray-700/30 text-white hover:bg-black/60 h-8 w-8"
+              className="bg-white/90 backdrop-blur-xl border-2 border-gray-300 text-gray-900 hover:bg-white hover:shadow-lg h-9 w-9 shadow-md"
             >
               <Menu className="w-4 h-4" />
             </Button>
           </Link>
         </div>
 
-        {/* Search */}
+        {/* Search COM MAIS CONTRASTE */}
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 z-10" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-600 z-10" />
           <Input
             placeholder="Buscar eventos..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 pr-3 py-2 bg-black/60 backdrop-blur-xl border-cyan-500/30 text-white placeholder:text-gray-500 focus:border-cyan-500/60 text-sm h-9 rounded-xl"
+            className="pl-10 pr-3 py-2.5 bg-white/95 backdrop-blur-xl border-2 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 text-sm h-10 rounded-xl shadow-lg font-medium"
           />
         </div>
 
-        {/* Info do Raio */}
+        {/* Info do Raio COM FUNDO CLARO */}
         <AnimatePresence>
           {showRadiusInfo && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="bg-black/95 backdrop-blur-xl border-2 rounded-xl p-4 text-xs text-white"
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              className="bg-white/95 backdrop-blur-xl border-2 rounded-2xl p-4 text-xs text-gray-900 shadow-2xl"
               style={{
-                borderColor: `${vibeTheme.glowColor}40`,
-                boxShadow: `0 0 30px ${vibeTheme.glowColor}30`
+                borderColor: `${vibeTheme.glowColor}`,
+                boxShadow: `0 8px 32px ${vibeTheme.glowColor}30, 0 4px 12px rgba(0,0,0,0.1)`
               }}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <Layers className="w-5 h-5 text-cyan-400" />
-                <span className="font-bold text-cyan-300">Área de Eventos</span>
+              <div className="flex items-center gap-2 mb-3">
+                <Layers className="w-5 h-5 text-cyan-600" />
+                <span className="font-bold text-cyan-700">Área de Eventos</span>
               </div>
               
-              <div className="space-y-1">
-                <p className="text-gray-400">
+              <div className="space-y-2">
+                <p className="text-gray-700 font-medium">
                   📍 {validEvents.length} evento(s) próximo(s)
                 </p>
-                <p className="text-gray-400">
+                <p className="text-gray-700 font-medium">
                   🎯 Raio: {RADIUS_KM}km
                 </p>
                 {eventClusters.length > 0 && (
-                  <p className="text-gray-400">
+                  <p className="text-gray-700 font-medium">
                     🔗 {eventClusters.filter(c => c.isCluster).length} grupo(s)
                   </p>
                 )}
@@ -719,24 +844,27 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* FAB Upload */}
+      {/* FAB Upload COM EFEITO 3D */}
       {canCreateReels && (
         <motion.div
           className="absolute bottom-20 right-3 z-30"
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.12, y: -4 }}
+          whileTap={{ scale: 0.92 }}
         >
           <Button
             onClick={onOpenUpload}
             size="icon"
-            className="w-12 h-12 rounded-full bg-gradient-to-r from-cyan-600 to-purple-600 shadow-xl border-2 border-white/20"
+            className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 shadow-2xl border-3 border-white hover:shadow-cyan-500/50"
+            style={{
+              boxShadow: '0 8px 32px rgba(6, 182, 212, 0.5), 0 4px 16px rgba(168, 85, 247, 0.3), inset 0 -2px 8px rgba(0,0,0,0.2), inset 0 2px 8px rgba(255,255,255,0.3)'
+            }}
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-6 h-6" />
           </Button>
         </motion.div>
       )}
 
-      {/* Ver Reels Button */}
+      {/* Ver Reels Button COM MAIS DESTAQUE */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-20 pb-3 px-4"
         drag="y"
@@ -748,30 +876,42 @@ export default function MapView({
       >
         <div className="flex flex-col items-center cursor-pointer" onClick={onSwipeUp}>
           <motion.div
-            className="w-10 h-1 rounded-full mb-2"
+            className="w-12 h-1.5 rounded-full mb-2.5"
             style={{
-              background: `linear-gradient(to right, ${vibeTheme.glowColor}, rgba(168, 85, 247, 0.8))`
+              background: `linear-gradient(to right, ${vibeTheme.glowColor}, rgba(168, 85, 247, 1))`,
+              boxShadow: `0 2px 12px ${vibeTheme.glowColor}60`
             }}
-            animate={{ scaleX: [1, 1.2, 1] }}
+            animate={{ 
+              scaleX: [1, 1.3, 1],
+              boxShadow: [
+                `0 2px 12px ${vibeTheme.glowColor}60`,
+                `0 2px 20px ${vibeTheme.glowColor}80`,
+                `0 2px 12px ${vibeTheme.glowColor}60`
+              ]
+            }}
             transition={{ duration: 2, repeat: Infinity }}
           />
           
           <motion.button
-            className="backdrop-blur-xl px-5 py-2.5 rounded-full shadow-xl border border-white/20 flex items-center gap-2 text-sm"
+            className="backdrop-blur-xl px-6 py-3 rounded-full shadow-2xl border-2 border-white/50 flex items-center gap-2 text-sm font-bold"
             style={{
-              background: `linear-gradient(to right, ${vibeTheme.glowColor}, rgba(168, 85, 247, 0.9))`
+              background: `linear-gradient(to right, ${vibeTheme.glowColor}, rgba(168, 85, 247, 1))`,
+              boxShadow: `0 8px 32px ${vibeTheme.glowColor}60, inset 0 -2px 8px rgba(0,0,0,0.2), inset 0 2px 8px rgba(255,255,255,0.3)`
             }}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Eye className="w-4 h-4 text-white" />
-            <span className="text-white font-semibold">Ver Reels</span>
+            <Eye className="w-5 h-5 text-white" />
+            <span className="text-white">Ver Reels</span>
           </motion.button>
 
           <motion.p 
-            className="text-white/50 text-xs mt-1.5"
-            animate={{ opacity: [0.3, 0.8, 0.3] }}
+            className="text-white/80 text-xs mt-2 font-semibold"
+            animate={{ opacity: [0.4, 1, 0.4] }}
             transition={{ duration: 2, repeat: Infinity }}
+            style={{
+              textShadow: `0 2px 8px ${vibeTheme.glowColor}60`
+            }}
           >
             Arraste para cima
           </motion.p>
