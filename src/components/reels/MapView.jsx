@@ -286,7 +286,7 @@ export default function MapView({
       minLat: Math.min(...lats, userLocation.lat) - 0.01,
       maxLat: Math.max(...lats, userLocation.lat) + 0.01,
       minLng: Math.min(...lngs, userLocation.lng) - 0.01,
-      maxLng: Math.max(...lngs, userLocation.lat) + 0.01,
+      maxLng: Math.max(...lngs, userLocation.lng) + 0.01, // ✅ CORRIGIDO: era userLocation.lat
     };
   }, [validEvents, userLocation]);
 
