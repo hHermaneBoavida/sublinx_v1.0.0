@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,26 +14,18 @@ import {
 } from 'recharts';
 import {
   TrendingUp, Users, DollarSign, Calendar, MessageSquare,
-  Gift, Target, Eye, Clock, MapPin, Share2, BarChart3, Heart,
-  Plus, RefreshCw, Loader2, ExternalLink, CheckCircle2, AlertCircle, X
+  Gift, Target, Eye, Clock, MapPin, Share2, BarChart3, Heart
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AnimatePresence, motion } from "framer-motion";
-
 
 const COLORS = ['#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
 export default function DashboardOrganizador() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
-
-  const [syncingEvents, setSyncingEvents] = useState(false);
-  const [syncResult, setSyncResult] = useState(null);
-  const [showSyncDetails, setShowSyncDetails] = useState(false);
 
   // Verificar acesso de organizador
   useEffect(() => {
@@ -104,37 +96,6 @@ export default function DashboardOrganizador() {
     enabled: events.length > 0,
   });
 
-  const handleSyncExternalEvents = async () => {
-    if (!user || user.role !== 'admin') {
-      alert('❌ Apenas administradores podem sincronizar eventos externos');
-      return;
-    }
-
-    setSyncingEvents(true);
-    setSyncResult(null);
-
-    try {
-      const { data } = await base44.functions.invoke('syncExternalEvents', {
-        city: 'São Paulo',
-        force: true
-      });
-
-      setSyncResult(data);
-      setShowSyncDetails(true);
-      queryClient.invalidateQueries(['organizerEvents']);
-      queryClient.invalidateQueries(['dashboardStats']); // Assuming a dashboardStats query exists
-    } catch (error) {
-      console.error('Erro na sincronização:', error);
-      setSyncResult({
-        success: false,
-        error: error.message || 'Erro desconhecido'
-      });
-      setShowSyncDetails(true);
-    } finally {
-      setSyncingEvents(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="w-full h-screen flex items-center justify-center">
@@ -158,7 +119,7 @@ export default function DashboardOrganizador() {
     const eventTickets = tickets.filter(t => t.event_id === event.id);
     const revenue = eventTickets.reduce((sum, t) => sum + (t.price || 0), 0);
     return {
-      name: event.title.substring(0, 15) + (event.title.length > 15 ? '...' : ''),
+      name: event.title.substring(0, 15) + '...',
       revenue,
       tickets: eventTickets.length
     };
@@ -182,221 +143,31 @@ export default function DashboardOrganizador() {
   }));
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 sm:p-6 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
-              Dashboard Organizador
-            </h1>
-            <p className="text-gray-400 text-sm sm:text-base">
-              Bem-vindo, <span className="text-cyan-400 font-semibold">{user?.full_name || user?.email}</span>
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
-            {user?.role === 'admin' && (
-              <Button
-                onClick={handleSyncExternalEvents}
-                disabled={syncingEvents}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-xs sm:text-sm h-9 sm:h-10 flex-1 sm:flex-none"
-              >
-                {syncingEvents ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Sincronizando...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Sync APIs
-                  </>
-                )}
-              </Button>
-            )}
-            <Link to={createPageUrl("CriarEvento")} className="flex-1 sm:flex-none">
-              <Button className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-xs sm:text-sm h-9 sm:h-10">
-                <Plus className="w-4 h-4 mr-2" />
-                Criar Evento
-              </Button>
-            </Link>
-            <Link to={createPageUrl("IntegracoesIngressos")} className="flex-1 sm:flex-none">
-              <Button variant="outline" className="w-full border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 text-xs sm:text-sm h-9 sm:h-10">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Integrações
-              </Button>
-            </Link>
-          </div>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text mb-2">
+            Dashboard de Organizador
+          </h1>
+          <p className="text-gray-400">Analise o desempenho dos seus eventos</p>
         </div>
-
-        {/* Resultado da Sincronização EXPANDIDO */}
-        <AnimatePresence>
-          {syncResult && showSyncDetails && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={`rounded-lg border-2 overflow-hidden ${
-                syncResult.success 
-                  ? 'bg-gradient-to-br from-green-900/20 to-emerald-900/20 border-green-500/50' 
-                  : 'bg-gradient-to-br from-red-900/20 to-rose-900/20 border-red-500/50'
-              }`}
-            >
-              {/* Header do Card */}
-              <div className="p-4 border-b border-gray-700/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {syncResult.success ? (
-                    <CheckCircle2 className="w-6 h-6 text-green-400" />
-                  ) : (
-                    <AlertCircle className="w-6 h-6 text-red-400" />
-                  )}
-                  <div>
-                    <h3 className="font-bold text-base sm:text-lg text-white">
-                      {syncResult.success ? 'Sincronização Concluída!' : 'Erro na Sincronização'}
-                    </h3>
-                    <p className="text-xs text-gray-400">
-                      {syncResult.timestamp && new Date(syncResult.timestamp).toLocaleString('pt-BR')}
-                      {syncResult.execution_time_ms && ` • ${syncResult.execution_time_ms}ms`}
-                    </p>
-                  </div>
-                </div>
-                
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowSyncDetails(false)}
-                  className="flex-shrink-0 h-8 w-8"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* Conteúdo do Card */}
-              <div className="p-4 space-y-4">
-                {syncResult.success ? (
-                  <>
-                    {/* Mensagem Principal */}
-                    <p className="text-sm text-gray-300">{syncResult.message}</p>
-                    
-                    {/* Estatísticas Principais */}
-                    {syncResult.stats && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50">
-                          <div className="text-cyan-400 font-bold text-xl">{syncResult.stats.total_found}</div>
-                          <div className="text-gray-400 text-xs mt-1">Encontrados</div>
-                        </div>
-                        <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50">
-                          <div className="text-purple-400 font-bold text-xl">{syncResult.stats.valid_after_validation}</div>
-                          <div className="text-gray-400 text-xs mt-1">Validados</div>
-                        </div>
-                        <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50">
-                          <div className="text-green-400 font-bold text-xl">{syncResult.stats.successfully_inserted}</div>
-                          <div className="text-gray-400 text-xs mt-1">Inseridos</div>
-                        </div>
-                        <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50">
-                          <div className="text-red-400 font-bold text-xl">{syncResult.stats.errors}</div>
-                          <div className="text-gray-400 text-xs mt-1">Erros</div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Fontes de Dados */}
-                    {syncResult.sources && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-white mb-2">📊 Fontes de Dados</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(syncResult.sources).map(([source, count]) => (
-                            <Badge 
-                              key={source}
-                              className="bg-blue-600/20 border-blue-500/30 text-blue-300 text-xs capitalize"
-                            >
-                              {source}: {count}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Breakdown de Validação */}
-                    {syncResult.validation_breakdown && (
-                      <div className="bg-gray-900/30 rounded-lg p-3 border border-gray-700/50">
-                        <h4 className="text-sm font-semibold text-white mb-2">🔍 Validação</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-400">Aprovados:</span>
-                            <span className="text-green-400 font-semibold">{syncResult.validation_breakdown.passed}</span>
-                          </div>
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-400">Reprovados:</span>
-                            <span className="text-red-400 font-semibold">{syncResult.validation_breakdown.failed}</span>
-                          </div>
-                          
-                          {syncResult.validation_breakdown.failure_reasons && Object.keys(syncResult.validation_breakdown.failure_reasons).length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-gray-700/50">
-                              <p className="text-xs text-gray-400 mb-2">Motivos de reprovação:</p>
-                              <div className="space-y-1">
-                                {Object.entries(syncResult.validation_breakdown.failure_reasons).map(([reason, count]) => (
-                                  <div key={reason} className="flex justify-between text-xs">
-                                    <span className="text-gray-500">{reason}:</span>
-                                    <span className="text-gray-400">{count}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Erros de Inserção */}
-                    {syncResult.errors && syncResult.errors.count > 0 && (
-                      <div className="bg-red-900/10 rounded-lg p-3 border border-red-500/30">
-                        <h4 className="text-sm font-semibold text-red-400 mb-2">⚠️ Erros de Inserção ({syncResult.errors.count})</h4>
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
-                          {syncResult.errors.details?.map((err, idx) => (
-                            <div key={idx} className="text-xs bg-gray-900/50 rounded p-2">
-                              <div className="text-red-300 font-semibold">{err.title}</div>
-                              <div className="text-gray-400 text-[10px] mt-0.5">
-                                {err.source} • {err.error}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Eventos Inválidos */}
-                    {syncResult.invalid_events && syncResult.invalid_events.count > 0 && (
-                      <div className="bg-yellow-900/10 rounded-lg p-3 border border-yellow-500/30">
-                        <h4 className="text-sm font-semibold text-yellow-400 mb-2">⚠️ Eventos Inválidos ({syncResult.invalid_events.count})</h4>
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
-                          {syncResult.invalid_events.samples?.map((inv, idx) => (
-                            <div key={idx} className="text-xs bg-gray-900/50 rounded p-2">
-                              <div className="text-yellow-300 font-semibold">{inv.title}</div>
-                              <div className="text-gray-400 text-[10px] mt-0.5">
-                                {inv.source} • {inv.reason}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-red-300 text-sm font-semibold">{syncResult.error}</p>
-                    {syncResult.stack && (
-                      <details className="text-xs text-gray-400 bg-gray-900/50 rounded p-2">
-                        <summary className="cursor-pointer">Stack Trace</summary>
-                        <pre className="mt-2 overflow-x-auto">{syncResult.stack}</pre>
-                      </details>
-                    )}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => navigate(createPageUrl("CriarEvento"))}
+            className="bg-gradient-to-r from-cyan-600 to-purple-600"
+          >
+            Criar Evento
+          </Button>
+          <Button
+            onClick={() => navigate(createPageUrl("MeusEventos"))}
+            variant="outline"
+            className="border-gray-600"
+          >
+            Gerenciar Eventos
+          </Button>
+        </div>
+      </div>
 
       {/* Cards de Métricas Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -755,7 +526,6 @@ export default function DashboardOrganizador() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
     </div>
   );
 }
