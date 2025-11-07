@@ -1,53 +1,54 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Notification } from "@/entities/Notification";
-import { User } from "@/entities/User";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Bell, Zap, Star, MessageSquare, Settings } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell, Zap, Star, MessageSquare, Settings, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import NotificationCard from "../components/notifications/NotificationCard";
 import NotificationSettings from "../components/notifications/NotificationSettings";
 
 export default function Notificacoes() {
-  const [notifications, setNotifications] = useState([]);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [filter, setFilter] = useState("all");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const loadNotifications = useCallback(async () => {
-    try {
-      const userData = await User.me();
-      setUser(userData);
-      
-      const notificationData = await Notification.filter(
-        { user_id: userData.id },
+  // CORREÇÃO: Usar base44.auth.me() ao invés de import User
+  const { data: user, isLoading: loadingUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch (error) {
+        navigate(createPageUrl("BemVindo"));
+        throw error;
+      }
+    },
+    retry: false,
+    staleTime: Infinity,
+  });
+
+  // CORREÇÃO: Usar base44.entities ao invés de import Notification
+  const { data: notifications = [], isLoading: loadingNotifications, refetch } = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return await base44.entities.Notification.filter(
+        { user_id: user.id },
         "-created_date",
         50
       );
-      setNotifications(notificationData);
-    } catch (error) {
-      console.error("Erro ao carregar notificações:", error);
-      navigate(createPageUrl("BemVindo"));
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    },
+    enabled: !!user?.id,
+    staleTime: 30000,
+  });
 
   const markAsRead = async (notificationId) => {
     try {
-      await Notification.update(notificationId, { is_read: true });
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId ? { ...notif, is_read: true } : notif
-        )
-      );
+      await base44.entities.Notification.update(notificationId, { is_read: true });
+      queryClient.invalidateQueries(['notifications']);
     } catch (error) {
       console.error("Erro ao marcar como lida:", error);
     }
@@ -55,23 +56,15 @@ export default function Notificacoes() {
 
   const markAllAsRead = async () => {
     const unreadNotifications = notifications.filter(n => !n.is_read);
-    const unreadIds = unreadNotifications.map(n => n.id);
-
-    if (unreadIds.length === 0) return;
+    if (unreadNotifications.length === 0) return;
     
-    // Otimização: Em vez de um loop, idealmente usaríamos um endpoint de "bulk update".
-    // Como não temos, vamos processar em lotes para evitar o rate limit.
-    const promises = unreadIds.map(id => Notification.update(id, { is_read: true }));
-
     try {
-      await Promise.all(promises);
-
-      // Atualiza o estado local de uma vez
-      setNotifications(prev => 
-        prev.map(notif => 
-          unreadIds.includes(notif.id) ? { ...notif, is_read: true } : notif
+      await Promise.all(
+        unreadNotifications.map(n => 
+          base44.entities.Notification.update(n.id, { is_read: true })
         )
       );
+      queryClient.invalidateQueries(['notifications']);
     } catch (error) {
       console.error("Erro ao marcar todas como lidas:", error);
       alert("Ocorreu um erro. Tente novamente.");
@@ -86,10 +79,10 @@ export default function Notificacoes() {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  if (loading) {
+  if (loadingUser || loadingNotifications) {
     return (
       <div className="w-full h-[calc(100vh-80px)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-500"></div>
+        <Loader2 className="w-16 h-16 animate-spin text-cyan-500" />
       </div>
     );
   }
@@ -137,7 +130,7 @@ export default function Notificacoes() {
         <NotificationSettings 
           user={user}
           onClose={() => setShowSettings(false)}
-          onUpdate={loadNotifications}
+          onUpdate={refetch}
         />
       )}
 

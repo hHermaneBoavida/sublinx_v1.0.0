@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
-import { User } from "@/entities/User";
-import { Subscription } from "@/entities/Subscription";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Check, Crown, Zap, Star, CreditCard } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, Crown, Zap, Star, CreditCard, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,120 +71,107 @@ const plans = [
 ];
 
 export default function Planos() {
-  const [user, setUser] = useState(null);
-  const [currentSubscription, setCurrentSubscription] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [processing, setProcessing] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      const userData = await User.me();
-      setUser(userData);
-      
-      // Tentar carregar assinatura atual
+  // CORREÇÃO: Usar base44.auth.me() e base44.entities
+  const { data: user, isLoading: loadingUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
       try {
-        const subscriptions = await Subscription.filter(
-          { user_id: userData.id, status: "active" }
-        );
-        if (subscriptions.length > 0) {
-          setCurrentSubscription(subscriptions[0]);
-        }
+        return await base44.auth.me();
       } catch (error) {
-        console.log("Nenhuma assinatura encontrada ou erro ao buscar assinatura:", error);
+        navigate(createPageUrl("BemVindo"));
+        throw error;
       }
-    } catch (error) {
-      console.error("Usuário não autenticado:", error);
-      navigate(createPageUrl("BemVindo"));
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    retry: false,
+    staleTime: Infinity,
+  });
+
+  const { data: currentSubscription } = useQuery({
+    queryKey: ['subscription', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const subscriptions = await base44.entities.Subscription.filter(
+        { user_id: user.id, status: "active" }
+      );
+      return subscriptions.length > 0 ? subscriptions[0] : null;
+    },
+    enabled: !!user?.id,
+  });
 
   const handleSubscribe = async (planId) => {
     const plan = plans.find(p => p.id === planId);
     
-    // If it's a paid plan, open the payment modal
     if (plan.price > 0) {
       setSelectedPlan(plan);
       setShowPaymentModal(true);
       return;
     }
     
-    // If it's the free plan, proceed directly
+    // Plano gratuito
     try {
-      // Cancelar assinatura atual se existir
+      setProcessing(true);
+      
       if (currentSubscription) {
-        await Subscription.update(currentSubscription.id, { status: "cancelled" });
+        await base44.entities.Subscription.update(currentSubscription.id, { status: "cancelled" });
       }
       
-      // Criar nova assinatura para o plano gratuito
-      const newSubscription = await Subscription.create({
+      await base44.entities.Subscription.create({
         user_id: user.id,
         plan_type: planId,
         price: plan.price,
         start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 dias (though for free plan it's symbolic)
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         features: plan.features
       });
       
-      setCurrentSubscription(newSubscription);
-      
-      // Atualizar dados do usuário para o plano gratuito
-      const userUpdates = {
+      await base44.auth.updateMe({
         subscription_type: planId,
         is_pro_member: false,
         is_organizer: false,
         secret_mode_unlocked: false,
         verified_organizer: false,
-      };
+      });
       
-      await User.updateMyUserData(userUpdates);
+      queryClient.invalidateQueries(['currentUser']);
+      queryClient.invalidateQueries(['subscription']);
       
       alert(`Plano ${plan.name} ativado com sucesso!`);
-      
-      // Recarregar dados do usuário
-      await loadUserData();
-      
     } catch (error) {
-      console.error("Erro ao processar assinatura do plano gratuito:", error);
-      alert("Erro ao processar assinatura do plano gratuito. Tente novamente.");
+      console.error("Erro ao processar assinatura:", error);
+      alert("Erro ao processar assinatura. Tente novamente.");
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handlePayment = async (paymentMethod) => {
-    if (!selectedPlan || !user) return; // Should not happen if modal is properly opened
+    if (!selectedPlan || !user) return;
     
     try {
-      // Simular processamento de pagamento
-      // In a real application, this would integrate with a payment gateway (e.g., Stripe, PagSeguro)
-      console.log(`Processing payment for ${selectedPlan.name} via ${paymentMethod}...`);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
-      console.log("Payment simulated successfully.");
+      setProcessing(true);
       
-      // Cancelar assinatura atual se existir
+      console.log(`Processing payment for ${selectedPlan.name} via ${paymentMethod}...`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       if (currentSubscription) {
-        await Subscription.update(currentSubscription.id, { status: "cancelled" });
+        await base44.entities.Subscription.update(currentSubscription.id, { status: "cancelled" });
       }
       
-      // Criar nova assinatura após pagamento
-      const newSubscription = await Subscription.create({
+      await base44.entities.Subscription.create({
         user_id: user.id,
         plan_type: selectedPlan.id,
         price: selectedPlan.price,
         start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 dias
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         features: selectedPlan.features
       });
       
-      setCurrentSubscription(newSubscription);
-      
-      // Atualizar dados do usuário baseado no plano pago
       const userUpdates = {
         subscription_type: selectedPlan.id
       };
@@ -202,25 +188,27 @@ export default function Planos() {
         userUpdates.verified_organizer = true;
       }
       
-      await User.updateMyUserData(userUpdates);
+      await base44.auth.updateMe(userUpdates);
       
-      setShowPaymentModal(false); // Close modal
-      setSelectedPlan(null); // Clear selected plan
+      queryClient.invalidateQueries(['currentUser']);
+      queryClient.invalidateQueries(['subscription']);
+      
+      setShowPaymentModal(false);
+      setSelectedPlan(null);
       alert(`Pagamento confirmado! Plano ${selectedPlan.name} ativado com sucesso!`);
-      
-      // Recarregar dados do usuário para refletir as mudanças
-      await loadUserData();
       
     } catch (error) {
       console.error("Erro no pagamento:", error);
       alert("Erro ao processar pagamento. Tente novamente.");
+    } finally {
+      setProcessing(false);
     }
   };
 
-  if (loading) {
+  if (loadingUser) {
     return (
       <div className="w-full h-[calc(100vh-80px)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-500"></div>
+        <Loader2 className="w-16 h-16 animate-spin text-cyan-500" />
       </div>
     );
   }
@@ -306,7 +294,7 @@ export default function Planos() {
 
                 <Button
                   onClick={() => handleSubscribe(plan.id)}
-                  disabled={isActive}
+                  disabled={isActive || processing}
                   className={`w-full h-12 font-semibold ${
                     isActive
                       ? "bg-green-600 text-white cursor-not-allowed"
@@ -315,7 +303,7 @@ export default function Planos() {
                       : "bg-gray-800 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
                   }`}
                 >
-                  {isActive ? "Plano Ativo" : "Assinar Agora"}
+                  {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : isActive ? "Plano Ativo" : "Assinar Agora"}
                 </Button>
               </CardContent>
             </Card>
@@ -338,8 +326,10 @@ export default function Planos() {
           <div className="space-y-4 py-4">
             <Button
               onClick={() => handlePayment('pix')}
+              disabled={processing}
               className="w-full h-14 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
             >
+              {processing ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : null}
               <div className="flex items-center justify-center gap-3">
                 <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
                   <span className="text-green-600 font-bold text-sm">PIX</span>
@@ -371,12 +361,11 @@ export default function Planos() {
 
             <Button
               onClick={() => handlePayment('card')}
+              disabled={processing}
               className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
             >
-              <div className="flex items-center justify-center gap-3">
-                <CreditCard className="w-6 h-6" />
-                Cartão de Crédito
-              </div>
+              {processing ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <CreditCard className="w-6 h-6 mr-2" />}
+              Cartão de Crédito
             </Button>
 
             <Separator className="bg-gray-700" />
@@ -395,6 +384,7 @@ export default function Planos() {
             <Button
               variant="outline"
               onClick={() => setShowPaymentModal(false)}
+              disabled={processing}
               className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
             >
               Cancelar

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Event } from '@/entities/Event';
-import { Ticket } from '@/entities/Ticket';
-import { User } from '@/entities/User';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -15,9 +14,6 @@ export default function ComprarIngresso() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const [event, setEvent] = useState(null);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [selectedTicketType, setSelectedTicketType] = useState(null);
   
@@ -25,36 +21,46 @@ export default function ComprarIngresso() {
   const eventId = searchParams.get('eventId');
   const requestId = searchParams.get('requestId');
 
+  // CORREÇÃO: Usar base44.auth.me() e base44.entities
+  const { data: user, isLoading: loadingUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch (error) {
+        navigate(createPageUrl("BemVindo"));
+        throw error;
+      }
+    },
+    retry: false,
+    staleTime: Infinity,
+  });
+
+  const { data: event, isLoading: loadingEvent } = useQuery({
+    queryKey: ['event', eventId],
+    queryFn: async () => {
+      if (!eventId) return null;
+      const events = await base44.entities.Event.filter({ id: eventId });
+      if (events.length === 0) {
+        throw new Error("Evento não encontrado");
+      }
+      return events[0];
+    },
+    enabled: !!eventId,
+  });
+
   useEffect(() => {
     if (!eventId || !requestId) {
       navigate(createPageUrl("Mapa"));
       return;
     }
-    
-    const fetchData = async () => {
-      try {
-        const userData = await User.me();
-        setUser(userData);
-        const eventData = await Event.filter({ id: eventId });
-        if (eventData.length === 0) {
-          throw new Error("Evento não encontrado");
-        }
-        setEvent(eventData[0]);
-        // Seleciona o primeiro tipo de ingresso por padrão
-        if (eventData[0].ticket_types && eventData[0].ticket_types.length > 0) {
-          setSelectedTicketType(eventData[0].ticket_types[0]);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-        alert("Erro ao carregar informações. Tente novamente.");
-        navigate(createPageUrl("Mapa"));
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
   }, [eventId, requestId, navigate]);
+
+  useEffect(() => {
+    if (event && event.ticket_types && event.ticket_types.length > 0) {
+      setSelectedTicketType(event.ticket_types[0]);
+    }
+  }, [event]);
 
   const handlePurchase = async (paymentMethod) => {
     if (!selectedTicketType || !user || !event) {
@@ -64,12 +70,11 @@ export default function ComprarIngresso() {
     
     setProcessing(true);
     try {
-      // Simula o processamento do pagamento
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const qrCodeData = `sublinx-ticket:${Date.now()}:${user.id}:${event.id}`;
 
-      await Ticket.create({
+      await base44.entities.Ticket.create({
         user_id: user.id,
         event_id: event.id,
         event_request_id: requestId,
@@ -90,10 +95,10 @@ export default function ComprarIngresso() {
     }
   };
 
-  if (loading) {
+  if (loadingUser || loadingEvent) {
     return (
       <div className="w-full h-[calc(100vh-80px)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-500"></div>
+        <Loader2 className="w-16 h-16 animate-spin text-cyan-500" />
       </div>
     );
   }
