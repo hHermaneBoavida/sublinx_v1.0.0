@@ -403,12 +403,12 @@ export default function MapView({
         }
       }}
     >
-      {/* Background Minimalista */}
-      <div className="absolute inset-0 z-0 bg-gray-950">
-        <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient} opacity-10`} />
+      {/* Background Escuro - DARK MOON MODE */}
+      <div className="absolute inset-0 z-0 bg-black">
+        <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient} opacity-15`} />
       </div>
 
-      {/* Mapa OpenStreetMap ESTILO APPLE MAPS */}
+      {/* Mapa OpenStreetMap - MODO DARK MOON */}
       <div className="absolute inset-0 z-1">
         <iframe
           width="100%"
@@ -418,16 +418,16 @@ export default function MapView({
           src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${userLocation.lat},${userLocation.lng}`}
           className="absolute inset-0"
           style={{
-            filter: 'grayscale(0%) brightness(1) contrast(1.1) saturate(0.85) hue-rotate(5deg)',
-            opacity: 0.92,
+            filter: 'grayscale(80%) brightness(0.35) contrast(1.4) saturate(0.2) invert(92%) hue-rotate(180deg)',
+            opacity: 0.65,
             pointerEvents: 'none'
           }}
           loading="lazy"
         />
       </div>
 
-      {/* Overlay Sutil */}
-      <div className="absolute inset-0 bg-gradient-to-t from-gray-950/30 via-transparent to-gray-950/20 pointer-events-none z-2" />
+      {/* Overlay Escuro Forte */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/50 pointer-events-none z-2" />
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
