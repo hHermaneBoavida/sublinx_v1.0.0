@@ -21,7 +21,8 @@ import {
   Send,
   Lock,
   Shield,
-  Trash2
+  Trash2,
+  ExternalLink // Added ExternalLink icon
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -64,6 +65,8 @@ export default function EventFeedCard({
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [newComment, setNewComment] = useState("");
+
+  const isExternalEvent = event.external_source && event.external_source !== 'native';
 
   // BUSCAR DADOS ATUALIZADOS DO ORGANIZADOR SEMPRE
   const { data: organizerData, refetch: refetchOrganizer } = useQuery({
@@ -227,7 +230,28 @@ export default function EventFeedCard({
       return;
     }
 
+    // Se for evento externo, redirecionar para URL externa
+    if (isExternalEvent && event.external_url) {
+      window.open(event.external_url, '_blank');
+      return;
+    }
+
     setShowRequestModal(true);
+  };
+
+  const handleBuyTicket = () => {
+    if (isGuest) {
+      navigate(createPageUrl("BemVindo"));
+      return;
+    }
+
+    // Se for evento externo, redirecionar para URL externa
+    if (isExternalEvent && event.external_url) {
+      window.open(event.external_url, '_blank');
+      return;
+    }
+
+    navigate(createPageUrl("ComprarIngresso") + `?eventId=${event.id}`);
   };
 
   const handlePlayAudio = () => {
@@ -263,6 +287,12 @@ export default function EventFeedCard({
                   <Badge className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-[8px] px-0.5 py-0 h-3.5">
                     <Shield className="w-2 h-2 mr-0.5" />
                     ORG
+                  </Badge>
+                )}
+                {isExternalEvent && (
+                  <Badge className="bg-blue-600/20 border-blue-500/30 text-blue-300 text-[8px] px-0.5 py-0 h-3.5">
+                    <ExternalLink className="w-2 h-2 mr-0.5" />
+                    {event.external_source?.toUpperCase()}
                   </Badge>
                 )}
               </div>
@@ -421,8 +451,16 @@ export default function EventFeedCard({
             )}
           </div>
 
-          {/* CTA Ultra Compacto */}
-          {requestStatus ? (
+          {/* CTA Ultra Compacto - MODIFICADO PARA EVENTOS EXTERNOS */}
+          {isExternalEvent ? (
+            <Button 
+              onClick={handleBuyTicket}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-8 text-xs"
+            >
+              <ExternalLink className="w-3 h-3 mr-1" />
+              Ver no {event.external_source}
+            </Button>
+          ) : requestStatus ? (
             <div className="flex items-center justify-between p-1.5 bg-gray-800/50 rounded-lg">
               {requestStatus === 'approved' ? (
                 <>
@@ -469,7 +507,7 @@ export default function EventFeedCard({
             </Button>
           ) : (
             <Button 
-              onClick={() => navigate(createPageUrl("ComprarIngresso") + `?eventId=${event.id}`)}
+              onClick={handleBuyTicket}
               className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-8 text-xs"
             >
               <Users className="w-3 h-3 mr-1" />

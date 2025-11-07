@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,18 +14,25 @@ import {
 } from 'recharts';
 import {
   TrendingUp, Users, DollarSign, Calendar, MessageSquare,
-  Gift, Target, Eye, Clock, MapPin, Share2, BarChart3, Heart
+  Gift, Target, Eye, Clock, MapPin, Share2, BarChart3, Heart,
+  Plus, RefreshCw, Loader2, ExternalLink, CheckCircle2, AlertCircle, X
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { AnimatePresence, motion } from "framer-motion";
+
 
 const COLORS = ['#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
 export default function DashboardOrganizador() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  const [syncingEvents, setSyncingEvents] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
 
   // Verificar acesso de organizador
   useEffect(() => {
@@ -96,6 +103,35 @@ export default function DashboardOrganizador() {
     enabled: events.length > 0,
   });
 
+  const handleSyncExternalEvents = async () => {
+    if (!user || user.role !== 'admin') {
+      alert('❌ Apenas administradores podem sincronizar eventos externos');
+      return;
+    }
+
+    setSyncingEvents(true);
+    setSyncResult(null);
+
+    try {
+      const { data } = await base44.functions.invoke('syncExternalEvents', {
+        city: 'São Paulo',
+        force: true
+      });
+
+      setSyncResult(data);
+      queryClient.invalidateQueries(['organizerEvents']);
+      queryClient.invalidateQueries(['dashboardStats']); // Assuming a dashboardStats query exists
+    } catch (error) {
+      console.error('Erro na sincronização:', error);
+      setSyncResult({
+        success: false,
+        error: error.message || 'Erro desconhecido'
+      });
+    } finally {
+      setSyncingEvents(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full h-screen flex items-center justify-center">
@@ -119,7 +155,7 @@ export default function DashboardOrganizador() {
     const eventTickets = tickets.filter(t => t.event_id === event.id);
     const revenue = eventTickets.reduce((sum, t) => sum + (t.price || 0), 0);
     return {
-      name: event.title.substring(0, 15) + '...',
+      name: event.title.substring(0, 15) + (event.title.length > 15 ? '...' : ''),
       revenue,
       tickets: eventTickets.length
     };
@@ -143,31 +179,135 @@ export default function DashboardOrganizador() {
   }));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text mb-2">
-            Dashboard de Organizador
-          </h1>
-          <p className="text-gray-400">Analise o desempenho dos seus eventos</p>
+    <div className="min-h-screen bg-black text-white p-4 sm:p-6 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
+              Dashboard Organizador
+            </h1>
+            <p className="text-gray-400 text-sm sm:text-base">
+              Bem-vindo, <span className="text-cyan-400 font-semibold">{user?.full_name || user?.email}</span>
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
+            {user?.role === 'admin' && (
+              <Button
+                onClick={handleSyncExternalEvents}
+                disabled={syncingEvents}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-xs sm:text-sm h-9 sm:h-10 flex-1 sm:flex-none"
+              >
+                {syncingEvents ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sincronizando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Sync APIs
+                  </>
+                )}
+              </Button>
+            )}
+            <Link to={createPageUrl("CriarEvento")} className="flex-1 sm:flex-none">
+              <Button className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-xs sm:text-sm h-9 sm:h-10">
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Evento
+              </Button>
+            </Link>
+            <Link to={createPageUrl("IntegracoesIngressos")} className="flex-1 sm:flex-none">
+              <Button variant="outline" className="w-full border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 text-xs sm:text-sm h-9 sm:h-10">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Integrações
+              </Button>
+            </Link>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => navigate(createPageUrl("CriarEvento"))}
-            className="bg-gradient-to-r from-cyan-600 to-purple-600"
-          >
-            Criar Evento
-          </Button>
-          <Button
-            onClick={() => navigate(createPageUrl("MeusEventos"))}
-            variant="outline"
-            className="border-gray-600"
-          >
-            Gerenciar Eventos
-          </Button>
-        </div>
-      </div>
+
+        {/* Resultado da Sincronização */}
+        <AnimatePresence>
+          {syncResult && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className={`p-4 rounded-lg border ${
+                syncResult.success 
+                  ? 'bg-green-900/20 border-green-500/50' 
+                  : 'bg-red-900/20 border-red-500/50'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm sm:text-base mb-2 flex items-center gap-2">
+                    {syncResult.success ? (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
+                        Sincronização Concluída!
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-5 h-5 text-red-400" />
+                        Erro na Sincronização
+                      </>
+                    )}
+                  </h3>
+                  
+                  {syncResult.success ? (
+                    <div className="space-y-2 text-xs sm:text-sm">
+                      <p className="text-gray-300">{syncResult.message}</p>
+                      
+                      {syncResult.stats && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                          <div className="bg-black/30 rounded p-2">
+                            <div className="text-cyan-400 font-bold text-lg">{syncResult.stats.total_found}</div>
+                            <div className="text-gray-400 text-xs">Encontrados</div>
+                          </div>
+                          <div className="bg-black/30 rounded p-2">
+                            <div className="text-purple-400 font-bold text-lg">{syncResult.stats.valid_after_validation}</div>
+                            <div className="text-gray-400 text-xs">Validados</div>
+                          </div>
+                          <div className="bg-black/30 rounded p-2">
+                            <div className="text-green-400 font-bold text-lg">{syncResult.stats.successfully_inserted}</div>
+                            <div className="text-gray-400 text-xs">Inseridos</div>
+                          </div>
+                          <div className="bg-black/30 rounded p-2">
+                            <div className="text-red-400 font-bold text-lg">{syncResult.stats.errors}</div>
+                            <div className="text-gray-400 text-xs">Erros</div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {syncResult.sources && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Badge className="bg-blue-600/20 border-blue-500/30 text-blue-300 text-xs">
+                            Eventbrite: {syncResult.sources.eventbrite}
+                          </Badge>
+                          <Badge className="bg-purple-600/20 border-purple-500/30 text-purple-300 text-xs">
+                            JamBase: {syncResult.sources.jambase}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-red-300 text-sm">{syncResult.error}</p>
+                  )}
+                </div>
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSyncResult(null)}
+                  className="flex-shrink-0 h-8 w-8"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       {/* Cards de Métricas Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -526,6 +666,7 @@ export default function DashboardOrganizador() {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
     </div>
   );
 }
