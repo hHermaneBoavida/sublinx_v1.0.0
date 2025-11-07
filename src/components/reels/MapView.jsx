@@ -106,8 +106,7 @@ const EventPin = memo(({ cluster, position, onClick, theme, isExpanded }) => {
               <span className="text-gray-300 truncate max-w-[120px]">
                 {mainEvent.location.venue_name}
               </span>
-            </div>
-          </>
+            </>
         )}
       </motion.div>
 
@@ -338,13 +337,13 @@ export default function MapView({
         }
       }}
     >
-      {/* Background Temático UNDERGROUND - MAIS CLARO */}
-      <div className="absolute inset-0 z-0 bg-gray-900">
+      {/* Background Temático UNDERGROUND - 75% MAIS CLARO */}
+      <div className="absolute inset-0 z-0 bg-gray-800">
         <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient}`} />
         
-        {/* Grid Cyber UNDERGROUND - REDUZIDO */}
+        {/* Grid Cyber UNDERGROUND - MÍNIMO */}
         <div
-          className="absolute inset-0 opacity-[0.08]"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage: `
               linear-gradient(to right, ${vibeTheme.glowColor} 1px, transparent 1px),
@@ -355,15 +354,15 @@ export default function MapView({
           }}
         />
 
-        {/* Linhas Diagonais Underground - REDUZIDAS */}
+        {/* Linhas Diagonais Underground - MÍNIMAS */}
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute inset-0 opacity-[0.02]"
           style={{
             backgroundImage: `
               repeating-linear-gradient(
                 45deg,
-                ${vibeTheme.glowColor}20 0px,
-                ${vibeTheme.glowColor}20 1px,
+                ${vibeTheme.glowColor}15 0px,
+                ${vibeTheme.glowColor}15 1px,
                 transparent 1px,
                 transparent 40px
               )
@@ -371,24 +370,24 @@ export default function MapView({
           }}
         />
 
-        {/* Spots de Luz Underground - REDUZIDOS */}
+        {/* Spots de Luz Underground - MÍNIMOS */}
         <div 
-          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-10"
+          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-05"
           style={{
             background: `radial-gradient(circle, ${vibeTheme.glowColor}, transparent 70%)`,
             animation: 'pulse-slow 6s ease-in-out infinite'
           }}
         />
         <div 
-          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-08"
+          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-04"
           style={{
-            background: `radial-gradient(circle, rgba(168, 85, 247, 0.6), transparent 70%)`,
+            background: `radial-gradient(circle, rgba(168, 85, 247, 0.5), transparent 70%)`,
             animation: 'pulse-slow 8s ease-in-out infinite 1s'
           }}
         />
       </div>
 
-      {/* Mapa OpenStreetMap - 60% MAIS CLARO */}
+      {/* Mapa OpenStreetMap - 75% MAIS CLARO */}
       <div className="absolute inset-0 z-1">
         <iframe
           key={`map-${bbox}-${zoomLevel}`} // NOVO: Key para forçar re-render no zoom
@@ -399,23 +398,23 @@ export default function MapView({
           src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${userLocation.lat},${userLocation.lng}`}
           className="absolute inset-0"
           style={{
-            filter: 'grayscale(70%) invert(94%) brightness(0.88) contrast(1.2) hue-rotate(190deg) saturate(1.0)',
-            opacity: 0.95,
+            filter: 'grayscale(60%) invert(96%) brightness(1.15) contrast(1.1) hue-rotate(190deg) saturate(1.1)',
+            opacity: 1.0,
             pointerEvents: 'auto', // NOVO: Permitir interação para zoom
-            mixBlendMode: 'luminosity'
+            mixBlendMode: 'normal'
           }}
           loading="lazy"
         />
       </div>
 
-      {/* Overlay Gradiente - MUITO MAIS TRANSPARENTE */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/15 pointer-events-none z-2" />
+      {/* Overlay Gradiente - MÍNIMO */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-black/08 pointer-events-none z-2" />
 
-      {/* Efeito de Scan Line Underground - REDUZIDO */}
+      {/* Efeito de Scan Line Underground - MÍNIMO */}
       <motion.div
         className="absolute inset-0 pointer-events-none z-3"
         style={{
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(6, 182, 212, 0.015) 50%, transparent 100%)',
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(6, 182, 212, 0.008) 50%, transparent 100%)',
           height: '100%'
         }}
         animate={{
@@ -428,11 +427,11 @@ export default function MapView({
         }}
       />
 
-      {/* Vinheta Sutil - MUITO REDUZIDA */}
+      {/* Vinheta Sutil - MÍNIMA */}
       <div 
         className="absolute inset-0 pointer-events-none z-3"
         style={{
-          background: 'radial-gradient(circle at center, transparent 0%, transparent 70%, rgba(0,0,0,0.15) 100%)'
+          background: 'radial-gradient(circle at center, transparent 0%, transparent 75%, rgba(0,0,0,0.08) 100%)'
         }}
       />
 
