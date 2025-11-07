@@ -365,7 +365,7 @@ export default function MapView({
       minLat: Math.min(...lats, userLocation.lat) - 0.01,
       maxLat: Math.max(...lats, userLocation.lat) + 0.01,
       minLng: Math.min(...lngs, userLocation.lng) - 0.01,
-      maxLng: Math.max(...lngs, userLocation.lng) + 0.01, // ✅ CORRIGIDO: era userLocation.lat
+      maxLng: Math.max(...lngs, userLocation.lng) + 0.01,
     };
   }, [validEvents, userLocation]);
 
@@ -403,12 +403,10 @@ export default function MapView({
         }
       }}
     >
-      {/* Background Escuro - DARK MOON MODE */}
-      <div className="absolute inset-0 z-0 bg-black">
-        <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient} opacity-15`} />
-      </div>
+      {/* Background PRETO TOTAL */}
+      <div className="absolute inset-0 z-0 bg-black" />
 
-      {/* Mapa OpenStreetMap - MODO DARK MOON */}
+      {/* Mapa OpenStreetMap - ULTRA ESCURO */}
       <div className="absolute inset-0 z-1">
         <iframe
           width="100%"
@@ -418,20 +416,81 @@ export default function MapView({
           src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${userLocation.lat},${userLocation.lng}`}
           className="absolute inset-0"
           style={{
-            filter: 'grayscale(80%) brightness(0.35) contrast(1.4) saturate(0.2) invert(92%) hue-rotate(180deg)',
-            opacity: 0.65,
+            filter: 'grayscale(100%) brightness(0.15) contrast(1.8) saturate(0) invert(100%) hue-rotate(180deg)',
+            opacity: 0.35,
             pointerEvents: 'none'
           }}
           loading="lazy"
         />
       </div>
 
-      {/* Overlay Escuro Forte */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/50 pointer-events-none z-2" />
+      {/* Overlay Mínimo - Apenas para suavizar */}
+      <div className="absolute inset-0 bg-black/20 pointer-events-none z-2" />
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* Marcador do Usuário ESTILO APPLE - MENOR */}
+        {/* CÍRCULO DE RAIO VISÍVEL - 10km */}
+        <motion.div
+          className="absolute rounded-full border-2 pointer-events-none"
+          style={{
+            left: `${userPosition.x}%`,
+            top: `${userPosition.y}%`,
+            width: '600px',
+            height: '600px',
+            marginLeft: '-300px',
+            marginTop: '-300px',
+            borderColor: vibeTheme.glowColor,
+            boxShadow: `
+              0 0 40px ${vibeTheme.glowColor}80,
+              0 0 80px ${vibeTheme.glowColor}40,
+              inset 0 0 40px ${vibeTheme.glowColor}20
+            `,
+          }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ 
+            scale: [1, 1.02, 1],
+            opacity: [0.4, 0.6, 0.4]
+          }}
+          transition={{
+            scale: {
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut"
+            },
+            opacity: {
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }
+          }}
+        />
+
+        {/* SEGUNDO CÍRCULO - Anel interno */}
+        <motion.div
+          className="absolute rounded-full border pointer-events-none"
+          style={{
+            left: `${userPosition.x}%`,
+            top: `${userPosition.y}%`,
+            width: '400px',
+            height: '400px',
+            marginLeft: '-200px',
+            marginTop: '-200px',
+            borderColor: vibeTheme.glowColor,
+            borderWidth: '1px',
+            opacity: 0.3,
+          }}
+          animate={{ 
+            scale: [1, 1.05, 1],
+            opacity: [0.2, 0.4, 0.2]
+          }}
+          transition={{
+            duration: 5,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+
+        {/* Marcador do Usuário - INTENSIFICADO */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-40"
           style={{ 
@@ -448,21 +507,22 @@ export default function MapView({
           }}
         >
           <div className="relative flex items-center justify-center">
-            {/* Camada 1: Glow Ambiente REDUZIDO */}
+            {/* Glow Ambiente SUPER INTENSO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '140px',
-                height: '140px',
+                width: '300px',
+                height: '300px',
                 background: `radial-gradient(circle at center, 
-                  ${vibeTheme.glowColor}28 0%, 
-                  ${vibeTheme.glowColor}15 40%, 
+                  ${vibeTheme.glowColor}80 0%, 
+                  ${vibeTheme.glowColor}40 20%, 
+                  ${vibeTheme.glowColor}20 40%,
                   transparent 70%)`,
-                filter: 'blur(16px)',
+                filter: 'blur(40px)',
               }}
               animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.4, 0.6, 0.4],
+                scale: [1, 1.2, 1],
+                opacity: [0.6, 0.9, 0.6],
               }}
               transition={{
                 duration: 3,
@@ -471,157 +531,176 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 2: Pulso Discreto */}
+            {/* Pulso Forte */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '100px',
-                height: '100px',
+                width: '200px',
+                height: '200px',
                 background: `radial-gradient(circle at center, 
-                  ${vibeTheme.glowColor}20 0%, 
-                  transparent 65%)`,
-                filter: 'blur(10px)',
+                  ${vibeTheme.glowColor}60 0%, 
+                  ${vibeTheme.glowColor}30 30%,
+                  transparent 70%)`,
+                filter: 'blur(20px)',
               }}
               animate={{
-                scale: [1, 1.4, 1],
-                opacity: [0.5, 0, 0.5],
+                scale: [1, 1.6, 1],
+                opacity: [0.8, 0, 0.8],
               }}
               transition={{
-                duration: 2.5,
+                duration: 2,
                 repeat: Infinity,
                 ease: "easeOut"
               }}
             />
 
-            {/* Sombra 3D Sutil */}
+            {/* Sombra 3D */}
             <div
-              className="absolute top-full mt-1 left-1/2 -translate-x-1/2"
+              className="absolute top-full mt-2 left-1/2 -translate-x-1/2"
               style={{
-                width: '32px',
-                height: '8px',
-                background: `radial-gradient(ellipse, rgba(0,0,0,0.4) 0%, transparent 70%)`,
-                filter: 'blur(4px)'
+                width: '48px',
+                height: '12px',
+                background: `radial-gradient(ellipse, ${vibeTheme.glowColor}60 0%, transparent 70%)`,
+                filter: 'blur(8px)'
               }}
             />
 
-            {/* Marcador Central REDUZIDO - Estilo Apple */}
+            {/* Marcador Central - MAIOR E MAIS BRILHANTE */}
             <motion.div 
               className="relative z-50" 
               style={{
-                filter: `drop-shadow(0 4px 12px ${vibeTheme.glowColor}50) drop-shadow(0 2px 6px rgba(0,0,0,0.3))`,
+                filter: `drop-shadow(0 0 20px ${vibeTheme.glowColor}) drop-shadow(0 0 40px ${vibeTheme.glowColor}80) drop-shadow(0 4px 12px rgba(0,0,0,0.5))`,
               }}
               animate={{
-                scale: [1, 1.05, 1],
-                y: [0, -1, 0]
+                scale: [1, 1.08, 1],
+                y: [0, -2, 0]
               }}
               transition={{
-                duration: 2,
+                duration: 2.5,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
-              whileHover={{ scale: 1.1, y: -2 }}
+              whileHover={{ scale: 1.15, y: -3 }}
             >
-              {/* Anel Externo Branco */}
+              {/* Anel Externo Branco Grosso */}
               <div 
-                className="w-10 h-10 rounded-full relative overflow-hidden border-[3px] border-white"
+                className="w-16 h-16 rounded-full relative overflow-hidden border-[4px] border-white"
                 style={{
                   background: `
-                    radial-gradient(circle at 40% 35%, 
-                      rgba(59, 130, 246, 1) 0%,
-                      ${vibeTheme.glowColor} 100%)
+                    radial-gradient(circle at 35% 30%, 
+                      ${vibeTheme.glowColor} 0%,
+                      rgba(59, 130, 246, 1) 100%)
                   `,
                   boxShadow: `
-                    0 2px 12px ${vibeTheme.glowColor}60,
-                    0 4px 20px ${vibeTheme.glowColor}30,
-                    inset 0 -2px 6px rgba(0,0,0,0.3),
-                    inset 0 2px 6px rgba(255, 255, 255, 0.4)
+                    0 0 30px ${vibeTheme.glowColor},
+                    0 0 60px ${vibeTheme.glowColor}80,
+                    0 8px 24px rgba(0,0,0,0.4),
+                    inset 0 -3px 10px rgba(0,0,0,0.4),
+                    inset 0 3px 10px rgba(255, 255, 255, 0.5)
                   `,
                 }}
               >
-                {/* Brilho Interno */}
+                {/* Brilho Interno Intenso */}
                 <motion.div
                   className="absolute inset-0 rounded-full"
                   style={{
-                    background: `radial-gradient(circle at 40% 35%, 
-                      rgba(255, 255, 255, 0.7) 0%, 
-                      rgba(255, 255, 255, 0.2) 50%,
-                      transparent 70%)`,
+                    background: `radial-gradient(circle at 35% 30%, 
+                      rgba(255, 255, 255, 0.9) 0%, 
+                      rgba(255, 255, 255, 0.3) 50%,
+                      transparent 80%)`,
                   }}
                   animate={{
-                    opacity: [0.5, 0.8, 0.5],
-                    scale: [1, 1.15, 1]
+                    opacity: [0.6, 1, 0.6],
+                    scale: [1, 1.2, 1]
                   }}
                   transition={{
-                    duration: 2.2,
+                    duration: 2,
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
                 />
 
-                {/* Reflexo Superior */}
+                {/* Reflexo Superior Forte */}
                 <div 
                   className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
                   style={{
-                    background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.35) 0%, transparent 100%)'
+                    background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.6) 0%, transparent 100%)'
                   }}
                 />
 
-                {/* Ícone de Navegação MENOR */}
+                {/* Ícone de Navegação */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Navigation 
-                    className="w-5 h-5 text-white" 
-                    strokeWidth={2.5}
+                    className="w-7 h-7 text-white" 
+                    strokeWidth={3}
                     style={{
-                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))'
+                      filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.8))'
                     }}
                   />
                 </div>
               </div>
 
-              {/* Anel de Precisão Externo */}
+              {/* Anel de Precisão Externo - MAIS INTENSO */}
+              <motion.div
+                className="absolute inset-0 rounded-full border-[3px]"
+                style={{
+                  borderColor: vibeTheme.glowColor,
+                  boxShadow: `0 0 20px ${vibeTheme.glowColor}, 0 0 40px ${vibeTheme.glowColor}60`,
+                  transform: 'scale(1.4)'
+                }}
+                animate={{
+                  scale: [1.4, 1.8, 1.4],
+                  opacity: [0.8, 0, 0.8]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeOut"
+                }}
+              />
+
+              {/* Anel Extra */}
               <motion.div
                 className="absolute inset-0 rounded-full border-2"
                 style={{
-                  borderColor: `${vibeTheme.glowColor}50`,
-                  boxShadow: `0 0 10px ${vibeTheme.glowColor}40`,
-                  transform: 'scale(1.25)'
+                  borderColor: vibeTheme.glowColor,
+                  boxShadow: `0 0 15px ${vibeTheme.glowColor}80`,
+                  transform: 'scale(1.15)'
                 }}
                 animate={{
-                  scale: [1.25, 1.5, 1.25],
+                  scale: [1.15, 1.35, 1.15],
                   opacity: [0.6, 0, 0.6]
                 }}
                 transition={{
                   duration: 2.5,
                   repeat: Infinity,
-                  ease: "easeOut"
+                  ease: "easeOut",
+                  delay: 0.5
                 }}
               />
             </motion.div>
 
-            {/* Partículas Sutis */}
-            {[...Array(3)].map((_, i) => (
+            {/* Partículas Orbitais */}
+            {[...Array(6)].map((_, i) => (
               <motion.div
                 key={i}
                 className="absolute rounded-full pointer-events-none"
                 style={{
-                  width: '3px',
-                  height: '3px',
+                  width: '4px',
+                  height: '4px',
                   background: vibeTheme.glowColor,
-                  boxShadow: `0 0 6px ${vibeTheme.glowColor}`,
-                  filter: `blur(${Math.random() * 0.5}px)`,
-                  left: `${25 + (i * 50 / 2)}%`,
-                  top: `${15 + (i * 70 / 2)}%`,
+                  boxShadow: `0 0 10px ${vibeTheme.glowColor}`,
+                  left: `${50 + Math.cos((i * 60) * Math.PI / 180) * 60}px`,
+                  top: `${50 + Math.sin((i * 60) * Math.PI / 180) * 60}px`,
                 }}
                 animate={{
-                  y: [0, -12, 0],
-                  x: [0, Math.sin(i) * 8, 0],
-                  opacity: [0, 0.8, 0],
-                  scale: [0.5, 1.2, 0.5]
+                  scale: [1, 1.5, 1],
+                  opacity: [0.4, 1, 0.4],
                 }}
                 transition={{
-                  duration: 3 + Math.random() * 1.5,
+                  duration: 2,
                   repeat: Infinity,
-                  delay: Math.random() * 2,
+                  delay: i * 0.3,
                   ease: "easeInOut"
                 }}
               />
