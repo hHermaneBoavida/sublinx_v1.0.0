@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, Search, MapPin, Navigation, Compass, Music2, Layers } from 'lucide-react';
+import { Plus, Eye, Menu, Search, MapPin, Navigation, Compass, Music2, Layers, ZoomIn, ZoomOut } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery } from '@tanstack/react-query';
@@ -198,6 +198,7 @@ export default function MapView({
 }) {
   const [showRadiusInfo, setShowRadiusInfo] = useState(false);
   const [expandedCluster, setExpandedCluster] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(1); // NOVO: Estado de zoom (1 = default, 2 = mais zoom)
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -263,32 +264,36 @@ export default function MapView({
     });
   }, [events, userLocation]);
 
-  // Sistema de clustering
+  // Sistema de clustering COM ZOOM
   const eventClusters = useMemo(() => {
-    return clusterEvents(validEvents, 1);
-  }, [validEvents]);
+    return clusterEvents(validEvents, zoomLevel);
+  }, [validEvents, zoomLevel]);
 
-  // Bounds do mapa
+  // Bounds do mapa COM ZOOM
   const mapBounds = useMemo(() => {
+    const zoomFactor = 0.05 / zoomLevel; // Quanto maior o zoom, menor a área
+    
     if (validEvents.length === 0) {
       return {
-        minLat: userLocation.lat - 0.05,
-        maxLat: userLocation.lat + 0.05,
-        minLng: userLocation.lng - 0.05,
-        maxLng: userLocation.lng + 0.05
+        minLat: userLocation.lat - zoomFactor,
+        maxLat: userLocation.lat + zoomFactor,
+        minLng: userLocation.lng - zoomFactor,
+        maxLng: userLocation.lng + zoomFactor
       };
     }
 
     const lats = validEvents.map(e => e.location.lat);
     const lngs = validEvents.map(e => e.location.lng);
 
+    const padding = 0.01 / zoomLevel;
+
     return {
-      minLat: Math.min(...lats, userLocation.lat) - 0.01,
-      maxLat: Math.max(...lats, userLocation.lat) + 0.01,
-      minLng: Math.min(...lngs, userLocation.lng) - 0.01,
-      maxLng: Math.max(...lngs, userLocation.lat) + 0.01,
+      minLat: Math.min(...lats, userLocation.lat) - padding,
+      maxLat: Math.max(...lats, userLocation.lat) + padding,
+      minLng: Math.min(...lngs, userLocation.lng) - padding,
+      maxLng: Math.max(...lngs, userLocation.lat) + padding,
     };
-  }, [validEvents, userLocation]);
+  }, [validEvents, userLocation, zoomLevel]);
 
   const bbox = useMemo(() => {
     return `${mapBounds.minLng},${mapBounds.minLat},${mapBounds.maxLng},${mapBounds.maxLat}`;
@@ -311,6 +316,15 @@ export default function MapView({
       onPinDetailsClick(cluster.events[0]);
     }
   }, [onPinDetailsClick]);
+
+  // NOVO: Funções de zoom
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.5, 3)); // Max zoom: 3x
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.5, 0.5)); // Min zoom: 0.5x
+  };
 
   return (
     <motion.div
@@ -377,6 +391,7 @@ export default function MapView({
       {/* Mapa OpenStreetMap - 60% MAIS CLARO */}
       <div className="absolute inset-0 z-1">
         <iframe
+          key={`map-${bbox}-${zoomLevel}`} // NOVO: Key para forçar re-render no zoom
           width="100%"
           height="100%"
           frameBorder="0"
@@ -386,7 +401,7 @@ export default function MapView({
           style={{
             filter: 'grayscale(70%) invert(94%) brightness(0.88) contrast(1.2) hue-rotate(190deg) saturate(1.0)',
             opacity: 0.95,
-            pointerEvents: 'none',
+            pointerEvents: 'auto', // NOVO: Permitir interação para zoom
             mixBlendMode: 'luminosity'
           }}
           loading="lazy"
@@ -720,7 +735,34 @@ export default function MapView({
             <span>{RADIUS_KM}km</span>
           </motion.button>
 
-          <Link to={createPageUrl("Feed")} className="ml-auto">
+          {/* NOVO: Controles de Zoom */}
+          <div className="flex items-center gap-1 ml-auto">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleZoomOut}
+              disabled={zoomLevel <= 0.5}
+              className="p-1.5 rounded-lg bg-black/60 backdrop-blur-xl border border-gray-700/50 text-white hover:bg-black/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </motion.button>
+
+            <span className="px-2 py-1 bg-black/60 backdrop-blur-xl border border-gray-700/50 rounded-lg text-white text-xs min-w-[40px] text-center">
+              {zoomLevel.toFixed(1)}x
+            </span>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleZoomIn}
+              disabled={zoomLevel >= 3}
+              className="p-1.5 rounded-lg bg-black/60 backdrop-blur-xl border border-gray-700/50 text-white hover:bg-black/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </motion.button>
+          </div>
+
+          <Link to={createPageUrl("Feed")}>
             <Button
               variant="ghost"
               size="icon"
