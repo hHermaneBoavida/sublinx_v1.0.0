@@ -324,9 +324,9 @@ export default function MapView({
         }
       }}
     >
-      {/* Background Temático DARK NEON */}
-      <div className="absolute inset-0 z-0 bg-black">
-        <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient}`} />
+      {/* Background Temático MAIS CLARO */}
+      <div className="absolute inset-0 z-0 bg-gray-900">
+        <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient} opacity-40`} />
         
         {/* Grid Cyber Sutil */}
         <div
@@ -341,7 +341,7 @@ export default function MapView({
         />
       </div>
 
-      {/* Mapa OpenStreetMap DARK */}
+      {/* Mapa OpenStreetMap MAIS VISÍVEL */}
       <div className="absolute inset-0 z-1">
         <iframe
           width="100%"
@@ -351,20 +351,20 @@ export default function MapView({
           src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${userLocation.lat},${userLocation.lng}`}
           className="absolute inset-0"
           style={{
-            filter: 'grayscale(100%) invert(95%) brightness(0.35) contrast(1.2) hue-rotate(180deg)',
-            opacity: 0.6,
+            filter: 'grayscale(40%) brightness(0.75) contrast(1.1) saturate(0.5)',
+            opacity: 0.85,
             pointerEvents: 'none'
           }}
           loading="lazy"
         />
       </div>
 
-      {/* Overlay Gradiente */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/50 pointer-events-none z-2" />
+      {/* Overlay Gradiente REDUZIDO */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/30 pointer-events-none z-2" />
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* Marcador do Usuário REDESENHADO - MENOR E MAIS ATRAENTE */}
+        {/* Marcador do Usuário REDUZIDO E SIMPLIFICADO */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-40"
           style={{ 
@@ -381,161 +381,129 @@ export default function MapView({
           }}
         >
           <div className="relative flex items-center justify-center">
-            {/* Camada 1: Glow Ambiente Difuso - REDUZIDO */}
+            {/* Camada 1: Glow Ambiente REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '200px',
-                height: '200px',
-                background: `radial-gradient(circle at center, 
-                  ${vibeTheme.glowColor}20 0%, 
-                  ${vibeTheme.glowColor}12 30%, 
-                  ${vibeTheme.glowColor}06 60%,
-                  transparent 100%)`,
-                filter: 'blur(18px)',
-              }}
-              animate={{
-                scale: [1, 1.12, 1],
-                opacity: [0.35, 0.65, 0.35],
-              }}
-              transition={{
-                duration: 3.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-
-            {/* Camada 2: Rastro de Energia - REDUZIDO */}
-            <motion.div
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                width: '150px',
-                height: '150px',
+                width: '140px',
+                height: '140px',
                 background: `radial-gradient(circle at center, 
                   ${vibeTheme.glowColor}18 0%, 
-                  transparent 65%)`,
+                  ${vibeTheme.glowColor}10 30%, 
+                  transparent 70%)`,
                 filter: 'blur(12px)',
               }}
               animate={{
-                scale: [1, 1.25, 1],
-                opacity: [0.5, 0, 0.5],
+                scale: [1, 1.08, 1],
+                opacity: [0.3, 0.5, 0.3],
               }}
               transition={{
-                duration: 2.8,
-                repeat: Infinity,
-                ease: "easeOut",
-                delay: 0.4
-              }}
-            />
-
-            {/* Camada 3: Pulso Sonar - MAIS SUTIL */}
-            <motion.div
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                width: '10px',
-                height: '10px',
-                background: `radial-gradient(circle, ${vibeTheme.glowColor} 0%, transparent 70%)`,
-              }}
-              animate={{
-                scale: [1, 25, 1],
-                opacity: [0.9, 0, 0.9]
-              }}
-              transition={{
-                duration: 4.5,
-                repeat: Infinity,
-                ease: "easeOut",
-                repeatDelay: 1.5
-              }}
-            />
-
-            {/* Camada 4: Anel de Alcance - MAIS REFINADO */}
-            <motion.div
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                width: '170px',
-                height: '170px',
-                background: `radial-gradient(circle at center, 
-                  transparent 62%, 
-                  ${vibeTheme.glowColor}06 78%, 
-                  ${vibeTheme.glowColor}12 92%,
-                  transparent 100%)`,
-                border: `1px solid ${vibeTheme.glowColor}25`,
-                boxShadow: `
-                  0 0 30px ${vibeTheme.glowColor}15,
-                  inset 0 0 25px ${vibeTheme.glowColor}08
-                `,
-                filter: 'blur(1.5px)',
-              }}
-              animate={{
-                scale: [1, 1.015, 1],
-                opacity: [0.28, 0.48, 0.28],
-              }}
-              transition={{
-                duration: 5.5,
+                duration: 3,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
             />
 
-            {/* Camada 5: Marcador Central - MENOR E MAIS ELEGANTE */}
+            {/* Camada 2: Pulso Sonar MINIMALISTA */}
+            <motion.div
+              className="absolute rounded-full pointer-events-none"
+              style={{
+                width: '8px',
+                height: '8px',
+                background: `radial-gradient(circle, ${vibeTheme.glowColor} 0%, transparent 60%)`,
+              }}
+              animate={{
+                scale: [1, 20, 1],
+                opacity: [0.7, 0, 0.7]
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeOut",
+                repeatDelay: 2
+              }}
+            />
+
+            {/* Camada 3: Anel de Alcance SUTIL */}
+            <motion.div
+              className="absolute rounded-full pointer-events-none"
+              style={{
+                width: '120px',
+                height: '120px',
+                border: `1px solid ${vibeTheme.glowColor}20`,
+                boxShadow: `0 0 20px ${vibeTheme.glowColor}10`,
+                filter: 'blur(1px)',
+              }}
+              animate={{
+                scale: [1, 1.01, 1],
+                opacity: [0.2, 0.35, 0.2],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+
+            {/* Camada 4: Marcador Central MENOR (10x10 = 40px) */}
             <motion.div 
               className="relative z-50" 
               style={{
-                filter: `drop-shadow(0 0 20px ${vibeTheme.glowColor}) drop-shadow(0 0 40px ${vibeTheme.glowColor}70)`,
+                filter: `drop-shadow(0 0 15px ${vibeTheme.glowColor}90)`,
               }}
               animate={{
-                scale: [1, 1.06, 1],
+                scale: [1, 1.05, 1],
               }}
               transition={{
-                duration: 1.8,
+                duration: 2,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
             >
-              {/* Núcleo Externo - REDUZIDO PARA 12x12 (48px) */}
+              {/* Núcleo Reduzido 10x10 */}
               <div 
-                className="w-12 h-12 rounded-full relative overflow-hidden"
+                className="w-10 h-10 rounded-full relative overflow-hidden"
                 style={{
                   background: `
                     radial-gradient(circle at 35% 35%, 
                       rgba(59, 130, 246, 1) 0%,
-                      rgba(99, 102, 241, 1) 35%,
+                      rgba(99, 102, 241, 1) 30%,
                       ${vibeTheme.glowColor} 100%)
                   `,
-                  border: '2.5px solid rgba(255, 255, 255, 0.95)',
+                  border: '2px solid rgba(255, 255, 255, 0.95)',
                   boxShadow: `
-                    0 0 25px ${vibeTheme.glowColor},
-                    0 0 50px ${vibeTheme.glowColor}70,
-                    inset 0 0 18px rgba(255, 255, 255, 0.35)
+                    0 0 20px ${vibeTheme.glowColor},
+                    0 0 40px ${vibeTheme.glowColor}60,
+                    inset 0 0 15px rgba(255, 255, 255, 0.3)
                   `,
                 }}
               >
-                {/* Brilho Interno Animado */}
+                {/* Brilho Interno */}
                 <motion.div
                   className="absolute inset-0 rounded-full"
                   style={{
-                    background: `radial-gradient(circle at 42% 42%, 
-                      rgba(255, 255, 255, 0.7) 0%, 
-                      transparent 55%)`,
+                    background: `radial-gradient(circle at 40% 40%, 
+                      rgba(255, 255, 255, 0.6) 0%, 
+                      transparent 50%)`,
                   }}
                   animate={{
-                    opacity: [0.5, 0.85, 0.5],
-                    scale: [1, 1.15, 1]
+                    opacity: [0.4, 0.7, 0.4],
+                    scale: [1, 1.1, 1]
                   }}
                   transition={{
-                    duration: 2.2,
+                    duration: 2,
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
                 />
 
-                {/* Ícone de Navegação - AJUSTADO */}
+                {/* Ícone de Navegação MENOR */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Navigation 
-                    className="w-5 h-5 text-white" 
-                    strokeWidth={2.8}
+                    className="w-4 h-4 text-white" 
+                    strokeWidth={2.5}
                     style={{
-                      filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.6))'
+                      filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))'
                     }}
                   />
                 </div>
@@ -544,75 +512,28 @@ export default function MapView({
                 <div 
                   className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
                   style={{
-                    background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent)'
+                    background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent)'
                   }}
                 />
               </div>
 
-              {/* Anel Orbital Externo */}
+              {/* Anel Orbital Único */}
               <motion.div
-                className="absolute inset-0 rounded-full border"
+                className="absolute inset-0 rounded-full"
                 style={{
-                  borderColor: `${vibeTheme.glowColor}35`,
-                  borderWidth: '1.5px',
+                  border: `1px solid ${vibeTheme.glowColor}40`,
                 }}
                 animate={{
-                  scale: [1, 1.35, 1],
-                  opacity: [0.75, 0, 0.75]
+                  scale: [1, 1.3, 1],
+                  opacity: [0.6, 0, 0.6]
                 }}
                 transition={{
-                  duration: 2.3,
+                  duration: 2,
                   repeat: Infinity,
                   ease: "easeOut"
                 }}
               />
-
-              {/* Anel Orbital Interno */}
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                style={{
-                  border: `1px solid ${vibeTheme.glowColor}50`,
-                }}
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.6, 0, 0.6]
-                }}
-                transition={{
-                  duration: 1.8,
-                  repeat: Infinity,
-                  ease: "easeOut",
-                  delay: 0.3
-                }}
-              />
             </motion.div>
-
-            {/* Camada 6: Partículas Flutuantes - REDUZIDAS */}
-            {[...Array(4)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full pointer-events-none"
-                style={{
-                  width: '3px',
-                  height: '3px',
-                  background: vibeTheme.glowColor,
-                  filter: `blur(${Math.random() * 1.5}px)`,
-                  left: `${25 + (i * 50 / 3)}%`,
-                  top: `${15 + (i * 70 / 3)}%`,
-                }}
-                animate={{
-                  y: [0, -12, 0],
-                  x: [0, Math.sin(i) * 8, 0],
-                  opacity: [0, 0.7, 0],
-                  scale: [0.6, 1.1, 0.6]
-                }}
-                transition={{
-                  duration: 3.5 + Math.random() * 2,
-                  repeat: Infinity,
-                  delay: Math.random() * 2.5,
-                  ease: "easeInOut"
-                }}
-              />
-            ))}
           </div>
         </motion.div>
 
