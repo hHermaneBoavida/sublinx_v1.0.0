@@ -96,7 +96,7 @@ export default function Layout({ children, currentPageName }) {
 
   const showFAB = user?.is_organizer && ![createPageUrl("CriarEvento"), createPageUrl("Mapa")].includes(location.pathname);
 
-  // NOVO: Registrar Service Worker
+  // Registrar Service Worker
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -301,7 +301,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </div>
 
-      {/* NOVO: PWA Install Prompt */}
+      {/* PWA Install Prompt */}
       <PWAInstallPrompt />
     </div>
   );
