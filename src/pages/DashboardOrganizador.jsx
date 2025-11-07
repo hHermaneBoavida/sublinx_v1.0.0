@@ -33,6 +33,7 @@ export default function DashboardOrganizador() {
 
   const [syncingEvents, setSyncingEvents] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
+  const [showSyncDetails, setShowSyncDetails] = useState(false);
 
   // Verificar acesso de organizador
   useEffect(() => {
@@ -119,6 +120,7 @@ export default function DashboardOrganizador() {
       });
 
       setSyncResult(data);
+      setShowSyncDetails(true);
       queryClient.invalidateQueries(['organizerEvents']);
       queryClient.invalidateQueries(['dashboardStats']); // Assuming a dashboardStats query exists
     } catch (error) {
@@ -127,6 +129,7 @@ export default function DashboardOrganizador() {
         success: false,
         error: error.message || 'Erro desconhecido'
       });
+      setShowSyncDetails(true);
     } finally {
       setSyncingEvents(false);
     }
@@ -226,84 +229,170 @@ export default function DashboardOrganizador() {
           </div>
         </div>
 
-        {/* Resultado da Sincronização */}
+        {/* Resultado da Sincronização EXPANDIDO */}
         <AnimatePresence>
-          {syncResult && (
+          {syncResult && showSyncDetails && (
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className={`p-4 rounded-lg border ${
+              className={`rounded-lg border-2 overflow-hidden ${
                 syncResult.success 
-                  ? 'bg-green-900/20 border-green-500/50' 
-                  : 'bg-red-900/20 border-red-500/50'
+                  ? 'bg-gradient-to-br from-green-900/20 to-emerald-900/20 border-green-500/50' 
+                  : 'bg-gradient-to-br from-red-900/20 to-rose-900/20 border-red-500/50'
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <h3 className="font-bold text-sm sm:text-base mb-2 flex items-center gap-2">
-                    {syncResult.success ? (
-                      <>
-                        <CheckCircle2 className="w-5 h-5 text-green-400" />
-                        Sincronização Concluída!
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="w-5 h-5 text-red-400" />
-                        Erro na Sincronização
-                      </>
-                    )}
-                  </h3>
-                  
+              {/* Header do Card */}
+              <div className="p-4 border-b border-gray-700/50 flex items-center justify-between">
+                <div className="flex items-center gap-3">
                   {syncResult.success ? (
-                    <div className="space-y-2 text-xs sm:text-sm">
-                      <p className="text-gray-300">{syncResult.message}</p>
-                      
-                      {syncResult.stats && (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                          <div className="bg-black/30 rounded p-2">
-                            <div className="text-cyan-400 font-bold text-lg">{syncResult.stats.total_found}</div>
-                            <div className="text-gray-400 text-xs">Encontrados</div>
-                          </div>
-                          <div className="bg-black/30 rounded p-2">
-                            <div className="text-purple-400 font-bold text-lg">{syncResult.stats.valid_after_validation}</div>
-                            <div className="text-gray-400 text-xs">Validados</div>
-                          </div>
-                          <div className="bg-black/30 rounded p-2">
-                            <div className="text-green-400 font-bold text-lg">{syncResult.stats.successfully_inserted}</div>
-                            <div className="text-gray-400 text-xs">Inseridos</div>
-                          </div>
-                          <div className="bg-black/30 rounded p-2">
-                            <div className="text-red-400 font-bold text-lg">{syncResult.stats.errors}</div>
-                            <div className="text-gray-400 text-xs">Erros</div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {syncResult.sources && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <Badge className="bg-blue-600/20 border-blue-500/30 text-blue-300 text-xs">
-                            Eventbrite: {syncResult.sources.eventbrite}
-                          </Badge>
-                          <Badge className="bg-purple-600/20 border-purple-500/30 text-purple-300 text-xs">
-                            JamBase: {syncResult.sources.jambase}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
+                    <CheckCircle2 className="w-6 h-6 text-green-400" />
                   ) : (
-                    <p className="text-red-300 text-sm">{syncResult.error}</p>
+                    <AlertCircle className="w-6 h-6 text-red-400" />
                   )}
+                  <div>
+                    <h3 className="font-bold text-base sm:text-lg text-white">
+                      {syncResult.success ? 'Sincronização Concluída!' : 'Erro na Sincronização'}
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      {syncResult.timestamp && new Date(syncResult.timestamp).toLocaleString('pt-BR')}
+                      {syncResult.execution_time_ms && ` • ${syncResult.execution_time_ms}ms`}
+                    </p>
+                  </div>
                 </div>
                 
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setSyncResult(null)}
+                  onClick={() => setShowSyncDetails(false)}
                   className="flex-shrink-0 h-8 w-8"
                 >
                   <X className="w-4 h-4" />
                 </Button>
+              </div>
+
+              {/* Conteúdo do Card */}
+              <div className="p-4 space-y-4">
+                {syncResult.success ? (
+                  <>
+                    {/* Mensagem Principal */}
+                    <p className="text-sm text-gray-300">{syncResult.message}</p>
+                    
+                    {/* Estatísticas Principais */}
+                    {syncResult.stats && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50">
+                          <div className="text-cyan-400 font-bold text-xl">{syncResult.stats.total_found}</div>
+                          <div className="text-gray-400 text-xs mt-1">Encontrados</div>
+                        </div>
+                        <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50">
+                          <div className="text-purple-400 font-bold text-xl">{syncResult.stats.valid_after_validation}</div>
+                          <div className="text-gray-400 text-xs mt-1">Validados</div>
+                        </div>
+                        <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50">
+                          <div className="text-green-400 font-bold text-xl">{syncResult.stats.successfully_inserted}</div>
+                          <div className="text-gray-400 text-xs mt-1">Inseridos</div>
+                        </div>
+                        <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50">
+                          <div className="text-red-400 font-bold text-xl">{syncResult.stats.errors}</div>
+                          <div className="text-gray-400 text-xs mt-1">Erros</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Fontes de Dados */}
+                    {syncResult.sources && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-white mb-2">📊 Fontes de Dados</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(syncResult.sources).map(([source, count]) => (
+                            <Badge 
+                              key={source}
+                              className="bg-blue-600/20 border-blue-500/30 text-blue-300 text-xs capitalize"
+                            >
+                              {source}: {count}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Breakdown de Validação */}
+                    {syncResult.validation_breakdown && (
+                      <div className="bg-gray-900/30 rounded-lg p-3 border border-gray-700/50">
+                        <h4 className="text-sm font-semibold text-white mb-2">🔍 Validação</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-400">Aprovados:</span>
+                            <span className="text-green-400 font-semibold">{syncResult.validation_breakdown.passed}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-400">Reprovados:</span>
+                            <span className="text-red-400 font-semibold">{syncResult.validation_breakdown.failed}</span>
+                          </div>
+                          
+                          {syncResult.validation_breakdown.failure_reasons && Object.keys(syncResult.validation_breakdown.failure_reasons).length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-gray-700/50">
+                              <p className="text-xs text-gray-400 mb-2">Motivos de reprovação:</p>
+                              <div className="space-y-1">
+                                {Object.entries(syncResult.validation_breakdown.failure_reasons).map(([reason, count]) => (
+                                  <div key={reason} className="flex justify-between text-xs">
+                                    <span className="text-gray-500">{reason}:</span>
+                                    <span className="text-gray-400">{count}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Erros de Inserção */}
+                    {syncResult.errors && syncResult.errors.count > 0 && (
+                      <div className="bg-red-900/10 rounded-lg p-3 border border-red-500/30">
+                        <h4 className="text-sm font-semibold text-red-400 mb-2">⚠️ Erros de Inserção ({syncResult.errors.count})</h4>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {syncResult.errors.details?.map((err, idx) => (
+                            <div key={idx} className="text-xs bg-gray-900/50 rounded p-2">
+                              <div className="text-red-300 font-semibold">{err.title}</div>
+                              <div className="text-gray-400 text-[10px] mt-0.5">
+                                {err.source} • {err.error}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Eventos Inválidos */}
+                    {syncResult.invalid_events && syncResult.invalid_events.count > 0 && (
+                      <div className="bg-yellow-900/10 rounded-lg p-3 border border-yellow-500/30">
+                        <h4 className="text-sm font-semibold text-yellow-400 mb-2">⚠️ Eventos Inválidos ({syncResult.invalid_events.count})</h4>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {syncResult.invalid_events.samples?.map((inv, idx) => (
+                            <div key={idx} className="text-xs bg-gray-900/50 rounded p-2">
+                              <div className="text-yellow-300 font-semibold">{inv.title}</div>
+                              <div className="text-gray-400 text-[10px] mt-0.5">
+                                {inv.source} • {inv.reason}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-red-300 text-sm font-semibold">{syncResult.error}</p>
+                    {syncResult.stack && (
+                      <details className="text-xs text-gray-400 bg-gray-900/50 rounded p-2">
+                        <summary className="cursor-pointer">Stack Trace</summary>
+                        <pre className="mt-2 overflow-x-auto">{syncResult.stack}</pre>
+                      </details>
+                    )}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
