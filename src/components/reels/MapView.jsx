@@ -324,13 +324,13 @@ export default function MapView({
         }
       }}
     >
-      {/* Background Temático UNDERGROUND - MELHORADO */}
-      <div className="absolute inset-0 z-0 bg-gray-950">
+      {/* Background Temático UNDERGROUND - MAIS CLARO */}
+      <div className="absolute inset-0 z-0 bg-gray-900">
         <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient}`} />
         
-        {/* Grid Cyber UNDERGROUND - MAIS VISÍVEL */}
+        {/* Grid Cyber UNDERGROUND - REDUZIDO */}
         <div
-          className="absolute inset-0 opacity-[0.12]"
+          className="absolute inset-0 opacity-[0.08]"
           style={{
             backgroundImage: `
               linear-gradient(to right, ${vibeTheme.glowColor} 1px, transparent 1px),
@@ -341,9 +341,9 @@ export default function MapView({
           }}
         />
 
-        {/* Linhas Diagonais Underground */}
+        {/* Linhas Diagonais Underground - REDUZIDAS */}
         <div
-          className="absolute inset-0 opacity-[0.08]"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage: `
               repeating-linear-gradient(
@@ -357,16 +357,16 @@ export default function MapView({
           }}
         />
 
-        {/* Spots de Luz Underground */}
+        {/* Spots de Luz Underground - REDUZIDOS */}
         <div 
-          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-20"
+          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-10"
           style={{
             background: `radial-gradient(circle, ${vibeTheme.glowColor}, transparent 70%)`,
             animation: 'pulse-slow 6s ease-in-out infinite'
           }}
         />
         <div 
-          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-15"
+          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-08"
           style={{
             background: `radial-gradient(circle, rgba(168, 85, 247, 0.6), transparent 70%)`,
             animation: 'pulse-slow 8s ease-in-out infinite 1s'
@@ -374,7 +374,7 @@ export default function MapView({
         />
       </div>
 
-      {/* Mapa OpenStreetMap - MAIS CLARO E VISÍVEL */}
+      {/* Mapa OpenStreetMap - 60% MAIS CLARO */}
       <div className="absolute inset-0 z-1">
         <iframe
           width="100%"
@@ -384,8 +384,8 @@ export default function MapView({
           src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${userLocation.lat},${userLocation.lng}`}
           className="absolute inset-0"
           style={{
-            filter: 'grayscale(90%) invert(92%) brightness(0.55) contrast(1.3) hue-rotate(190deg) saturate(0.8)',
-            opacity: 0.85,
+            filter: 'grayscale(70%) invert(94%) brightness(0.88) contrast(1.2) hue-rotate(190deg) saturate(1.0)',
+            opacity: 0.95,
             pointerEvents: 'none',
             mixBlendMode: 'luminosity'
           }}
@@ -393,14 +393,14 @@ export default function MapView({
         />
       </div>
 
-      {/* Overlay Gradiente UNDERGROUND - MAIS SUTIL */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30 pointer-events-none z-2" />
+      {/* Overlay Gradiente - MUITO MAIS TRANSPARENTE */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/15 pointer-events-none z-2" />
 
-      {/* Efeito de Scan Line Underground */}
+      {/* Efeito de Scan Line Underground - REDUZIDO */}
       <motion.div
         className="absolute inset-0 pointer-events-none z-3"
         style={{
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(6, 182, 212, 0.03) 50%, transparent 100%)',
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(6, 182, 212, 0.015) 50%, transparent 100%)',
           height: '100%'
         }}
         animate={{
@@ -413,11 +413,11 @@ export default function MapView({
         }}
       />
 
-      {/* Vinheta Sutil */}
+      {/* Vinheta Sutil - MUITO REDUZIDA */}
       <div 
         className="absolute inset-0 pointer-events-none z-3"
         style={{
-          background: 'radial-gradient(circle at center, transparent 0%, transparent 60%, rgba(0,0,0,0.3) 100%)'
+          background: 'radial-gradient(circle at center, transparent 0%, transparent 70%, rgba(0,0,0,0.15) 100%)'
         }}
       />
 
