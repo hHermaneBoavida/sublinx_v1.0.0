@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,7 @@ import { base44 } from '@/api/base44Client';
 const clusterEvents = (events, zoomLevel = 1) => {
   if (!events || events.length === 0) return [];
   
-  const CLUSTER_RADIUS = 0.01 * (1 / zoomLevel); // Ajusta com zoom
+  const CLUSTER_RADIUS = 0.01 * (1 / zoomLevel);
   const clusters = [];
   const processed = new Set();
 
@@ -26,7 +25,6 @@ const clusterEvents = (events, zoomLevel = 1) => {
       isCluster: false
     };
 
-    // Buscar eventos próximos
     events.forEach((other, otherIndex) => {
       if (index === otherIndex || processed.has(otherIndex)) return;
 
@@ -41,7 +39,6 @@ const clusterEvents = (events, zoomLevel = 1) => {
       }
     });
 
-    // Calcular centro do cluster
     if (cluster.events.length > 1) {
       cluster.isCluster = true;
       cluster.center = {
@@ -87,16 +84,16 @@ const EventPin = memo(({ cluster, position, onClick, theme, isExpanded }) => {
         }}
       >
         {isClusterGroup ? (
-          <>
+          <div>
             <div className="font-bold text-cyan-300 mb-1">
               {events.length} eventos próximos
             </div>
             <div className="text-[9px] text-gray-400">
               Clique para ver todos
             </div>
-          </>
+          </div>
         ) : (
-          <>
+          <div>
             <div className="font-bold text-cyan-300 mb-1 flex items-center gap-1">
               <Music2 className="w-3 h-3" />
               {mainEvent.title}
@@ -106,7 +103,8 @@ const EventPin = memo(({ cluster, position, onClick, theme, isExpanded }) => {
               <span className="text-gray-300 truncate max-w-[120px]">
                 {mainEvent.location.venue_name}
               </span>
-            </>
+            </div>
+          </div>
         )}
       </motion.div>
 
@@ -197,7 +195,7 @@ export default function MapView({
 }) {
   const [showRadiusInfo, setShowRadiusInfo] = useState(false);
   const [expandedCluster, setExpandedCluster] = useState(null);
-  const [zoomLevel, setZoomLevel] = useState(1); // NOVO: Estado de zoom (1 = default, 2 = mais zoom)
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -214,7 +212,6 @@ export default function MapView({
 
   const canCreateReels = user && (user.is_pro_member || user.is_organizer);
 
-  // Tema visual por vibe
   const vibeTheme = useMemo(() => {
     const themes = {
       'all': {
@@ -243,7 +240,6 @@ export default function MapView({
 
   const RADIUS_KM = 10;
 
-  // Validar e filtrar eventos
   const validEvents = useMemo(() => {
     if (!events || !Array.isArray(events)) return [];
     
@@ -263,14 +259,12 @@ export default function MapView({
     });
   }, [events, userLocation]);
 
-  // Sistema de clustering COM ZOOM
   const eventClusters = useMemo(() => {
     return clusterEvents(validEvents, zoomLevel);
   }, [validEvents, zoomLevel]);
 
-  // Bounds do mapa COM ZOOM
   const mapBounds = useMemo(() => {
-    const zoomFactor = 0.05 / zoomLevel; // Quanto maior o zoom, menor a área
+    const zoomFactor = 0.05 / zoomLevel;
     
     if (validEvents.length === 0) {
       return {
@@ -283,14 +277,13 @@ export default function MapView({
 
     const lats = validEvents.map(e => e.location.lat);
     const lngs = validEvents.map(e => e.location.lng);
-
     const padding = 0.01 / zoomLevel;
 
     return {
       minLat: Math.min(...lats, userLocation.lat) - padding,
       maxLat: Math.max(...lats, userLocation.lat) + padding,
       minLng: Math.min(...lngs, userLocation.lng) - padding,
-      maxLng: Math.max(...lngs, userLocation.lat) + padding,
+      maxLng: Math.max(...lngs, userLocation.lng) + padding,
     };
   }, [validEvents, userLocation, zoomLevel]);
 
@@ -316,13 +309,12 @@ export default function MapView({
     }
   }, [onPinDetailsClick]);
 
-  // NOVO: Funções de zoom
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.5, 3)); // Max zoom: 3x
+    setZoomLevel(prev => Math.min(prev + 0.5, 3));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.5, 0.5)); // Min zoom: 0.5x
+    setZoomLevel(prev => Math.max(prev - 0.5, 0.5));
   };
 
   return (
@@ -341,7 +333,6 @@ export default function MapView({
       <div className="absolute inset-0 z-0 bg-gray-800">
         <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient}`} />
         
-        {/* Grid Cyber UNDERGROUND - MÍNIMO */}
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
@@ -354,7 +345,6 @@ export default function MapView({
           }}
         />
 
-        {/* Linhas Diagonais Underground - MÍNIMAS */}
         <div
           className="absolute inset-0 opacity-[0.02]"
           style={{
@@ -370,7 +360,6 @@ export default function MapView({
           }}
         />
 
-        {/* Spots de Luz Underground - MÍNIMOS */}
         <div 
           className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-05"
           style={{
@@ -390,7 +379,7 @@ export default function MapView({
       {/* Mapa OpenStreetMap - 75% MAIS CLARO */}
       <div className="absolute inset-0 z-1">
         <iframe
-          key={`map-${bbox}-${zoomLevel}`} // NOVO: Key para forçar re-render no zoom
+          key={`map-${bbox}-${zoomLevel}`}
           width="100%"
           height="100%"
           frameBorder="0"
@@ -400,17 +389,15 @@ export default function MapView({
           style={{
             filter: 'grayscale(60%) invert(96%) brightness(1.15) contrast(1.1) hue-rotate(190deg) saturate(1.1)',
             opacity: 1.0,
-            pointerEvents: 'auto', // NOVO: Permitir interação para zoom
+            pointerEvents: 'auto',
             mixBlendMode: 'normal'
           }}
           loading="lazy"
         />
       </div>
 
-      {/* Overlay Gradiente - MÍNIMO */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-black/08 pointer-events-none z-2" />
 
-      {/* Efeito de Scan Line Underground - MÍNIMO */}
       <motion.div
         className="absolute inset-0 pointer-events-none z-3"
         style={{
@@ -427,7 +414,6 @@ export default function MapView({
         }}
       />
 
-      {/* Vinheta Sutil - MÍNIMA */}
       <div 
         className="absolute inset-0 pointer-events-none z-3"
         style={{
@@ -437,7 +423,7 @@ export default function MapView({
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* Marcador do Usuário - EXTRA COMPACTO */}
+        {/* Marcador do Usuário */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-40"
           style={{ 
@@ -454,7 +440,6 @@ export default function MapView({
           }}
         >
           <div className="relative flex items-center justify-center">
-            {/* Camada 1: Glow Ambiente - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
@@ -478,7 +463,6 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 2: Rastro de Energia - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
@@ -501,7 +485,6 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 3: Pulso Sonar - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
@@ -521,7 +504,6 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 4: Anel de Alcance - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
@@ -550,7 +532,6 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 5: Marcador Central - EXTRA REDUZIDO PARA 8x8 (32px) */}
             <motion.div 
               className="relative z-50" 
               style={{
@@ -565,7 +546,6 @@ export default function MapView({
                 ease: "easeInOut"
               }}
             >
-              {/* Núcleo Externo - EXTRA REDUZIDO PARA 8x8 (32px) */}
               <div 
                 className="w-8 h-8 rounded-full relative overflow-hidden"
                 style={{
@@ -583,7 +563,6 @@ export default function MapView({
                   `,
                 }}
               >
-                {/* Brilho Interno Animado */}
                 <motion.div
                   className="absolute inset-0 rounded-full"
                   style={{
@@ -602,7 +581,6 @@ export default function MapView({
                   }}
                 />
 
-                {/* Ícone de Navegação - EXTRA REDUZIDO */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Navigation 
                     className="w-3.5 h-3.5 text-white" 
@@ -613,7 +591,6 @@ export default function MapView({
                   />
                 </div>
 
-                {/* Reflexo Superior */}
                 <div 
                   className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
                   style={{
@@ -622,7 +599,6 @@ export default function MapView({
                 />
               </div>
 
-              {/* Anel Orbital Externo - AJUSTADO */}
               <motion.div
                 className="absolute inset-0 rounded-full border"
                 style={{
@@ -640,7 +616,6 @@ export default function MapView({
                 }}
               />
 
-              {/* Anel Orbital Interno - AJUSTADO */}
               <motion.div
                 className="absolute inset-0 rounded-full"
                 style={{
@@ -659,7 +634,6 @@ export default function MapView({
               />
             </motion.div>
 
-            {/* Camada 6: Partículas Flutuantes - EXTRA REDUZIDAS */}
             {[...Array(2)].map((_, i) => (
               <motion.div
                 key={i}
@@ -689,7 +663,7 @@ export default function MapView({
           </div>
         </motion.div>
 
-        {/* Event Clusters com AnimatePresence */}
+        {/* Event Clusters */}
         <AnimatePresence>
           {eventClusters.map((cluster, index) => {
             const position = coordToPosition(cluster.center.lat, cluster.center.lng);
@@ -706,9 +680,8 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* Header Minimalista */}
+      {/* Header */}
       <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 z-30 flex flex-col gap-2">
-        {/* Barra de Controles */}
         <div className="flex flex-wrap gap-1.5 items-center">
           <motion.button
             whileHover={{ scale: 1.03 }}
@@ -734,7 +707,6 @@ export default function MapView({
             <span>{RADIUS_KM}km</span>
           </motion.button>
 
-          {/* NOVO: Controles de Zoom */}
           <div className="flex items-center gap-1 ml-auto">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -772,7 +744,6 @@ export default function MapView({
           </Link>
         </div>
 
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 z-10" />
           <Input
@@ -783,7 +754,6 @@ export default function MapView({
           />
         </div>
 
-        {/* Info do Raio */}
         <AnimatePresence>
           {showRadiusInfo && (
             <motion.div
@@ -819,7 +789,6 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* FAB Upload */}
       {canCreateReels && (
         <motion.div
           className="absolute bottom-20 right-3 z-30"
@@ -836,7 +805,6 @@ export default function MapView({
         </motion.div>
       )}
 
-      {/* Ver Reels Button */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-20 pb-3 px-4"
         drag="y"
@@ -878,7 +846,6 @@ export default function MapView({
         </div>
       </motion.div>
 
-      {/* Modal de Cluster Expandido */}
       <AnimatePresence>
         {expandedCluster && (
           <motion.div
@@ -928,7 +895,6 @@ export default function MapView({
         )}
       </AnimatePresence>
 
-      {/* Adicionar CSS para animações */}
       <style jsx>{`
         @keyframes grid-pulse {
           0%, 100% {
