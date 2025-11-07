@@ -286,7 +286,7 @@ export default function MapView({
       minLat: Math.min(...lats, userLocation.lat) - 0.01,
       maxLat: Math.max(...lats, userLocation.lat) + 0.01,
       minLng: Math.min(...lngs, userLocation.lng) - 0.01,
-      maxLng: Math.max(...lngs, userLocation.lat) + 0.01,
+      maxLng: Math.max(...lngs, userLocation.lng) + 0.01,
     };
   }, [validEvents, userLocation]);
 
@@ -364,7 +364,7 @@ export default function MapView({
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* Marcador do Usuário REDESENHADO - COMPACTO */}
+        {/* Marcador do Usuário - EXTRA COMPACTO */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-40"
           style={{ 
@@ -381,22 +381,22 @@ export default function MapView({
           }}
         >
           <div className="relative flex items-center justify-center">
-            {/* Camada 1: Glow Ambiente Difuso - MENOR */}
+            {/* Camada 1: Glow Ambiente - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '160px',
-                height: '160px',
+                width: '120px',
+                height: '120px',
                 background: `radial-gradient(circle at center, 
-                  ${vibeTheme.glowColor}18 0%, 
-                  ${vibeTheme.glowColor}10 30%, 
-                  ${vibeTheme.glowColor}05 60%,
+                  ${vibeTheme.glowColor}15 0%, 
+                  ${vibeTheme.glowColor}08 30%, 
+                  ${vibeTheme.glowColor}04 60%,
                   transparent 100%)`,
-                filter: 'blur(16px)',
+                filter: 'blur(14px)',
               }}
               animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.3, 0.6, 0.3],
+                scale: [1, 1.08, 1],
+                opacity: [0.25, 0.55, 0.25],
               }}
               transition={{
                 duration: 3.5,
@@ -405,20 +405,20 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 2: Rastro de Energia - MENOR */}
+            {/* Camada 2: Rastro de Energia - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '120px',
-                height: '120px',
+                width: '90px',
+                height: '90px',
                 background: `radial-gradient(circle at center, 
-                  ${vibeTheme.glowColor}15 0%, 
+                  ${vibeTheme.glowColor}12 0%, 
                   transparent 65%)`,
-                filter: 'blur(10px)',
+                filter: 'blur(8px)',
               }}
               animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.4, 0, 0.4],
+                scale: [1, 1.18, 1],
+                opacity: [0.35, 0, 0.35],
               }}
               transition={{
                 duration: 2.8,
@@ -428,17 +428,17 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 3: Pulso Sonar - MENOR */}
+            {/* Camada 3: Pulso Sonar - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '8px',
-                height: '8px',
+                width: '6px',
+                height: '6px',
                 background: `radial-gradient(circle, ${vibeTheme.glowColor} 0%, transparent 70%)`,
               }}
               animate={{
-                scale: [1, 20, 1],
-                opacity: [0.8, 0, 0.8]
+                scale: [1, 18, 1],
+                opacity: [0.7, 0, 0.7]
               }}
               transition={{
                 duration: 4.5,
@@ -448,27 +448,27 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 4: Anel de Alcance - MENOR */}
+            {/* Camada 4: Anel de Alcance - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '140px',
-                height: '140px',
+                width: '105px',
+                height: '105px',
                 background: `radial-gradient(circle at center, 
                   transparent 62%, 
-                  ${vibeTheme.glowColor}05 78%, 
-                  ${vibeTheme.glowColor}10 92%,
+                  ${vibeTheme.glowColor}04 78%, 
+                  ${vibeTheme.glowColor}08 92%,
                   transparent 100%)`,
-                border: `1px solid ${vibeTheme.glowColor}20`,
+                border: `1px solid ${vibeTheme.glowColor}18`,
                 boxShadow: `
-                  0 0 25px ${vibeTheme.glowColor}12,
-                  inset 0 0 20px ${vibeTheme.glowColor}06
+                  0 0 20px ${vibeTheme.glowColor}10,
+                  inset 0 0 15px ${vibeTheme.glowColor}05
                 `,
-                filter: 'blur(1px)',
+                filter: 'blur(0.8px)',
               }}
               animate={{
-                scale: [1, 1.01, 1],
-                opacity: [0.25, 0.45, 0.25],
+                scale: [1, 1.008, 1],
+                opacity: [0.22, 0.42, 0.22],
               }}
               transition={{
                 duration: 5.5,
@@ -477,14 +477,14 @@ export default function MapView({
               }}
             />
 
-            {/* Camada 5: Marcador Central - REDUZIDO PARA 10x10 (40px) */}
+            {/* Camada 5: Marcador Central - EXTRA REDUZIDO PARA 8x8 (32px) */}
             <motion.div 
               className="relative z-50" 
               style={{
-                filter: `drop-shadow(0 0 18px ${vibeTheme.glowColor}) drop-shadow(0 0 35px ${vibeTheme.glowColor}60)`,
+                filter: `drop-shadow(0 0 15px ${vibeTheme.glowColor}) drop-shadow(0 0 30px ${vibeTheme.glowColor}50)`,
               }}
               animate={{
-                scale: [1, 1.05, 1],
+                scale: [1, 1.04, 1],
               }}
               transition={{
                 duration: 1.8,
@@ -492,9 +492,9 @@ export default function MapView({
                 ease: "easeInOut"
               }}
             >
-              {/* Núcleo Externo - REDUZIDO PARA 10x10 (40px) */}
+              {/* Núcleo Externo - EXTRA REDUZIDO PARA 8x8 (32px) */}
               <div 
-                className="w-10 h-10 rounded-full relative overflow-hidden"
+                className="w-8 h-8 rounded-full relative overflow-hidden"
                 style={{
                   background: `
                     radial-gradient(circle at 35% 35%, 
@@ -504,9 +504,9 @@ export default function MapView({
                   `,
                   border: '2px solid rgba(255, 255, 255, 0.95)',
                   boxShadow: `
-                    0 0 20px ${vibeTheme.glowColor},
-                    0 0 40px ${vibeTheme.glowColor}60,
-                    inset 0 0 15px rgba(255, 255, 255, 0.35)
+                    0 0 18px ${vibeTheme.glowColor},
+                    0 0 35px ${vibeTheme.glowColor}55,
+                    inset 0 0 12px rgba(255, 255, 255, 0.35)
                   `,
                 }}
               >
@@ -515,12 +515,12 @@ export default function MapView({
                   className="absolute inset-0 rounded-full"
                   style={{
                     background: `radial-gradient(circle at 42% 42%, 
-                      rgba(255, 255, 255, 0.6) 0%, 
+                      rgba(255, 255, 255, 0.55) 0%, 
                       transparent 55%)`,
                   }}
                   animate={{
-                    opacity: [0.4, 0.8, 0.4],
-                    scale: [1, 1.12, 1]
+                    opacity: [0.35, 0.75, 0.35],
+                    scale: [1, 1.1, 1]
                   }}
                   transition={{
                     duration: 2.2,
@@ -529,13 +529,13 @@ export default function MapView({
                   }}
                 />
 
-                {/* Ícone de Navegação - AJUSTADO */}
+                {/* Ícone de Navegação - EXTRA REDUZIDO */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Navigation 
-                    className="w-4 h-4 text-white" 
+                    className="w-3.5 h-3.5 text-white" 
                     strokeWidth={3}
                     style={{
-                      filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.6))'
+                      filter: 'drop-shadow(0 1.5px 2.5px rgba(0,0,0,0.6))'
                     }}
                   />
                 </div>
@@ -544,7 +544,7 @@ export default function MapView({
                 <div 
                   className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
                   style={{
-                    background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent)'
+                    background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.22), transparent)'
                   }}
                 />
               </div>
@@ -553,12 +553,12 @@ export default function MapView({
               <motion.div
                 className="absolute inset-0 rounded-full border"
                 style={{
-                  borderColor: `${vibeTheme.glowColor}30`,
+                  borderColor: `${vibeTheme.glowColor}25`,
                   borderWidth: '1px',
                 }}
                 animate={{
-                  scale: [1, 1.3, 1],
-                  opacity: [0.7, 0, 0.7]
+                  scale: [1, 1.28, 1],
+                  opacity: [0.65, 0, 0.65]
                 }}
                 transition={{
                   duration: 2.3,
@@ -571,11 +571,11 @@ export default function MapView({
               <motion.div
                 className="absolute inset-0 rounded-full"
                 style={{
-                  border: `1px solid ${vibeTheme.glowColor}45`,
+                  border: `1px solid ${vibeTheme.glowColor}40`,
                 }}
                 animate={{
-                  scale: [1, 1.15, 1],
-                  opacity: [0.5, 0, 0.5]
+                  scale: [1, 1.12, 1],
+                  opacity: [0.45, 0, 0.45]
                 }}
                 transition={{
                   duration: 1.8,
@@ -586,24 +586,24 @@ export default function MapView({
               />
             </motion.div>
 
-            {/* Camada 6: Partículas Flutuantes - REDUZIDAS */}
-            {[...Array(3)].map((_, i) => (
+            {/* Camada 6: Partículas Flutuantes - EXTRA REDUZIDAS */}
+            {[...Array(2)].map((_, i) => (
               <motion.div
                 key={i}
                 className="absolute rounded-full pointer-events-none"
                 style={{
-                  width: '2.5px',
-                  height: '2.5px',
+                  width: '2px',
+                  height: '2px',
                   background: vibeTheme.glowColor,
-                  filter: `blur(${Math.random() * 1.2}px)`,
-                  left: `${25 + (i * 50 / 2)}%`,
-                  top: `${15 + (i * 70 / 2)}%`,
+                  filter: `blur(${Math.random() * 1}px)`,
+                  left: `${30 + (i * 40)}%`,
+                  top: `${20 + (i * 60)}%`,
                 }}
                 animate={{
-                  y: [0, -10, 0],
-                  x: [0, Math.sin(i) * 6, 0],
-                  opacity: [0, 0.6, 0],
-                  scale: [0.5, 1, 0.5]
+                  y: [0, -8, 0],
+                  x: [0, Math.sin(i) * 5, 0],
+                  opacity: [0, 0.5, 0],
+                  scale: [0.4, 0.9, 0.4]
                 }}
                 transition={{
                   duration: 3.5 + Math.random() * 2,
