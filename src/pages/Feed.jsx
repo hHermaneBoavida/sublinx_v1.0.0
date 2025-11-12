@@ -5,12 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import EventFeedCard from "../components/feed/EventFeedCard";
+import EventCompactCard from "../components/feed/EventCompactCard";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import ShareVibeModal from "../components/feed/ShareVibeModal";
-import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap } from "lucide-react";
+import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap, List, Grid as GridIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useDebounce } from "../hooks/useDebounce";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -27,7 +30,15 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
 export default function Feed() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showShareVibe, setShowShareVibe] = useState(false);
+  const [viewMode, setViewMode] = useState("grid"); // "grid" ou "compact"
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // ✅ DEBOUNCE: Esperar 400ms após última digitação
+  const debouncedSearch = useDebounce(searchTerm, 400);
+
+  // ✅ INFINITE SCROLL: Carregar 10 eventos por vez
+  const { page, hasMore, setHasMore, observerTarget, pageSize } = useInfiniteScroll(10);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -45,19 +56,18 @@ export default function Feed() {
 
   const isGuest = !user;
 
-  // CORREÇÃO: Cache de 10 minutos para eventos FUTUROS apenas
+  // Cache de 10 minutos para eventos FUTUROS apenas
   const { data: events = [], isLoading: isLoadingEvents, refetch } = useQuery({
     queryKey: ['feedEvents'],
     queryFn: async () => {
       const now = new Date();
-      const data = await base44.entities.Event.list("-date", 50);
+      const data = await base44.entities.Event.list("-date", 100); // Buscar mais eventos
       
-      // FILTRAR: Apenas eventos FUTUROS (data >= agora)
       return (data || []).filter(e => {
         if (!e?.id || !e?.title || !e?.location?.lat || !e?.location?.lng) return false;
         
         const eventDate = new Date(e.date);
-        return eventDate >= now; // Apenas eventos futuros
+        return eventDate >= now;
       });
     },
     staleTime: 10 * 60 * 1000,
@@ -67,7 +77,6 @@ export default function Feed() {
     initialData: [],
   });
 
-  // CORREÇÃO: Cache de 10 minutos para anúncios ATIVOS
   const { data: advertisements = [] } = useQuery({
     queryKey: ['feedAds'],
     queryFn: async () => {
@@ -78,11 +87,9 @@ export default function Feed() {
           placement: { $in: ['feed_top', 'feed_middle'] }
         }, "", 10);
         
-        // FILTRAR: Apenas anúncios dentro do período de vigência
         return (ads || []).filter(ad => {
           if (!ad || !ad.id) return false;
           
-          // Verificar datas de início e fim
           if (ad.start_date) {
             const startDate = new Date(ad.start_date);
             if (now < startDate) return false;
@@ -150,7 +157,7 @@ export default function Feed() {
     if (!events || events.length === 0) return [];
     
     if (!user?.location?.lat) {
-      return [...events].sort((a, b) => new Date(a.date) - new Date(b.date)); // PRÓXIMOS PRIMEIRO
+      return [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 
     return [...events].sort((a, b) => {
@@ -160,10 +167,11 @@ export default function Feed() {
     });
   }, [events, user?.location]);
 
+  // ✅ USAR DEBOUNCED SEARCH ao invés de searchTerm direto
   const filteredEvents = useMemo(() => {
-    if (!searchTerm) return sortedEvents;
+    if (!debouncedSearch) return sortedEvents;
     
-    const lowerSearch = searchTerm.toLowerCase();
+    const lowerSearch = debouncedSearch.toLowerCase();
     return sortedEvents.filter(event =>
       event.title?.toLowerCase().includes(lowerSearch) ||
       event.genre?.toLowerCase().includes(lowerSearch) ||
@@ -171,9 +179,8 @@ export default function Feed() {
       event.location?.city?.toLowerCase().includes(lowerSearch) ||
       event.organizer?.toLowerCase().includes(lowerSearch)
     );
-  }, [sortedEvents, searchTerm]);
+  }, [sortedEvents, debouncedSearch]);
 
-  // NOVO: Inserir anúncios PATROCINADOS em DESTAQUE no feed
   const feedWithAds = useMemo(() => {
     if (!advertisements || advertisements.length === 0) {
       return filteredEvents.map(event => ({ type: 'event', data: event, key: `event-${event.id}` }));
@@ -183,20 +190,17 @@ export default function Feed() {
     const topAds = advertisements.filter(ad => ad?.placement === 'feed_top');
     const middleAds = advertisements.filter(ad => ad?.placement === 'feed_middle');
 
-    // DESTAQUE: Anúncios no topo SEMPRE
     topAds.forEach(ad => {
       if (ad?.id) {
         result.push({ type: 'ad', data: ad, key: `ad-top-${ad.id}`, featured: true });
       }
     });
 
-    // Inserir eventos e anúncios no meio (A cada 3 eventos)
     filteredEvents.forEach((event, index) => {
       if (event?.id) {
         result.push({ type: 'event', data: event, key: `event-${event.id}` });
       }
       
-      // A cada 3 eventos, inserir um anúncio DESTACADO
       if ((index + 1) % 3 === 0 && middleAds.length > 0) {
         const adIndex = Math.floor(index / 3) % middleAds.length;
         const ad = middleAds[adIndex];
@@ -209,15 +213,72 @@ export default function Feed() {
     return result;
   }, [filteredEvents, advertisements]);
 
+  // ✅ PAGINAÇÃO: Mostrar apenas eventos da página atual
+  const paginatedFeed = useMemo(() => {
+    const itemsToShow = page * pageSize;
+    const items = feedWithAds.slice(0, itemsToShow);
+    
+    // Atualizar hasMore
+    if (items.length >= feedWithAds.length) {
+      setHasMore(false);
+    } else {
+      setHasMore(true);
+    }
+    
+    return items;
+  }, [feedWithAds, page, pageSize, setHasMore]);
+
+  // ✅ PREFETCHING: Pré-carregar detalhes ao hover
+  const handleEventHover = (eventId) => {
+    // Prefetch das interações do evento
+    queryClient.prefetchQuery({
+      queryKey: ['eventDetails', eventId],
+      queryFn: async () => {
+        const [likes, comments] = await Promise.all([
+          base44.entities.Like.filter({ event_id: eventId }),
+          base44.entities.Comment.filter({ event_id: eventId })
+        ]);
+        return { likes, comments };
+      },
+      staleTime: 5 * 60 * 1000,
+    });
+  };
+
+  const handleEventClick = (event) => {
+    // Navegar para detalhes ou abrir modal
+    console.log('📍 Evento clicado:', event.title);
+    navigate(createPageUrl("Mapa"));
+  };
+
   return (
     <div className="max-w-xl mx-auto px-0 py-0">
-      {/* Header - MAIS COMPACTO */}
+      {/* Header */}
       <div className="sticky top-0 z-10 bg-black/95 backdrop-blur-lg border-b border-gray-800/50 px-3 sm:px-4 py-2.5 sm:py-3">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
             Feed
           </h1>
           <div className="flex items-center gap-2">
+            {/* Toggle View Mode */}
+            <div className="flex items-center gap-1 bg-gray-800/80 rounded-lg p-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode("grid")}
+                className={`h-7 w-7 ${viewMode === "grid" ? "bg-cyan-600 text-white" : "text-gray-400"}`}
+              >
+                <GridIcon className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode("compact")}
+                className={`h-7 w-7 ${viewMode === "compact" ? "bg-cyan-600 text-white" : "text-gray-400"}`}
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
+
             <Button 
               variant="ghost" 
               size="icon" 
@@ -241,7 +302,7 @@ export default function Feed() {
           </div>
         </div>
 
-        {/* Search - MAIS COMPACTO */}
+        {/* Search com Debounce */}
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -250,10 +311,23 @@ export default function Feed() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="bg-gray-900/80 border-gray-700 pl-9 pr-3 text-white placeholder:text-gray-500 focus:border-cyan-500 text-sm h-9 rounded-lg"
           />
+          {/* Indicador de Debounce */}
+          {searchTerm !== debouncedSearch && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Loader2 className="w-3 h-3 text-cyan-400 animate-spin" />
+            </div>
+          )}
         </div>
+
+        {/* Info de Resultados */}
+        {debouncedSearch && (
+          <div className="mt-2 text-xs text-gray-400">
+            {filteredEvents.length} resultado(s) para "{debouncedSearch}"
+          </div>
+        )}
       </div>
 
-      {/* Share Vibe Button - MAIS COMPACTO */}
+      {/* Share Vibe Button */}
       <div className="px-3 sm:px-4 py-2.5 border-b border-gray-800/30">
         <Button
           className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 h-10 text-sm font-semibold shadow-lg"
@@ -265,7 +339,7 @@ export default function Feed() {
         </Button>
       </div>
 
-      {/* FEED IMERSIVO - SEM ESPAÇAMENTOS */}
+      {/* FEED COM PAGINAÇÃO */}
       <div className="space-y-0">
         {isLoadingEvents ? (
           <>
@@ -275,34 +349,66 @@ export default function Feed() {
             <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
             <LoadingSkeleton />
           </>
-        ) : feedWithAds.length > 0 ? (
-          feedWithAds.map((item, index) => {
-            if (!item || !item.data || !item.key) return null;
-            
-            return (
-              <React.Fragment key={item.key}>
-                {item.type === 'ad' ? (
-                  <SponsoredAdCard ad={item.data} featured={item.featured} />
-                ) : (
-                  <EventFeedCard
-                    event={item.data}
-                    user={user}
-                    isGuest={isGuest}
-                    initialLikes={interactions.likes[item.data.id] || []}
-                    initialComments={interactions.comments[item.data.id] || []}
-                    initialRequestStatus={interactions.requests[item.data.id] || null}
-                  />
-                )}
-                
-                {/* Separador Minimalista */}
-                {index < feedWithAds.length - 1 && (
-                  <div className="relative h-[1px] bg-gradient-to-r from-transparent via-gray-800/50 to-transparent">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent blur-[2px]" />
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })
+        ) : paginatedFeed.length > 0 ? (
+          <>
+            {paginatedFeed.map((item, index) => {
+              if (!item || !item.data || !item.key) return null;
+              
+              return (
+                <React.Fragment key={item.key}>
+                  {item.type === 'ad' ? (
+                    <SponsoredAdCard ad={item.data} featured={item.featured} />
+                  ) : viewMode === "compact" ? (
+                    <EventCompactCard
+                      event={item.data}
+                      onClick={() => handleEventClick(item.data)}
+                      onMouseEnter={() => handleEventHover(item.data.id)}
+                    />
+                  ) : (
+                    <EventFeedCard
+                      event={item.data}
+                      user={user}
+                      isGuest={isGuest}
+                      initialLikes={interactions.likes[item.data.id] || []}
+                      initialComments={interactions.comments[item.data.id] || []}
+                      initialRequestStatus={interactions.requests[item.data.id] || null}
+                      onMouseEnter={() => handleEventHover(item.data.id)}
+                    />
+                  )}
+                  
+                  {/* Separador */}
+                  {index < paginatedFeed.length - 1 && (
+                    <div className="relative h-[1px] bg-gradient-to-r from-transparent via-gray-800/50 to-transparent">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent blur-[2px]" />
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+
+            {/* Infinite Scroll Trigger */}
+            {hasMore && (
+              <div 
+                ref={observerTarget}
+                className="py-8 flex items-center justify-center"
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+                  <p className="text-sm text-gray-400">Carregando mais eventos...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Final do Feed */}
+            {!hasMore && paginatedFeed.length > 0 && (
+              <div className="py-8 text-center">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-full text-sm text-gray-400">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <span>Você viu todos os eventos disponíveis!</span>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12 sm:py-16 bg-gray-900/50 rounded-lg border border-gray-700 mx-3 sm:mx-4 mt-4">
             <Search className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
@@ -310,11 +416,11 @@ export default function Feed() {
               Nenhum evento encontrado
             </h3>
             <p className="text-sm sm:text-base text-gray-500 px-4 mb-4">
-              {searchTerm 
+              {debouncedSearch 
                 ? "Tente ajustar sua busca" 
                 : "Ainda não há eventos futuros. Volte em breve!"}
             </p>
-            {searchTerm && (
+            {debouncedSearch && (
               <Button 
                 onClick={() => setSearchTerm("")}
                 variant="outline"
@@ -337,7 +443,7 @@ export default function Feed() {
   );
 }
 
-// NOVO: Componente de Anúncio Patrocinado EM DESTAQUE
+// Componente de Anúncio Patrocinado
 function SponsoredAdCard({ ad, featured = false }) {
   if (!ad || !ad.id) {
     console.warn('SponsoredAdCard: Anúncio inválido recebido');
@@ -368,7 +474,6 @@ function SponsoredAdCard({ ad, featured = false }) {
       }`}
       onClick={handleAdClick}
     >
-      {/* Badge PATROCINADO em DESTAQUE */}
       <div className="absolute top-2 left-2 z-10">
         <Badge className={`backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold flex items-center gap-1 shadow-lg ${
           featured 
@@ -389,7 +494,6 @@ function SponsoredAdCard({ ad, featured = false }) {
         </Badge>
       </div>
 
-      {/* NOVO: Badge de Impressões */}
       {ad.impressions > 0 && (
         <div className="absolute top-2 right-2 z-10">
           <Badge className="bg-black/60 backdrop-blur-sm text-white text-[9px] px-1.5 py-0.5">
@@ -399,7 +503,6 @@ function SponsoredAdCard({ ad, featured = false }) {
         </div>
       )}
 
-      {/* Imagem DESTACADA */}
       {ad.image_url && (
         <div className={`relative w-full overflow-hidden ${featured ? 'h-64' : 'h-48'}`}>
           <img
@@ -413,7 +516,6 @@ function SponsoredAdCard({ ad, featured = false }) {
               : 'bg-gradient-to-t from-black/60 via-transparent to-transparent'
           }`} />
           
-          {/* NOVO: Indicador de DESTAQUE */}
           {featured && (
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
               <div className="relative">
@@ -435,7 +537,6 @@ function SponsoredAdCard({ ad, featured = false }) {
               {ad.description || ''}
             </p>
             
-            {/* NOVO: Target Audience */}
             {ad.target_audience && (ad.target_audience.genres?.length > 0 || ad.target_audience.cities?.length > 0) && (
               <div className="flex flex-wrap gap-1 mb-3">
                 {ad.target_audience.genres?.slice(0, 3).map(genre => (
