@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, Search, MapPin, Music2, ZoomIn, ZoomOut, Map as MapIcon, Radar } from 'lucide-react';
+import { Plus, Eye, Menu, Search, MapPin, Music2, ZoomIn, ZoomOut, Map as MapIcon, Radar, Filter } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery } from '@tanstack/react-query';
@@ -172,7 +172,8 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
         transition={{
           duration: 3,
           repeat: Infinity,
-          ease: "easeInOut"
+          ease: "easeInOut",
+          delay: 0
         }}
       />
 
@@ -361,7 +362,8 @@ export default function MapView({
   onOpenUpload,
   searchTerm,
   onSearchChange,
-  activeVibe = 'all'
+  activeVibe = 'all',
+  activeFiltersCount = 0 // ✅ NOVO PROP
 }) {
   const [expandedCluster, setExpandedCluster] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(15);
@@ -942,6 +944,29 @@ export default function MapView({
           >
             <Music2 className="w-3.5 h-3.5" />
             <span>Vibes</span>
+          </motion.button>
+
+          {/* ✅ NOVO: Botão Filtros com contador */}
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onOpenFilters}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-xl border-2 transition-all text-white text-xs relative"
+            style={{
+              background: activeFiltersCount > 0 
+                ? `linear-gradient(135deg, ${vibeTheme.glowColor}25, ${vibeTheme.secondaryGlow}20)` 
+                : 'rgba(0, 0, 0, 0.6)',
+              borderColor: activeFiltersCount > 0 ? `${vibeTheme.glowColor}60` : 'rgba(107, 114, 128, 0.5)',
+              boxShadow: activeFiltersCount > 0 ? `0 0 25px ${vibeTheme.glowColor}60` : 'none'
+            }}
+          >
+            <Filter className="w-3.5 h-3.5" />
+            <span>Filtros</span>
+            {activeFiltersCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                {activeFiltersCount}
+              </span>
+            )}
           </motion.button>
 
           {/* Botão Vibe Radar */}
