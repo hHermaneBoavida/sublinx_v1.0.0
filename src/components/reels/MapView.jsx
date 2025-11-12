@@ -10,7 +10,21 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import VenuePin from '../map/VenuePin';
 import VenueDetailsModal from '../map/VenueDetailsModal';
-import { logger } from '@/utils/logger';
+
+const isDev = import.meta.env.DEV;
+
+const logger = {
+  warn: (...args) => isDev && console.warn(...args),
+  debug: (...args) => isDev && console.log('[DEBUG]', ...args),
+  group: (label, fn) => {
+    if (isDev) {
+      console.group(label);
+      fn();
+      console.groupEnd();
+    }
+  },
+  table: (data) => isDev && console.table && console.table(data)
+};
 
 // Validar coordenadas
 const validateCoordinates = (lat, lng) => {

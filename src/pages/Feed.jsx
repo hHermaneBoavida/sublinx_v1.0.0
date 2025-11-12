@@ -13,7 +13,14 @@ import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import ShareVibeModal from "../components/feed/ShareVibeModal";
 import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap, List, Grid as GridIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { logger } from "@/utils/logger";
+
+const isDev = import.meta.env.DEV;
+
+const logger = {
+  error: (...args) => console.error(...args),
+  warn: (...args) => isDev && console.warn(...args),
+  debug: (...args) => isDev && console.log('[DEBUG]', ...args)
+};
 
 // Hook inline: useDebounce
 function useDebounce(value, delay = 500) {

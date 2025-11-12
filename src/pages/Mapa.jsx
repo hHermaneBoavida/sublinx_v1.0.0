@@ -11,7 +11,16 @@ import EventDetailsModal from "../components/map/EventDetailsModal";
 import { Loader2, MapPin, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import { logger } from "@/utils/logger";
+
+const isDev = import.meta.env.DEV;
+
+const logger = {
+  info: (...args) => isDev && console.log(...args),
+  error: (...args) => console.error(...args),
+  debug: (...args) => isDev && console.log('[DEBUG]', ...args),
+  time: (label) => isDev && console.time(label),
+  timeEnd: (label) => isDev && console.timeEnd(label)
+};
 
 // Utilitário inline: Calcular distância Haversine
 const calculateDistance = (point1, point2) => {
