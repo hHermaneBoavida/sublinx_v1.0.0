@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, C
 import { Badge } from "@/components/ui/badge";
 import { useDebounce } from "../hooks/useDebounce";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import { sortEventsByDistance } from "@/utils/geo";
+import { logger } from "@/utils/logger";
 
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -160,11 +163,8 @@ export default function Feed() {
       return [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 
-    return [...events].sort((a, b) => {
-      const distA = getDistance(user.location.lat, user.location.lng, a.location.lat, a.location.lng);
-      const distB = getDistance(user.location.lat, user.location.lng, b.location.lat, b.location.lng);
-      return distA - distB;
-    });
+    // ✅ USAR UTILITÁRIO ao invés de código duplicado
+    return sortEventsByDistance(events, user.location);
   }, [events, user?.location]);
 
   // ✅ USAR DEBOUNCED SEARCH ao invés de searchTerm direto

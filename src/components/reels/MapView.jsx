@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,8 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import VenuePin from '../map/VenuePin';
 import VenueDetailsModal from '../map/VenueDetailsModal';
+import { validateCoordinates } from '@/utils/geo';
+import { logger } from '@/utils/logger';
 
 const clusterEvents = (events, zoomLevel = 1) => {
   if (!events || events.length === 0) return [];
@@ -65,6 +68,18 @@ const getEventColor = (event) => {
     'secret': 'rgba(251, 191, 36, 0.95)',    // Amber neon
   };
   return colorMap[event.type] || 'rgba(6, 182, 212, 0.95)';
+};
+
+// ✅ STABLE KEY: Evitar re-renders desnecessários
+const getClusterKey = (cluster, index) => {
+  if (cluster.isCluster) {
+    const sortedIds = cluster.events
+      .map(e => e.id)
+      .sort()
+      .join('-');
+    return `cluster-multi-${sortedIds}`;
+  }
+  return `cluster-single-${cluster.events[0].id}-${index}`;
 };
 
 // Componente de Pin MELHORADO com VIBRAÇÃO e AURA LUMINOSA
@@ -442,9 +457,17 @@ export default function MapView({
   const validEvents = useMemo(() => {
     if (!events || !Array.isArray(events)) return [];
     
+    // ✅ USAR UTILITÁRIO de validação
     return events.filter(e => {
-      if (!e?.id || !e?.title || !e?.location?.lat || !e?.location?.lng) return false;
+      if (!e?.id || !e?.title) return false;
       
+      // Validar coordenadas com utilitário
+      if (!validateCoordinates(e.location?.lat, e.location?.lng)) {
+        logger.warn('⚠️ Evento com coordenadas inválidas:', e.id, e.title, e.location);
+        return false;
+      }
+      
+      // Verificar proximidade (já filtrado antes, mas double-check)
       const R = 6371;
       const dLat = (e.location.lat - userLocation.lat) * Math.PI / 180;
       const dLng = (e.location.lng - userLocation.lng) * Math.PI / 180;
@@ -462,14 +485,16 @@ export default function MapView({
     return clusterEvents(validEvents, zoomLevel / 15);
   }, [validEvents, zoomLevel]);
 
-  // Log para debug
+  // ✅ LOG APENAS EM DEV
   useEffect(() => {
-    console.log('📊 [MAPA] Debug Info:', {
-      totalEvents: events?.length || 0,
-      validEvents: validEvents.length,
-      eventClusters: eventClusters.length,
-      userLocation,
-      zoomLevel
+    logger.group('📊 [MAPA] Debug Info', () => {
+      logger.table({
+        totalEvents: events?.length || 0,
+        validEvents: validEvents.length,
+        eventClusters: eventClusters.length,
+        userLocation,
+        zoomLevel
+      });
     });
   }, [events, validEvents, eventClusters, userLocation, zoomLevel]);
 
@@ -842,8 +867,7 @@ export default function MapView({
               }}
               transition={{
                 duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
+                repeat: Infinity
               }}
             />
 
@@ -877,13 +901,13 @@ export default function MapView({
           </AnimatePresence>
         )}
 
-        {/* Event Clusters - GARANTIR RENDERIZAÇÃO */}
+        {/* Event Clusters - ✅ STABLE KEYS */}
         <AnimatePresence>
           {eventClusters.map((cluster, index) => {
             const position = coordToPosition(cluster.center.lat, cluster.center.lng);
             
-            // Debug log
-            console.log(`📍 Renderizando evento ${index}:`, {
+            // ✅ LOG apenas em dev
+            logger.debug(`📍 Renderizando evento ${index}:`, {
               position,
               cluster: cluster.events.length,
               title: cluster.events[0]?.title
@@ -891,7 +915,7 @@ export default function MapView({
             
             return (
               <EventPin
-                key={`cluster-${index}-${cluster.events.map(e => e.id).join('-')}`}
+                key={getClusterKey(cluster, index)}
                 cluster={cluster}
                 position={position}
                 onClick={handleClusterClick}
