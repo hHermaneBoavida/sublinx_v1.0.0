@@ -3,11 +3,13 @@ import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, Search, MapPin, Navigation, Compass, Music2, Layers } from 'lucide-react';
+import { Plus, Eye, Menu, Search, MapPin, Navigation, Compass, Music2, Layers, ZoomIn, ZoomOut, Map as MapIcon } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import VenuePin from '../map/VenuePin'; // Assuming this path is correct
+import VenueDetailsModal from '../map/VenueDetailsModal'; // Assuming this path is correct
 
 // NOVO: Sistema de clustering inteligente
 const clusterEvents = (events, zoomLevel = 1) => {
@@ -198,6 +200,9 @@ export default function MapView({
 }) {
   const [showRadiusInfo, setShowRadiusInfo] = useState(false);
   const [expandedCluster, setExpandedCluster] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(15); // 15 = zoom médio
+  const [showVenues, setShowVenues] = useState(true);
+  const [selectedVenue, setSelectedVenue] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -210,6 +215,40 @@ export default function MapView({
     },
     retry: false,
     staleTime: Infinity,
+  });
+
+  // NOVO: Buscar venues/locais próximos
+  const { data: venues = [] } = useQuery({
+    queryKey: ['venues', userLocation?.lat, userLocation?.lng],
+    queryFn: async () => {
+      if (!userLocation) return [];
+      
+      try {
+        const allVenues = await base44.entities.Venue.list('-rating', 100);
+        
+        // Filtrar venues em um raio de 10km
+        return (allVenues || []).filter(venue => {
+          if (!venue?.location?.lat || !venue?.location?.lng) return false;
+          
+          const R = 6371;
+          const dLat = (venue.location.lat - userLocation.lat) * Math.PI / 180;
+          const dLng = (venue.location.lng - userLocation.lng) * Math.PI / 180;
+          const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(venue.location.lat * Math.PI / 180) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const distance = R * c;
+          
+          return distance <= 10;
+        });
+      } catch (error) {
+        console.error('Erro ao buscar venues:', error);
+        return [];
+      }
+    },
+    enabled: !!userLocation,
+    staleTime: 30 * 60 * 1000,
+    initialData: []
   });
 
   const canCreateReels = user && (user.is_pro_member || user.is_organizer);
@@ -263,38 +302,53 @@ export default function MapView({
     });
   }, [events, userLocation]);
 
-  // Sistema de clustering
+  // Sistema de clustering com zoom adaptativo
   const eventClusters = useMemo(() => {
-    return clusterEvents(validEvents, 1);
-  }, [validEvents]);
+    return clusterEvents(validEvents, zoomLevel / 15); // Ajusta clustering baseado no zoom
+  }, [validEvents, zoomLevel]);
 
-  // Bounds do mapa
+  // Bounds do mapa dinâmicos baseados no zoom
   const mapBounds = useMemo(() => {
-    if (validEvents.length === 0) {
+    const zoomFactor = 0.05 * (15 / zoomLevel); // Quanto maior o zoom, menor a área
+    
+    if (validEvents.length === 0 && venues.length === 0) {
       return {
-        minLat: userLocation.lat - 0.05,
-        maxLat: userLocation.lat + 0.05,
-        minLng: userLocation.lng - 0.05,
-        maxLng: userLocation.lng + 0.05
+        minLat: userLocation.lat - zoomFactor,
+        maxLat: userLocation.lat + zoomFactor,
+        minLng: userLocation.lng - zoomFactor,
+        maxLng: userLocation.lng + zoomFactor
       };
     }
 
-    const lats = validEvents.map(e => e.location.lat);
-    const lngs = validEvents.map(e => e.location.lng);
+    const allLats = [
+      ...validEvents.map(e => e.location.lat),
+      ...venues.map(v => v.location.lat),
+      userLocation.lat
+    ];
+    
+    const allLngs = [
+      ...validEvents.map(e => e.location.lng),
+      ...venues.map(v => v.location.lng),
+      userLocation.lng
+    ];
 
     return {
-      minLat: Math.min(...lats, userLocation.lat) - 0.01,
-      maxLat: Math.max(...lats, userLocation.lat) + 0.01,
-      minLng: Math.min(...lngs, userLocation.lng) - 0.01,
-      maxLng: Math.max(...lngs, userLocation.lat) + 0.01,
+      minLat: Math.min(...allLats) - zoomFactor,
+      maxLat: Math.max(...allLats) + zoomFactor,
+      minLng: Math.min(...allLngs) - zoomFactor,
+      maxLng: Math.max(...allLngs) + zoomFactor,
     };
-  }, [validEvents, userLocation]);
+  }, [validEvents, venues, userLocation, zoomLevel]);
 
   const bbox = useMemo(() => {
     return `${mapBounds.minLng},${mapBounds.minLat},${mapBounds.maxLng},${mapBounds.maxLat}`;
   }, [mapBounds]);
 
   const coordToPosition = useCallback((lat, lng) => {
+    // Check for valid mapBounds to prevent division by zero or invalid calculations
+    if (mapBounds.maxLng === mapBounds.minLng || mapBounds.maxLat === mapBounds.minLat) {
+      return { x: 50, y: 50 }; // Default to center if bounds are degenerate
+    }
     const x = ((lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * 100;
     const y = ((mapBounds.maxLat - lat) / (mapBounds.maxLat - mapBounds.minLat)) * 100;
     return { x, y };
@@ -311,6 +365,19 @@ export default function MapView({
       onPinDetailsClick(cluster.events[0]);
     }
   }, [onPinDetailsClick]);
+
+  const handleVenueClick = useCallback((venue) => {
+    setSelectedVenue(venue);
+  }, []);
+
+  // Controles de Zoom
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 1, 18)); // Máximo 18
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 1, 10)); // Mínimo 10
+  };
 
   return (
     <motion.div
@@ -377,11 +444,12 @@ export default function MapView({
       {/* Mapa OpenStreetMap - 60% MAIS CLARO */}
       <div className="absolute inset-0 z-1">
         <iframe
+          key={`map-${zoomLevel}-${bbox}`}
           width="100%"
           height="100%"
           frameBorder="0"
           scrolling="no"
-          src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${userLocation.lat},${userLocation.lng}`}
+          src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${userLocation.lat},${userLocation.lng}&zoom=${zoomLevel}`}
           className="absolute inset-0"
           style={{
             filter: 'grayscale(70%) invert(94%) brightness(0.88) contrast(1.2) hue-rotate(190deg) saturate(1.0)',
@@ -675,6 +743,24 @@ export default function MapView({
           </div>
         </motion.div>
 
+        {/* NOVO: Venue Pins */}
+        {showVenues && (
+          <AnimatePresence>
+            {venues.map((venue) => {
+              const position = coordToPosition(venue.location.lat, venue.location.lng);
+              return (
+                <VenuePin
+                  key={`venue-${venue.id}`}
+                  venue={venue}
+                  position={position}
+                  onClick={handleVenueClick}
+                  theme={vibeTheme}
+                />
+              );
+            })}
+          </AnimatePresence>
+        )}
+
         {/* Event Clusters com AnimatePresence */}
         <AnimatePresence>
           {eventClusters.map((cluster, index) => {
@@ -720,6 +806,21 @@ export default function MapView({
             <span>{RADIUS_KM}km</span>
           </motion.button>
 
+          {/* NOVO: Toggle Venues */}
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowVenues(!showVenues)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full backdrop-blur-xl border text-xs ${
+              showVenues 
+                ? 'bg-yellow-600/80 border-yellow-400/50 text-white' 
+                : 'bg-black/60 border-gray-600 text-gray-400'
+            }`}
+          >
+            <MapIcon className="w-3 h-3" />
+            <span>Locais ({venues.length})</span>
+          </motion.button>
+
           <Link to={createPageUrl("Feed")} className="ml-auto">
             <Button
               variant="ghost"
@@ -735,7 +836,7 @@ export default function MapView({
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 z-10" />
           <Input
-            placeholder="Buscar eventos..."
+            placeholder="Buscar eventos ou locais..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-9 pr-3 py-2 bg-black/60 backdrop-blur-xl border-cyan-500/30 text-white placeholder:text-gray-500 focus:border-cyan-500/60 text-sm h-9 rounded-xl"
@@ -765,7 +866,13 @@ export default function MapView({
                   📍 {validEvents.length} evento(s) próximo(s)
                 </p>
                 <p className="text-gray-400">
+                  🏢 {venues.length} local(is) próximo(s)
+                </p>
+                <p className="text-gray-400">
                   🎯 Raio: {RADIUS_KM}km
+                </p>
+                <p className="text-gray-400">
+                  🔍 Zoom: {zoomLevel}/18
                 </p>
                 {eventClusters.length > 0 && (
                   <p className="text-gray-400">
@@ -776,6 +883,40 @@ export default function MapView({
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* NOVO: Controles de Zoom - Lado Direito */}
+      <div className="absolute right-3 bottom-32 z-30 flex flex-col gap-2">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleZoomIn}
+          disabled={zoomLevel >= 18}
+          className="w-10 h-10 rounded-full bg-black/80 backdrop-blur-xl border-2 border-cyan-500/50 flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            boxShadow: `0 0 15px ${vibeTheme.glowColor}40`
+          }}
+        >
+          <ZoomIn className="w-5 h-5" />
+        </motion.button>
+        
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleZoomOut}
+          disabled={zoomLevel <= 10}
+          className="w-10 h-10 rounded-full bg-black/80 backdrop-blur-xl border-2 border-cyan-500/50 flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            boxShadow: `0 0 15px ${vibeTheme.glowColor}40`
+          }}
+        >
+          <ZoomOut className="w-5 h-5" />
+        </motion.button>
+        
+        {/* Indicador de Zoom */}
+        <div className="w-10 h-10 rounded-full bg-black/80 backdrop-blur-xl border border-gray-600 flex items-center justify-center text-cyan-400 text-xs font-bold">
+          {zoomLevel}
+        </div>
       </div>
 
       {/* FAB Upload */}
@@ -886,6 +1027,14 @@ export default function MapView({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* NOVO: Modal de Detalhes do Venue */}
+      {selectedVenue && (
+        <VenueDetailsModal
+          venue={selectedVenue}
+          onClose={() => setSelectedVenue(null)}
+        />
+      )}
 
       {/* Adicionar CSS para animações */}
       <style jsx>{`
