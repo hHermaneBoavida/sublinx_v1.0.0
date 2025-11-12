@@ -1,9 +1,8 @@
 
 import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, Search, MapPin, Navigation, Compass, Music2, Layers, ZoomIn, ZoomOut } from 'lucide-react';
+import { Plus, Eye, Menu, MapPin, Navigation, Music2 } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery } from '@tanstack/react-query';
@@ -184,19 +183,14 @@ EventPin.displayName = 'EventPin';
 export default function MapView({
   events,
   userLocation,
-  onPinClick,
   onPinDetailsClick,
   onSwipeUp,
-  onOpenFilters,
   onOpenVibe,
   onOpenUpload,
-  searchTerm,
-  onSearchChange,
   activeVibe = 'all'
 }) {
-  const [showRadiusInfo, setShowRadiusInfo] = useState(false);
   const [expandedCluster, setExpandedCluster] = useState(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomLevel] = useState(1); // Fixed zoom level
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -309,14 +303,6 @@ export default function MapView({
       onPinDetailsClick(cluster.events[0]);
     }
   }, [onPinDetailsClick]);
-
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.5, 3));
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.5, 0.5));
-  };
 
   return (
     <motion.div
@@ -477,7 +463,7 @@ export default function MapView({
               animate={{
                 scale: [1, 1.18, 1],
                 opacity: [0.35, 0, 0.35],
-              }}
+              })
               transition={{
                 duration: 2.8,
                 repeat: Infinity,
@@ -681,70 +667,31 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* Header - SIMPLIFICADO SEM INFO BAR E REFRESH */}
-      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 z-30 flex flex-col gap-2">
-        <div className="flex flex-wrap gap-1.5 items-center">
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onOpenVibe}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border transition-all text-white text-xs"
-            style={{
-              borderColor: vibeTheme.glowColor,
-              boxShadow: `0 0 15px ${vibeTheme.glowColor}40`
-            }}
+      {/* Header ULTRA MINIMALISTA - APENAS VIBES E MENU */}
+      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 z-30 flex justify-between items-center">
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={onOpenVibe}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border transition-all text-white text-xs"
+          style={{
+            borderColor: vibeTheme.glowColor,
+            boxShadow: `0 0 15px ${vibeTheme.glowColor}40`
+          }}
+        >
+          <Music2 className="w-3.5 h-3.5" />
+          <span>Vibes</span>
+        </motion.button>
+
+        <Link to={createPageUrl("Feed")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-black/40 backdrop-blur-xl border-gray-700/30 text-white hover:bg-black/60 h-8 w-8"
           >
-            <Music2 className="w-3.5 h-3.5" />
-            <span>Vibes</span>
-          </motion.button>
-
-          {/* Controles de Zoom - MANTIDOS */}
-          <div className="flex items-center gap-1 ml-auto">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleZoomOut}
-              disabled={zoomLevel <= 0.5}
-              className="p-1.5 rounded-lg bg-black/60 backdrop-blur-xl border border-gray-700/50 text-white hover:bg-black/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <ZoomOut className="w-4 h-4" />
-            </motion.button>
-
-            <span className="px-2 py-1 bg-black/60 backdrop-blur-xl border border-gray-700/50 rounded-lg text-white text-xs min-w-[40px] text-center">
-              {zoomLevel.toFixed(1)}x
-            </span>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleZoomIn}
-              disabled={zoomLevel >= 3}
-              className="p-1.5 rounded-lg bg-black/60 backdrop-blur-xl border border-gray-700/50 text-white hover:bg-black/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <ZoomIn className="w-4 h-4" />
-            </motion.button>
-          </div>
-
-          <Link to={createPageUrl("Feed")}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="bg-black/40 backdrop-blur-xl border-gray-700/30 text-white hover:bg-black/60 h-8 w-8"
-            >
-              <Menu className="w-4 h-4" />
-            </Button>
-          </Link>
-        </div>
-
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 z-10" />
-          <Input
-            placeholder="Buscar eventos..."
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 pr-3 py-2 bg-black/60 backdrop-blur-xl border-cyan-500/30 text-white placeholder:text-gray-500 focus:border-cyan-500/60 text-sm h-9 rounded-xl"
-          />
-        </div>
+            <Menu className="w-4 h-4" />
+          </Button>
+        </Link>
       </div>
 
       {canCreateReels && (
