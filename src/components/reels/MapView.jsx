@@ -612,7 +612,7 @@ export default function MapView({
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* SIMPLIFICADO: Marcador do Usuário - APENAS 1 PONTO */}
+        {/* REDUZIDO: Marcador do Usuário - MENOR (32px) */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-40"
           style={{ 
@@ -628,22 +628,22 @@ export default function MapView({
             duration: 0.4
           }}
         >
-          {/* ÚNICO PIN - Simples e claro */}
+          {/* PIN REDUZIDO - 32px (era 48px) */}
           <motion.div 
-            className="w-12 h-12 rounded-full border-4 border-white flex items-center justify-center relative overflow-hidden"
+            className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center relative overflow-hidden"
             style={{
               background: `linear-gradient(135deg, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
               boxShadow: `
-                0 0 30px ${vibeTheme.glowColor}, 
-                0 0 60px ${vibeTheme.glowColor}80,
-                0 0 90px ${vibeTheme.secondaryGlow}60
+                0 0 20px ${vibeTheme.glowColor}, 
+                0 0 40px ${vibeTheme.glowColor}70,
+                0 0 60px ${vibeTheme.secondaryGlow}50
               `,
             }}
             animate={{
               boxShadow: [
-                `0 0 30px ${vibeTheme.glowColor}, 0 0 60px ${vibeTheme.glowColor}80, 0 0 90px ${vibeTheme.secondaryGlow}60`,
-                `0 0 40px ${vibeTheme.glowColor}, 0 0 80px ${vibeTheme.glowColor}90, 0 0 120px ${vibeTheme.secondaryGlow}70`,
-                `0 0 30px ${vibeTheme.glowColor}, 0 0 60px ${vibeTheme.glowColor}80, 0 0 90px ${vibeTheme.secondaryGlow}60`
+                `0 0 20px ${vibeTheme.glowColor}, 0 0 40px ${vibeTheme.glowColor}70, 0 0 60px ${vibeTheme.secondaryGlow}50`,
+                `0 0 25px ${vibeTheme.glowColor}, 0 0 50px ${vibeTheme.glowColor}80, 0 0 75px ${vibeTheme.secondaryGlow}60`,
+                `0 0 20px ${vibeTheme.glowColor}, 0 0 40px ${vibeTheme.glowColor}70, 0 0 60px ${vibeTheme.secondaryGlow}50`
               ]
             }}
             transition={{
@@ -669,12 +669,12 @@ export default function MapView({
               }}
             />
 
-            {/* Ícone */}
+            {/* Círculo central menor */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div 
-                className="w-6 h-6 rounded-full bg-white"
+                className="w-4 h-4 rounded-full bg-white"
                 style={{
-                  boxShadow: '0 0 10px rgba(255, 255, 255, 0.8)'
+                  boxShadow: '0 0 8px rgba(255, 255, 255, 0.8)'
                 }}
               />
             </div>
