@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+
+import React, { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +13,77 @@ import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import ShareVibeModal from "../components/feed/ShareVibeModal";
 import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap, List, Grid as GridIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useDebounce } from "@/hooks/useDebounce";
-import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
-import { sortEventsByDistance } from "@/utils/geo";
 import { logger } from "@/utils/logger";
+
+// Hook inline: useDebounce
+function useDebounce(value, delay = 500) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// Hook inline: useInfiniteScroll
+function useInfiniteScroll(initialPageSize = 10) {
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const observerTarget = React.useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore) {
+          setPage(prevPage => prevPage + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) observer.observe(currentTarget);
+
+    return () => {
+      if (currentTarget) observer.unobserve(currentTarget);
+    };
+  }, [hasMore]);
+
+  return { page, hasMore, setHasMore, observerTarget, pageSize: initialPageSize };
+}
+
+// Utilitário inline: sortEventsByDistance
+const sortEventsByDistance = (events, userLocation) => {
+  if (!events || !Array.isArray(events) || !userLocation) return events || [];
+
+  const calculateDistance = (point1, point2) => {
+    const R = 6371;
+    const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+    const dLng = (point2.lng - point1.lng) * Math.PI / 180;
+    
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(point1.lat * Math.PI / 180) * 
+      Math.cos(point2.lat * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  return [...events].sort((a, b) => {
+    const distA = calculateDistance(
+      { lat: a.location.lat, lng: a.location.lng },
+      userLocation
+    );
+    const distB = calculateDistance(
+      { lat: b.location.lat, lng: b.location.lng },
+      userLocation
+    );
+    return distA - distB;
+  });
+};
 
 export default function Feed() {
   const [searchTerm, setSearchTerm] = useState("");

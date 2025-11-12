@@ -10,8 +10,15 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import VenuePin from '../map/VenuePin';
 import VenueDetailsModal from '../map/VenueDetailsModal';
-import { validateCoordinates } from '@/utils/geo';
 import { logger } from '@/utils/logger';
+
+// Validar coordenadas
+const validateCoordinates = (lat, lng) => {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return false;
+  if (lat < -90 || lat > 90) return false;
+  if (lng < -180 || lng > 180) return false;
+  return true;
+};
 
 const clusterEvents = (events, zoomLevel = 1) => {
   if (!events || events.length === 0) return [];

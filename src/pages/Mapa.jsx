@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -10,8 +11,53 @@ import EventDetailsModal from "../components/map/EventDetailsModal";
 import { Loader2, MapPin, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import { filterEventsByProximity, sortEventsByDistance } from "@/utils/geo";
 import { logger } from "@/utils/logger";
+
+// Utilitário inline: Calcular distância Haversine
+const calculateDistance = (point1, point2) => {
+  const R = 6371;
+  const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+  const dLng = (point2.lng - point1.lng) * Math.PI / 180;
+  
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(point1.lat * Math.PI / 180) * 
+    Math.cos(point2.lat * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// Filtrar eventos por proximidade
+const filterEventsByProximity = (events, userLocation, radiusKm = 10) => {
+  if (!events || !Array.isArray(events) || !userLocation) return [];
+
+  return events.filter(event => {
+    if (!event?.location?.lat || !event?.location?.lng) return false;
+    const distance = calculateDistance(
+      { lat: event.location.lat, lng: event.location.lng },
+      userLocation
+    );
+    return distance <= radiusKm;
+  });
+};
+
+// Ordenar eventos por distância
+const sortEventsByDistance = (events, userLocation) => {
+  if (!events || !Array.isArray(events) || !userLocation) return events || [];
+
+  return [...events].sort((a, b) => {
+    const distA = calculateDistance(
+      { lat: a.location.lat, lng: a.location.lng },
+      userLocation
+    );
+    const distB = calculateDistance(
+      { lat: b.location.lat, lng: b.location.lng },
+      userLocation
+    );
+    return distA - distB;
+  });
+};
 
 export default function Mapa() {
   const [viewMode, setViewMode] = useState("map");
