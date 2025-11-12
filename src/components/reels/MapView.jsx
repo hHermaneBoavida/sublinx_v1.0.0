@@ -57,17 +57,17 @@ const clusterEvents = (events, zoomLevel = 1) => {
 
 const getEventColor = (event) => {
   const colorMap = {
-    'rave': 'rgba(236, 72, 153, 0.9)',
-    'warehouse': 'rgba(168, 85, 247, 0.9)',
-    'rooftop': 'rgba(6, 182, 212, 0.9)',
-    'underground': 'rgba(139, 92, 246, 0.9)',
-    'club': 'rgba(20, 184, 166, 0.9)',
-    'secret': 'rgba(251, 191, 36, 0.9)',
+    'rave': 'rgba(236, 72, 153, 0.95)',      // Pink neon vibrante
+    'warehouse': 'rgba(168, 85, 247, 0.95)', // Purple neon
+    'rooftop': 'rgba(6, 182, 212, 0.95)',    // Cyan neon
+    'underground': 'rgba(139, 92, 246, 0.95)',// Violet neon
+    'club': 'rgba(20, 184, 166, 0.95)',      // Teal neon
+    'secret': 'rgba(251, 191, 36, 0.95)',    // Amber neon
   };
-  return colorMap[event.type] || 'rgba(6, 182, 212, 0.9)';
+  return colorMap[event.type] || 'rgba(6, 182, 212, 0.95)';
 };
 
-// Componente de Pin MELHORADO
+// Componente de Pin MELHORADO com VIBRAÇÃO e AURA LUMINOSA
 const EventPin = memo(({ cluster, position, onClick, theme }) => {
   const { events, isCluster: isClusterGroup } = cluster;
   const mainEvent = events[0];
@@ -75,131 +75,185 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
   
   return (
     <motion.div
-      className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group pointer-events-auto z-10"
+      className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group pointer-events-auto"
       style={{ 
         left: `${position.x}%`, 
         top: `${position.y}%`,
+        zIndex: 15,
       }}
-      whileHover={{ scale: 1.15, zIndex: 20 }}
+      whileHover={{ scale: 1.2, zIndex: 25 }}
       onClick={() => onClick(cluster)}
       initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={{ 
+        opacity: 1, 
+        scale: 1,
+        // Vibração suave
+        y: [0, -3, 0],
+      }}
       exit={{ opacity: 0, scale: 0 }}
-      transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+      transition={{ 
+        duration: 0.4, 
+        type: "spring", 
+        stiffness: 300,
+        y: {
+          duration: 2.5,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }
+      }}
     >
       {/* Tooltip ao Hover */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         whileHover={{ opacity: 1, y: 0 }}
-        className="absolute bottom-full mb-2 px-3 py-2 bg-black/95 backdrop-blur-xl rounded-xl text-white text-[11px] whitespace-nowrap border-2 shadow-2xl pointer-events-none z-50"
+        className="absolute bottom-full mb-3 px-4 py-2.5 bg-black/95 backdrop-blur-xl rounded-2xl text-white text-xs whitespace-nowrap border-2 shadow-2xl pointer-events-none z-50"
         style={{
           borderColor: eventColor,
-          boxShadow: `0 0 25px ${eventColor}, 0 0 50px ${eventColor}70`
+          boxShadow: `0 0 30px ${eventColor}, 0 0 60px ${eventColor}70`
         }}
       >
         {isClusterGroup ? (
           <>
-            <div className="font-bold mb-1" style={{ color: eventColor }}>
+            <div className="font-bold mb-1.5 flex items-center gap-2" style={{ color: eventColor }}>
+              <Music2 className="w-4 h-4" />
               ⚡ {events.length} eventos próximos
             </div>
-            <div className="text-[9px] text-gray-400">
+            <div className="text-[10px] text-gray-400">
               Clique para expandir
             </div>
           </>
         ) : (
           <>
-            <div className="font-bold mb-1 flex items-center gap-1" style={{ color: eventColor }}>
-              <Music2 className="w-3 h-3" />
+            <div className="font-bold mb-1.5 flex items-center gap-2" style={{ color: eventColor }}>
+              <Music2 className="w-4 h-4" />
               {mainEvent.title}
             </div>
-            <div className="flex items-center gap-2 text-[10px]">
-              <MapPin className="w-3 h-3 text-purple-400" />
-              <span className="text-gray-300 truncate max-w-[120px]">
-                {mainEvent.location.venue_name}
+            <div className="flex items-center gap-2 text-[11px]">
+              <MapPin className="w-3.5 h-3.5 text-purple-400" />
+              <span className="text-gray-300 truncate max-w-[150px]">
+                {mainEvent.location.venue_name || mainEvent.location.city}
               </span>
             </div>
           </>
         )}
       </motion.div>
 
-      {/* Zona de movimento com glow pulsante */}
+      {/* AURA LUMINOSA Externa - Layer 1 (mais distante) */}
       <motion.div
         className="absolute inset-0 rounded-full pointer-events-none"
         style={{
-          width: isClusterGroup ? '80px' : '60px',
-          height: isClusterGroup ? '80px' : '60px',
+          width: isClusterGroup ? '120px' : '100px',
+          height: isClusterGroup ? '120px' : '100px',
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          background: `radial-gradient(circle, ${eventColor}30 0%, ${eventColor}10 40%, transparent 70%)`,
-          filter: 'blur(12px)',
+          background: `radial-gradient(circle, ${eventColor}25 0%, ${eventColor}15 40%, transparent 70%)`,
+          filter: 'blur(25px)',
         }}
         animate={{
-          scale: [1, 1.4, 1],
-          opacity: [0.4, 0.8, 0.4]
+          scale: [1, 1.6, 1],
+          opacity: [0.3, 0.7, 0.3]
         }}
         transition={{
-          duration: 2.5,
+          duration: 3,
           repeat: Infinity,
           ease: "easeInOut"
         }}
       />
 
-      {/* Segundo glow mais intenso */}
+      {/* AURA LUMINOSA Média - Layer 2 */}
       <motion.div
         className="absolute inset-0 rounded-full pointer-events-none"
         style={{
-          width: isClusterGroup ? '100px' : '80px',
-          height: isClusterGroup ? '100px' : '80px',
+          width: isClusterGroup ? '90px' : '70px',
+          height: isClusterGroup ? '90px' : '70px',
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          background: `radial-gradient(circle, ${eventColor}20 0%, transparent 60%)`,
-          filter: 'blur(20px)',
+          background: `radial-gradient(circle, ${eventColor}35 0%, ${eventColor}20 40%, transparent 70%)`,
+          filter: 'blur(15px)',
         }}
         animate={{
-          scale: [1, 1.6, 1],
-          opacity: [0.2, 0.5, 0.2]
+          scale: [1, 1.4, 1],
+          opacity: [0.4, 0.9, 0.4]
         }}
         transition={{
-          duration: 3.5,
+          duration: 2.5,
           repeat: Infinity,
           ease: "easeInOut",
-          delay: 0.5
+          delay: 0.3
         }}
       />
 
-      {/* Pin Principal com aura */}
+      {/* AURA LUMINOSA Interna - Layer 3 (mais próxima) */}
+      <motion.div
+        className="absolute inset-0 rounded-full pointer-events-none"
+        style={{
+          width: isClusterGroup ? '60px' : '50px',
+          height: isClusterGroup ? '60px' : '50px',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: `radial-gradient(circle, ${eventColor}45 0%, ${eventColor}25 50%, transparent 70%)`,
+          filter: 'blur(8px)',
+        }}
+        animate={{
+          scale: [1, 1.3, 1],
+          opacity: [0.5, 1, 0.5]
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 0.6
+        }}
+      />
+
+      {/* Pin Principal com VIBRAÇÃO */}
       <motion.div 
         className="relative"
         animate={{
           boxShadow: [
-            `0 0 20px ${eventColor}, 0 0 40px ${eventColor}70`,
-            `0 0 35px ${eventColor}, 0 0 60px ${eventColor}90`,
-            `0 0 20px ${eventColor}, 0 0 40px ${eventColor}70`
-          ]
+            `0 0 25px ${eventColor}, 0 0 50px ${eventColor}80`,
+            `0 0 40px ${eventColor}, 0 0 80px ${eventColor}95`,
+            `0 0 25px ${eventColor}, 0 0 50px ${eventColor}80`
+          ],
+          // Vibração sutil
+          rotate: [0, 2, -2, 0],
         }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ 
+          boxShadow: {
+            duration: 2.5, 
+            repeat: Infinity, 
+            ease: "easeInOut"
+          },
+          rotate: {
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }
+        }}
         style={{
-          filter: `drop-shadow(0 0 ${isClusterGroup ? '15px' : '10px'} ${eventColor})`
+          filter: `drop-shadow(0 0 ${isClusterGroup ? '20px' : '15px'} ${eventColor})`
         }}
       >
         <div 
-          className={`${isClusterGroup ? 'w-14 h-14' : 'w-10 h-10'} rounded-full border-3 border-white/90 bg-gradient-to-br flex items-center justify-center relative overflow-hidden`}
+          className={`${isClusterGroup ? 'w-16 h-16' : 'w-12 h-12'} rounded-full border-3 bg-gradient-to-br flex items-center justify-center relative overflow-hidden`}
           style={{
-            background: `linear-gradient(135deg, ${eventColor}, ${eventColor}CC)`,
-            boxShadow: `0 0 20px ${eventColor}, inset 0 0 15px rgba(255,255,255,0.3)`
+            background: `linear-gradient(135deg, ${eventColor}, ${eventColor}DD)`,
+            borderColor: 'rgba(255, 255, 255, 0.95)',
+            boxShadow: `0 0 25px ${eventColor}, inset 0 0 20px rgba(255,255,255,0.4)`
           }}
         >
-          {/* Reflexo interno animado */}
+          {/* Reflexo interno animado INTENSO */}
           <motion.div
             className="absolute inset-0"
             style={{
-              background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 60%)',
+              background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6) 0%, transparent 60%)',
             }}
             animate={{
-              opacity: [0.3, 0.6, 0.3],
-              scale: [1, 1.1, 1]
+              opacity: [0.4, 0.8, 0.4],
+              scale: [1, 1.15, 1]
             }}
             transition={{
               duration: 2,
@@ -208,16 +262,17 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
             }}
           />
 
+          {/* Conteúdo do Pin */}
           {isClusterGroup ? (
-            <div className="text-white font-bold text-base z-10">
+            <div className="text-white font-bold text-lg z-10 relative">
               {events.length}
             </div>
           ) : (
             <motion.div 
-              className="w-4 h-4 rounded-full bg-white z-10"
+              className="w-5 h-5 rounded-full bg-white z-10 relative"
               animate={{
-                scale: [1, 1.4, 1],
-                opacity: [1, 0.6, 1]
+                scale: [1, 1.5, 1],
+                opacity: [1, 0.7, 1]
               }}
               transition={{
                 duration: 1.5,
@@ -228,24 +283,47 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
           )}
         </div>
 
-        {/* Anel orbital animado */}
+        {/* Anel orbital pulsante */}
         <motion.div
           className="absolute inset-0 rounded-full border-2 pointer-events-none"
           style={{
             borderColor: eventColor,
-            width: isClusterGroup ? '70px' : '50px',
-            height: isClusterGroup ? '70px' : '50px',
+            width: isClusterGroup ? '80px' : '60px',
+            height: isClusterGroup ? '80px' : '60px',
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
           }}
           animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.6, 0, 0.6],
+            scale: [1, 1.4, 1],
+            opacity: [0.7, 0, 0.7],
             rotate: [0, 180, 360]
           }}
           transition={{
-            duration: 3,
+            duration: 3.5,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+
+        {/* Anel orbital secundário */}
+        <motion.div
+          className="absolute inset-0 rounded-full border-2 pointer-events-none"
+          style={{
+            borderColor: eventColor,
+            width: isClusterGroup ? '90px' : '70px',
+            height: isClusterGroup ? '90px' : '70px',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+          animate={{
+            scale: [1, 1.5, 1],
+            opacity: [0.5, 0, 0.5],
+            rotate: [360, 180, 0]
+          }}
+          transition={{
+            duration: 4,
             repeat: Infinity,
             ease: "linear"
           }}
@@ -383,6 +461,17 @@ export default function MapView({
   const eventClusters = useMemo(() => {
     return clusterEvents(validEvents, zoomLevel / 15);
   }, [validEvents, zoomLevel]);
+
+  // Log para debug
+  useEffect(() => {
+    console.log('📊 [MAPA] Debug Info:', {
+      totalEvents: events?.length || 0,
+      validEvents: validEvents.length,
+      eventClusters: eventClusters.length,
+      userLocation,
+      zoomLevel
+    });
+  }, [events, validEvents, eventClusters, userLocation, zoomLevel]);
 
   const mapBounds = useMemo(() => {
     const latRange = 0.5 / Math.pow(2, zoomLevel - 10);
@@ -548,7 +637,7 @@ export default function MapView({
         />
       </div>
 
-      {/* Mapa OpenStreetMap - SEM MARKER (removido para evitar 2 pontos) */}
+      {/* Mapa OpenStreetMap - SEM MARKER */}
       <div className="absolute inset-0 z-1">
         <iframe
           key={`map-${zoomLevel}-${bbox}`}
@@ -690,28 +779,38 @@ export default function MapView({
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* UM ÚNICO MARCADOR - Posição do Usuário */}
+        {/* PONTO DE LOCALIZAÇÃO REDUZIDO (24px) com FLUTUAÇÃO */}
         <motion.div
-          className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-40"
+          className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-50"
           style={{ 
             left: `${userPosition.x}%`, 
             top: `${userPosition.y}%`,
           }}
           initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+          animate={{ 
+            scale: 1,
+            y: [0, -8, 0], // Flutuação suave
+          }}
           transition={{ 
-            type: "spring", 
-            stiffness: 300, 
-            damping: 25,
-            duration: 0.4
+            scale: {
+              type: "spring", 
+              stiffness: 300, 
+              damping: 25,
+              duration: 0.4
+            },
+            y: {
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }
           }}
         >
-          {/* PIN ÚNICO - 32px - Branco-acinzentado com brilhos neon */}
+          {/* PIN REDUZIDO - 24px (era 32px) com FLUTUAÇÃO */}
           <motion.div 
-            className="w-8 h-8 rounded-full border-2 flex items-center justify-center relative overflow-hidden"
+            className="w-6 h-6 rounded-full border-2 flex items-center justify-center relative overflow-hidden"
             style={{
               background: `linear-gradient(135deg, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
-              borderColor: 'rgba(229, 231, 235, 0.95)', // Branco-acinzentado
+              borderColor: 'rgba(229, 231, 235, 0.95)',
               boxShadow: `
                 0 0 20px ${vibeTheme.glowColor}, 
                 0 0 40px ${vibeTheme.glowColor}70,
@@ -748,10 +847,10 @@ export default function MapView({
               }}
             />
 
-            {/* Círculo central branco */}
+            {/* Círculo central branco menor */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div 
-                className="w-4 h-4 rounded-full bg-white"
+                className="w-3 h-3 rounded-full bg-white"
                 style={{
                   boxShadow: '0 0 8px rgba(255, 255, 255, 0.8)'
                 }}
@@ -778,10 +877,18 @@ export default function MapView({
           </AnimatePresence>
         )}
 
-        {/* Event Clusters */}
+        {/* Event Clusters - GARANTIR RENDERIZAÇÃO */}
         <AnimatePresence>
           {eventClusters.map((cluster, index) => {
             const position = coordToPosition(cluster.center.lat, cluster.center.lng);
+            
+            // Debug log
+            console.log(`📍 Renderizando evento ${index}:`, {
+              position,
+              cluster: cluster.events.length,
+              title: cluster.events[0]?.title
+            });
+            
             return (
               <EventPin
                 key={`cluster-${index}-${cluster.events.map(e => e.id).join('-')}`}
@@ -888,7 +995,7 @@ export default function MapView({
         </div>
       </div>
 
-      {/* Controles de Zoom - Easing Cinematográfico */}
+      {/* Controles de Zoom - SEM INDICADOR "15" */}
       <div className="absolute right-3 bottom-32 z-30 flex flex-col gap-2">
         <motion.button
           whileHover={{ 
@@ -931,19 +1038,6 @@ export default function MapView({
         >
           <ZoomOut className="w-5 h-5" />
         </motion.button>
-        
-        {/* Indicador de Zoom */}
-        <div 
-          className="w-11 h-11 rounded-full backdrop-blur-xl border-2 flex items-center justify-center text-xs font-bold"
-          style={{
-            background: 'rgba(0, 0, 0, 0.7)',
-            borderColor: 'rgba(107, 114, 128, 0.6)',
-            color: vibeTheme.accentColor,
-            textShadow: `0 0 10px ${vibeTheme.glowColor}`
-          }}
-        >
-          {zoomLevel}
-        </div>
       </div>
 
       {/* FAB Upload */}
