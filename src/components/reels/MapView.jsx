@@ -463,7 +463,7 @@ export default function MapView({
               animate={{
                 scale: [1, 1.18, 1],
                 opacity: [0.35, 0, 0.35],
-              })
+              }}
               transition={{
                 duration: 2.8,
                 repeat: Infinity,
