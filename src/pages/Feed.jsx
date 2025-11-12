@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -13,34 +12,19 @@ import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import ShareVibeModal from "../components/feed/ShareVibeModal";
 import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap, List, Grid as GridIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useDebounce } from "../hooks/useDebounce";
-import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { sortEventsByDistance } from "@/utils/geo";
 import { logger } from "@/utils/logger";
-
-const getDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
 
 export default function Feed() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showShareVibe, setShowShareVibe] = useState(false);
-  const [viewMode, setViewMode] = useState("grid"); // "grid" ou "compact"
+  const [viewMode, setViewMode] = useState("grid");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // ✅ DEBOUNCE: Esperar 400ms após última digitação
   const debouncedSearch = useDebounce(searchTerm, 400);
-
-  // ✅ INFINITE SCROLL: Carregar 10 eventos por vez
   const { page, hasMore, setHasMore, observerTarget, pageSize } = useInfiniteScroll(10);
 
   const { data: user } = useQuery({
@@ -59,12 +43,11 @@ export default function Feed() {
 
   const isGuest = !user;
 
-  // Cache de 10 minutos para eventos FUTUROS apenas
   const { data: events = [], isLoading: isLoadingEvents, refetch } = useQuery({
     queryKey: ['feedEvents'],
     queryFn: async () => {
       const now = new Date();
-      const data = await base44.entities.Event.list("-date", 100); // Buscar mais eventos
+      const data = await base44.entities.Event.list("-date", 100);
       
       return (data || []).filter(e => {
         if (!e?.id || !e?.title || !e?.location?.lat || !e?.location?.lng) return false;
@@ -106,7 +89,7 @@ export default function Feed() {
           return true;
         });
       } catch (error) {
-        console.error('Erro ao buscar anúncios:', error);
+        logger.error('Erro ao buscar anúncios:', error);
         return [];
       }
     },
@@ -163,11 +146,9 @@ export default function Feed() {
       return [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 
-    // ✅ USAR UTILITÁRIO ao invés de código duplicado
     return sortEventsByDistance(events, user.location);
   }, [events, user?.location]);
 
-  // ✅ USAR DEBOUNCED SEARCH ao invés de searchTerm direto
   const filteredEvents = useMemo(() => {
     if (!debouncedSearch) return sortedEvents;
     
@@ -213,12 +194,10 @@ export default function Feed() {
     return result;
   }, [filteredEvents, advertisements]);
 
-  // ✅ PAGINAÇÃO: Mostrar apenas eventos da página atual
   const paginatedFeed = useMemo(() => {
     const itemsToShow = page * pageSize;
     const items = feedWithAds.slice(0, itemsToShow);
     
-    // Atualizar hasMore
     if (items.length >= feedWithAds.length) {
       setHasMore(false);
     } else {
@@ -228,9 +207,7 @@ export default function Feed() {
     return items;
   }, [feedWithAds, page, pageSize, setHasMore]);
 
-  // ✅ PREFETCHING: Pré-carregar detalhes ao hover
   const handleEventHover = (eventId) => {
-    // Prefetch das interações do evento
     queryClient.prefetchQuery({
       queryKey: ['eventDetails', eventId],
       queryFn: async () => {
@@ -245,21 +222,18 @@ export default function Feed() {
   };
 
   const handleEventClick = (event) => {
-    // Navegar para detalhes ou abrir modal
-    console.log('📍 Evento clicado:', event.title);
+    logger.debug('📍 Evento clicado:', event.title);
     navigate(createPageUrl("Mapa"));
   };
 
   return (
     <div className="max-w-xl mx-auto px-0 py-0">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-black/95 backdrop-blur-lg border-b border-gray-800/50 px-3 sm:px-4 py-2.5 sm:py-3">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
             Feed
           </h1>
           <div className="flex items-center gap-2">
-            {/* Toggle View Mode */}
             <div className="flex items-center gap-1 bg-gray-800/80 rounded-lg p-1">
               <Button
                 variant="ghost"
@@ -302,7 +276,6 @@ export default function Feed() {
           </div>
         </div>
 
-        {/* Search com Debounce */}
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -311,7 +284,6 @@ export default function Feed() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="bg-gray-900/80 border-gray-700 pl-9 pr-3 text-white placeholder:text-gray-500 focus:border-cyan-500 text-sm h-9 rounded-lg"
           />
-          {/* Indicador de Debounce */}
           {searchTerm !== debouncedSearch && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <Loader2 className="w-3 h-3 text-cyan-400 animate-spin" />
@@ -319,7 +291,6 @@ export default function Feed() {
           )}
         </div>
 
-        {/* Info de Resultados */}
         {debouncedSearch && (
           <div className="mt-2 text-xs text-gray-400">
             {filteredEvents.length} resultado(s) para "{debouncedSearch}"
@@ -327,7 +298,6 @@ export default function Feed() {
         )}
       </div>
 
-      {/* Share Vibe Button */}
       <div className="px-3 sm:px-4 py-2.5 border-b border-gray-800/30">
         <Button
           className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 h-10 text-sm font-semibold shadow-lg"
@@ -339,7 +309,6 @@ export default function Feed() {
         </Button>
       </div>
 
-      {/* FEED COM PAGINAÇÃO */}
       <div className="space-y-0">
         {isLoadingEvents ? (
           <>
@@ -376,7 +345,6 @@ export default function Feed() {
                     />
                   )}
                   
-                  {/* Separador */}
                   {index < paginatedFeed.length - 1 && (
                     <div className="relative h-[1px] bg-gradient-to-r from-transparent via-gray-800/50 to-transparent">
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent blur-[2px]" />
@@ -386,7 +354,6 @@ export default function Feed() {
               );
             })}
 
-            {/* Infinite Scroll Trigger */}
             {hasMore && (
               <div 
                 ref={observerTarget}
@@ -399,7 +366,6 @@ export default function Feed() {
               </div>
             )}
 
-            {/* Final do Feed */}
             {!hasMore && paginatedFeed.length > 0 && (
               <div className="py-8 text-center">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-full text-sm text-gray-400">
@@ -443,10 +409,9 @@ export default function Feed() {
   );
 }
 
-// Componente de Anúncio Patrocinado
 function SponsoredAdCard({ ad, featured = false }) {
   if (!ad || !ad.id) {
-    console.warn('SponsoredAdCard: Anúncio inválido recebido');
+    logger.warn('SponsoredAdCard: Anúncio inválido recebido');
     return null;
   }
 
@@ -461,7 +426,7 @@ function SponsoredAdCard({ ad, featured = false }) {
         window.open(ad.link_url, '_blank');
       }
     } catch (error) {
-      console.error('Erro ao registrar clique:', error);
+      logger.error('Erro ao registrar clique:', error);
     }
   };
 
