@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, Search, MapPin, Music2, ZoomIn, ZoomOut, Map as MapIcon } from 'lucide-react';
+import { Plus, Eye, Menu, Search, MapPin, Music2, ZoomIn, ZoomOut, Map as MapIcon, Radar } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery } from '@tanstack/react-query';
@@ -274,6 +274,7 @@ export default function MapView({
   const [zoomLevel, setZoomLevel] = useState(15);
   const [showVenues, setShowVenues] = useState(true);
   const [selectedVenue, setSelectedVenue] = useState(null);
+  const [radarActive, setRadarActive] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -444,11 +445,11 @@ export default function MapView({
         }
       }}
     >
-      {/* Background Cyberpunk Underground */}
+      {/* Background Cyberpunk Underground - Azul Petróleo → Preto Carbono */}
       <div className="absolute inset-0 z-0" style={{ 
         background: 'linear-gradient(135deg, #0a1628 0%, #000000 50%, #0f0f23 100%)' 
       }}>
-        {/* Gradiente atmosférico translúcido */}
+        {/* Gradiente atmosférico translúcido (azul → violeta) */}
         <div 
           className="absolute inset-0"
           style={{
@@ -461,7 +462,7 @@ export default function MapView({
           }}
         />
         
-        {/* Grid Cyberpunk */}
+        {/* Grid Cyberpunk - Linhas azul aço */}
         <div
           className="absolute inset-0 opacity-[0.12]"
           style={{
@@ -498,7 +499,7 @@ export default function MapView({
           }}
         />
 
-        {/* Zonas de Alta Atividade */}
+        {/* Zonas de Alta Atividade - Glows pulsantes (roxo, lilás, ciano, magenta) */}
         {eventClusters.filter(c => c.isCluster || c.events.length >= 2).map((cluster, idx) => {
           const pos = coordToPosition(cluster.center.lat, cluster.center.lng);
           const color = getEventColor(cluster.events[0]);
@@ -530,7 +531,7 @@ export default function MapView({
           );
         })}
 
-        {/* Spots de Luz Underground */}
+        {/* Spots de Luz Underground - Roxo neon e Ciano */}
         <div 
           className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-15"
           style={{
@@ -547,7 +548,7 @@ export default function MapView({
         />
       </div>
 
-      {/* Mapa OpenStreetMap */}
+      {/* Mapa OpenStreetMap - SEM MARKER (removido para evitar 2 pontos) */}
       <div className="absolute inset-0 z-1">
         <iframe
           key={`map-${zoomLevel}-${bbox}`}
@@ -555,7 +556,7 @@ export default function MapView({
           height="100%"
           frameBorder="0"
           scrolling="no"
-          src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${userLocation.lat},${userLocation.lng}&zoom=${zoomLevel}`}
+          src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&zoom=${zoomLevel}`}
           className="absolute inset-0"
           style={{
             filter: 'grayscale(80%) invert(96%) brightness(0.85) contrast(1.3) hue-rotate(200deg) saturate(0.9)',
@@ -567,7 +568,7 @@ export default function MapView({
         />
       </div>
 
-      {/* Overlay Gradiente Atmosférico */}
+      {/* Overlay Gradiente Atmosférico (azul → violeta) */}
       <div 
         className="absolute inset-0 pointer-events-none z-2"
         style={{
@@ -602,6 +603,83 @@ export default function MapView({
         }}
       />
 
+      {/* MODO VIBE RADAR - Radar Neon Girando */}
+      <AnimatePresence>
+        {radarActive && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 pointer-events-none z-4 flex items-center justify-center"
+          >
+            {/* Radar Sweep - Cone girando */}
+            <motion.div
+              className="absolute"
+              style={{
+                width: '100%',
+                height: '100%',
+                background: `conic-gradient(from 0deg, 
+                  transparent 0deg, 
+                  ${vibeTheme.glowColor}40 45deg, 
+                  ${vibeTheme.glowColor}20 90deg, 
+                  transparent 135deg)`,
+                transformOrigin: 'center center',
+              }}
+              animate={{
+                rotate: [0, 360]
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            />
+
+            {/* Radar Rings - Anéis concêntricos */}
+            {[...Array(4)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full border-2 pointer-events-none"
+                style={{
+                  width: `${(i + 1) * 25}%`,
+                  height: `${(i + 1) * 25}%`,
+                  borderColor: `${vibeTheme.glowColor}30`,
+                  boxShadow: `0 0 20px ${vibeTheme.glowColor}40, inset 0 0 20px ${vibeTheme.glowColor}20`,
+                }}
+                animate={{
+                  scale: [1, 1.05, 1],
+                  opacity: [0.4, 0.7, 0.4]
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: i * 0.2
+                }}
+              />
+            ))}
+
+            {/* Radar Center Pulse */}
+            <motion.div
+              className="absolute w-4 h-4 rounded-full"
+              style={{
+                background: vibeTheme.glowColor,
+                boxShadow: `0 0 30px ${vibeTheme.glowColor}, 0 0 60px ${vibeTheme.glowColor}80`,
+              }}
+              animate={{
+                scale: [1, 1.5, 1],
+                opacity: [1, 0.5, 1]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Vinheta Sutil */}
       <div 
         className="absolute inset-0 pointer-events-none z-3"
@@ -612,7 +690,7 @@ export default function MapView({
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* REDUZIDO: Marcador do Usuário - MENOR (32px) */}
+        {/* UM ÚNICO MARCADOR - Posição do Usuário */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-40"
           style={{ 
@@ -628,11 +706,12 @@ export default function MapView({
             duration: 0.4
           }}
         >
-          {/* PIN REDUZIDO - 32px (era 48px) */}
+          {/* PIN ÚNICO - 32px - Branco-acinzentado com brilhos neon */}
           <motion.div 
-            className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center relative overflow-hidden"
+            className="w-8 h-8 rounded-full border-2 flex items-center justify-center relative overflow-hidden"
             style={{
               background: `linear-gradient(135deg, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
+              borderColor: 'rgba(229, 231, 235, 0.95)', // Branco-acinzentado
               boxShadow: `
                 0 0 20px ${vibeTheme.glowColor}, 
                 0 0 40px ${vibeTheme.glowColor}70,
@@ -652,7 +731,7 @@ export default function MapView({
               ease: "easeInOut"
             }}
           >
-            {/* Brilho interno */}
+            {/* Brilho interno suave */}
             <motion.div
               className="absolute inset-0 rounded-full"
               style={{
@@ -669,7 +748,7 @@ export default function MapView({
               }}
             />
 
-            {/* Círculo central menor */}
+            {/* Círculo central branco */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div 
                 className="w-4 h-4 rounded-full bg-white"
@@ -734,6 +813,28 @@ export default function MapView({
             <span>Vibes</span>
           </motion.button>
 
+          {/* Botão Vibe Radar */}
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setRadarActive(!radarActive)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full backdrop-blur-xl border-2 text-xs transition-all ${
+              radarActive 
+                ? 'text-white' 
+                : 'text-gray-400'
+            }`}
+            style={{
+              background: radarActive 
+                ? `linear-gradient(135deg, ${vibeTheme.glowColor}25, ${vibeTheme.secondaryGlow}20)` 
+                : 'rgba(0, 0, 0, 0.6)',
+              borderColor: radarActive ? `${vibeTheme.glowColor}60` : 'rgba(107, 114, 128, 0.5)',
+              boxShadow: radarActive ? `0 0 25px ${vibeTheme.glowColor}60` : 'none'
+            }}
+          >
+            <Radar className={`w-3 h-3 ${radarActive ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} />
+            <span>Radar</span>
+          </motion.button>
+
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -787,11 +888,17 @@ export default function MapView({
         </div>
       </div>
 
-      {/* Controles de Zoom */}
+      {/* Controles de Zoom - Easing Cinematográfico */}
       <div className="absolute right-3 bottom-32 z-30 flex flex-col gap-2">
         <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
+          whileHover={{ 
+            scale: 1.08,
+            transition: { type: "spring", stiffness: 400, damping: 10 }
+          }}
+          whileTap={{ 
+            scale: 0.92,
+            transition: { type: "spring", stiffness: 400, damping: 10 }
+          }}
           onClick={handleZoomIn}
           disabled={zoomLevel >= 18}
           className="w-11 h-11 rounded-full backdrop-blur-xl border-2 flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
@@ -805,8 +912,14 @@ export default function MapView({
         </motion.button>
         
         <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
+          whileHover={{ 
+            scale: 1.08,
+            transition: { type: "spring", stiffness: 400, damping: 10 }
+          }}
+          whileTap={{ 
+            scale: 0.92,
+            transition: { type: "spring", stiffness: 400, damping: 10 }
+          }}
           onClick={handleZoomOut}
           disabled={zoomLevel <= 10}
           className="w-11 h-11 rounded-full backdrop-blur-xl border-2 flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
@@ -867,7 +980,7 @@ export default function MapView({
         </motion.div>
       )}
 
-      {/* Ver Reels Button - Microinteração Líquida */}
+      {/* Ver Reels Button - Distorção Líquida Neon */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-20 pb-3 px-4"
         drag="y"
@@ -878,7 +991,7 @@ export default function MapView({
         }}
       >
         <div className="flex flex-col items-center cursor-pointer" onClick={onSwipeUp}>
-          {/* Indicador de Arraste */}
+          {/* Indicador de Arraste Neon */}
           <motion.div
             className="w-12 h-1.5 rounded-full mb-2"
             style={{
@@ -892,9 +1005,9 @@ export default function MapView({
             transition={{ duration: 2, repeat: Infinity }}
           />
           
-          {/* Botão com Efeito Líquido */}
+          {/* Botão Ver Reels - Efeito Água Neon */}
           <motion.button
-            className="backdrop-blur-xl px-6 py-3 rounded-full shadow-xl border-2 flex items-center gap-2 text-sm font-semibold relative overflow-hidden"
+            className="backdrop-blur-xl px-6 py-3 rounded-full shadow-xl border-2 flex items-center gap-2 text-sm font-semibold relative overflow-hidden group"
             style={{
               background: `linear-gradient(135deg, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
               borderColor: 'rgba(255, 255, 255, 0.3)',
@@ -902,16 +1015,20 @@ export default function MapView({
             }}
             whileHover={{ 
               scale: 1.05,
-              boxShadow: `0 0 40px ${vibeTheme.glowColor}, 0 0 80px ${vibeTheme.secondaryGlow}80`
+              boxShadow: `0 0 40px ${vibeTheme.glowColor}, 0 0 80px ${vibeTheme.secondaryGlow}80`,
+              transition: { type: "spring", stiffness: 400, damping: 10 }
             }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ 
+              scale: 0.95,
+              transition: { type: "spring", stiffness: 400, damping: 10 }
+            }}
           >
             {/* Efeito de Distorção Líquida */}
             <motion.div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100"
+              className="absolute inset-0"
               style={{
                 background: `radial-gradient(circle at 50% 50%, 
-                  rgba(255, 255, 255, 0.3) 0%, 
+                  rgba(255, 255, 255, 0.4) 0%, 
                   transparent 50%)`,
               }}
               animate={{
@@ -925,7 +1042,7 @@ export default function MapView({
               }}
             />
 
-            {/* Reflexo Superior */}
+            {/* Reflexo Superior Animado */}
             <motion.div
               className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full pointer-events-none"
               style={{
