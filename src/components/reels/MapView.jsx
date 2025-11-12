@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -680,7 +681,7 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* Header */}
+      {/* Header - SIMPLIFICADO SEM INFO BAR E REFRESH */}
       <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 z-30 flex flex-col gap-2">
         <div className="flex flex-wrap gap-1.5 items-center">
           <motion.button
@@ -697,16 +698,7 @@ export default function MapView({
             <span>Vibes</span>
           </motion.button>
 
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setShowRadiusInfo(!showRadiusInfo)}
-            className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-600/80 backdrop-blur-xl border border-blue-400/50 text-white text-xs"
-          >
-            <MapPin className="w-3 h-3" />
-            <span>{RADIUS_KM}km</span>
-          </motion.button>
-
+          {/* Controles de Zoom - MANTIDOS */}
           <div className="flex items-center gap-1 ml-auto">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -753,40 +745,6 @@ export default function MapView({
             className="pl-9 pr-3 py-2 bg-black/60 backdrop-blur-xl border-cyan-500/30 text-white placeholder:text-gray-500 focus:border-cyan-500/60 text-sm h-9 rounded-xl"
           />
         </div>
-
-        <AnimatePresence>
-          {showRadiusInfo && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="bg-black/95 backdrop-blur-xl border-2 rounded-xl p-4 text-xs text-white"
-              style={{
-                borderColor: `${vibeTheme.glowColor}40`,
-                boxShadow: `0 0 30px ${vibeTheme.glowColor}30`
-              }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Layers className="w-5 h-5 text-cyan-400" />
-                <span className="font-bold text-cyan-300">Área de Eventos</span>
-              </div>
-              
-              <div className="space-y-1">
-                <p className="text-gray-400">
-                  📍 {validEvents.length} evento(s) próximo(s)
-                </p>
-                <p className="text-gray-400">
-                  🎯 Raio: {RADIUS_KM}km
-                </p>
-                {eventClusters.length > 0 && (
-                  <p className="text-gray-400">
-                    🔗 {eventClusters.filter(c => c.isCluster).length} grupo(s)
-                  </p>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {canCreateReels && (

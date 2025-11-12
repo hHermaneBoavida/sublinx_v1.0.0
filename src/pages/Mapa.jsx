@@ -24,10 +24,10 @@ export default function Mapa() {
   const [locationError, setLocationError] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(true);
   const [locationErrorMessage, setLocationErrorMessage] = useState("");
-  const [filters, setFilters] = useState({ genre: "all", type: "all", verified: "all" }); // NOVO: Filtro de verificação
+  const [filters, setFilters] = useState({ genre: "all", type: "all", verified: "all" });
   const [searchTerm, setSearchTerm] = useState("");
   const [activeVibe, setActiveVibe] = useState('all');
-  const [syncingExternal, setSyncingExternal] = useState(false); // NOVO: Estado de sync
+  const [syncingExternal, setSyncingExternal] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -143,7 +143,6 @@ export default function Mapa() {
     );
   };
 
-  // NOVO: Carregar eventos internos + externos simulados
   const { data: events = [], isLoading: isLoadingEvents, error: eventsError, refetch: refetchEvents } = useQuery({
     queryKey: ['mapEvents', userLocation?.lat, userLocation?.lng],
     queryFn: async () => {
@@ -191,7 +190,7 @@ export default function Mapa() {
             
             return distance <= 10; // 10km de raio da localização real
           })
-          .slice(0, 40); // Aumentado de 30 para 40
+          .slice(0, 40);
 
         const endTime = performance.now();
         console.log(`✅ [MAPA] ${validEvents.length} eventos carregados em ${Math.round(endTime - startTime)}ms`);
@@ -203,11 +202,11 @@ export default function Mapa() {
         return [];
       }
     },
-    staleTime: 15 * 60 * 1000, // NOVO: Reduzido para 15min para refresh mais frequente
+    staleTime: 15 * 60 * 1000,
     cacheTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    refetchOnReconnect: true, // NOVO: Recarregar ao reconectar
+    refetchOnReconnect: true,
     initialData: [],
     enabled: !!userLocation,
   });
@@ -233,7 +232,6 @@ export default function Mapa() {
     initialData: [],
   });
 
-  // MELHORADO: Filtro com verificação de evento oficial/externo
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
     
@@ -247,14 +245,13 @@ export default function Mapa() {
     const filtered = events.filter(event => {
       if (!event || !event.location) return false;
       
-      // Filtros básicos
       const genreMatch = filters.genre === 'all' || event.genre === filters.genre;
       const typeMatch = filters.type === 'all' || event.type === filters.type;
       
-      // NOVO: Filtro de verificação
+      // Filter logic: `event.external_source` is no longer checked for 'external'
       const verifiedMatch = filters.verified === 'all' || 
         (filters.verified === 'verified' && event.verified_sublinx) ||
-        (filters.verified === 'external' && !event.verified_sublinx && event.external_source);
+        (filters.verified === 'external' && !event.verified_sublinx);
       
       const searchMatch = searchTerm === '' || 
         event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -286,7 +283,6 @@ export default function Mapa() {
     return filtered;
   }, [events, filters, searchTerm, activeVibe]);
 
-  // NOVO: Estatísticas de eventos
   const eventStats = useMemo(() => {
     return {
       total: events.length,
@@ -322,7 +318,7 @@ export default function Mapa() {
     setFilters(prev => ({
       genre: newFilters.genre || prev.genre,
       type: newFilters.type || prev.type,
-      verified: newFilters.verified || prev.verified // NOVO
+      verified: newFilters.verified || prev.verified
     }));
     setShowFilterPanel(false);
   }, []);
@@ -338,7 +334,6 @@ export default function Mapa() {
     queryClient.invalidateQueries(["mapReels"]);
   }, [queryClient]);
 
-  // NOVO: Forçar refresh dos eventos
   const handleRefreshEvents = useCallback(async () => {
     setSyncingExternal(true);
     await refetchEvents();
@@ -437,7 +432,6 @@ export default function Mapa() {
 
   return (
     <div className="w-full h-screen bg-black overflow-hidden relative">
-      {/* NOVO: Info Bar com estatísticas */}
       <div className="absolute top-2 left-2 right-2 z-40 pointer-events-none">
         <div className="flex justify-between items-start">
           <motion.div
@@ -558,7 +552,6 @@ export default function Mapa() {
   );
 }
 
-// NOVO: Função para gerar eventos externos simulados próximos ao usuário
 function generateNearbyExternalEvents(userLocation, count = 5) {
   const externalEvents = [];
   const genres = ['techno', 'house', 'trance', 'drum_bass', 'dubstep', 'ambient', 'funk'];
@@ -566,8 +559,7 @@ function generateNearbyExternalEvents(userLocation, count = 5) {
   const sources = ['eventbrite', 'jambase', 'allevents'];
   
   for (let i = 0; i < count; i++) {
-    // Gerar coordenadas próximas (dentro de 10km)
-    const offsetLat = (Math.random() - 0.5) * 0.09; // ~10km
+    const offsetLat = (Math.random() - 0.5) * 0.09;
     const offsetLng = (Math.random() - 0.5) * 0.09;
     
     const futureDate = new Date();
@@ -600,7 +592,7 @@ function generateNearbyExternalEvents(userLocation, count = 5) {
       minimum_level: 1,
       external_source: sources[i % sources.length],
       external_id: `ext_${Date.now()}_${i}`,
-      verified_sublinx: false, // IMPORTANTE: Não verificado
+      verified_sublinx: false,
       sync_date: new Date().toISOString()
     });
   }
