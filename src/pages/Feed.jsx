@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import EventFeedCard from "../components/feed/EventFeedCard";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import ShareVibeModal from "../components/feed/ShareVibeModal";
-import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp } from "lucide-react";
+import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -45,12 +45,20 @@ export default function Feed() {
 
   const isGuest = !user;
 
-  // Cache de 10 minutos para eventos
+  // CORREÇÃO: Cache de 10 minutos para eventos FUTUROS apenas
   const { data: events = [], isLoading: isLoadingEvents, refetch } = useQuery({
     queryKey: ['feedEvents'],
     queryFn: async () => {
-      const data = await base44.entities.Event.list("-date", 30);
-      return (data || []).filter(e => e?.id && e?.title && e?.location?.lat && e?.location?.lng);
+      const now = new Date();
+      const data = await base44.entities.Event.list("-date", 50);
+      
+      // FILTRAR: Apenas eventos FUTUROS (data >= agora)
+      return (data || []).filter(e => {
+        if (!e?.id || !e?.title || !e?.location?.lat || !e?.location?.lng) return false;
+        
+        const eventDate = new Date(e.date);
+        return eventDate >= now; // Apenas eventos futuros
+      });
     },
     staleTime: 10 * 60 * 1000,
     cacheTime: 15 * 60 * 1000,
@@ -59,16 +67,34 @@ export default function Feed() {
     initialData: [],
   });
 
-  // Cache de 10 minutos para anúncios
+  // CORREÇÃO: Cache de 10 minutos para anúncios ATIVOS
   const { data: advertisements = [] } = useQuery({
     queryKey: ['feedAds'],
     queryFn: async () => {
       try {
+        const now = new Date();
         const ads = await base44.entities.Advertisement.filter({
           is_active: true,
           placement: { $in: ['feed_top', 'feed_middle'] }
-        }, "", 5);
-        return (ads || []).filter(ad => ad && ad.id); // CORREÇÃO: Filtrar ads inválidos
+        }, "", 10);
+        
+        // FILTRAR: Apenas anúncios dentro do período de vigência
+        return (ads || []).filter(ad => {
+          if (!ad || !ad.id) return false;
+          
+          // Verificar datas de início e fim
+          if (ad.start_date) {
+            const startDate = new Date(ad.start_date);
+            if (now < startDate) return false;
+          }
+          
+          if (ad.end_date) {
+            const endDate = new Date(ad.end_date);
+            if (now > endDate) return false;
+          }
+          
+          return true;
+        });
       } catch (error) {
         console.error('Erro ao buscar anúncios:', error);
         return [];
@@ -124,7 +150,7 @@ export default function Feed() {
     if (!events || events.length === 0) return [];
     
     if (!user?.location?.lat) {
-      return [...events].sort((a, b) => new Date(b.date) - new Date(a.date));
+      return [...events].sort((a, b) => new Date(a.date) - new Date(b.date)); // PRÓXIMOS PRIMEIRO
     }
 
     return [...events].sort((a, b) => {
@@ -147,7 +173,7 @@ export default function Feed() {
     );
   }, [sortedEvents, searchTerm]);
 
-  // Inserir anúncios no feed - CORREÇÃO: Validação completa
+  // NOVO: Inserir anúncios PATROCINADOS em DESTAQUE no feed
   const feedWithAds = useMemo(() => {
     if (!advertisements || advertisements.length === 0) {
       return filteredEvents.map(event => ({ type: 'event', data: event, key: `event-${event.id}` }));
@@ -157,23 +183,25 @@ export default function Feed() {
     const topAds = advertisements.filter(ad => ad?.placement === 'feed_top');
     const middleAds = advertisements.filter(ad => ad?.placement === 'feed_middle');
 
-    // Anúncio no topo
-    if (topAds.length > 0 && topAds[0]?.id) {
-      result.push({ type: 'ad', data: topAds[0], key: `ad-top-${topAds[0].id}` });
-    }
+    // DESTAQUE: Anúncios no topo SEMPRE
+    topAds.forEach(ad => {
+      if (ad?.id) {
+        result.push({ type: 'ad', data: ad, key: `ad-top-${ad.id}`, featured: true });
+      }
+    });
 
-    // Inserir eventos e anúncios no meio
+    // Inserir eventos e anúncios no meio (A cada 3 eventos)
     filteredEvents.forEach((event, index) => {
       if (event?.id) {
         result.push({ type: 'event', data: event, key: `event-${event.id}` });
       }
       
-      // A cada 4 eventos, inserir um anúncio
-      if ((index + 1) % 4 === 0 && middleAds.length > 0) {
-        const adIndex = Math.floor(index / 4) % middleAds.length;
+      // A cada 3 eventos, inserir um anúncio DESTACADO
+      if ((index + 1) % 3 === 0 && middleAds.length > 0) {
+        const adIndex = Math.floor(index / 3) % middleAds.length;
         const ad = middleAds[adIndex];
         if (ad?.id) {
-          result.push({ type: 'ad', data: ad, key: `ad-middle-${ad.id}-${index}` });
+          result.push({ type: 'ad', data: ad, key: `ad-middle-${ad.id}-${index}`, featured: true });
         }
       }
     });
@@ -249,13 +277,12 @@ export default function Feed() {
           </>
         ) : feedWithAds.length > 0 ? (
           feedWithAds.map((item, index) => {
-            // CORREÇÃO: Validar item antes de renderizar
             if (!item || !item.data || !item.key) return null;
             
             return (
               <React.Fragment key={item.key}>
                 {item.type === 'ad' ? (
-                  <AdCard ad={item.data} />
+                  <SponsoredAdCard ad={item.data} featured={item.featured} />
                 ) : (
                   <EventFeedCard
                     event={item.data}
@@ -285,7 +312,7 @@ export default function Feed() {
             <p className="text-sm sm:text-base text-gray-500 px-4 mb-4">
               {searchTerm 
                 ? "Tente ajustar sua busca" 
-                : "Ainda não há eventos. Volte em breve!"}
+                : "Ainda não há eventos futuros. Volte em breve!"}
             </p>
             {searchTerm && (
               <Button 
@@ -310,22 +337,20 @@ export default function Feed() {
   );
 }
 
-// Componente de Anúncio Patrocinado - CORREÇÃO: Validação completa
-function AdCard({ ad }) {
-  // CORREÇÃO: Validar ad antes de renderizar
+// NOVO: Componente de Anúncio Patrocinado EM DESTAQUE
+function SponsoredAdCard({ ad, featured = false }) {
   if (!ad || !ad.id) {
-    console.warn('AdCard: Anúncio inválido recebido');
+    console.warn('SponsoredAdCard: Anúncio inválido recebido');
     return null;
   }
 
   const handleAdClick = async () => {
     try {
-      // Registrar clique
       await base44.entities.Advertisement.update(ad.id, {
-        clicks: (ad.clicks || 0) + 1
+        clicks: (ad.clicks || 0) + 1,
+        impressions: (ad.impressions || 0) + 1
       });
       
-      // Abrir link
       if (ad.link_url) {
         window.open(ad.link_url, '_blank');
       }
@@ -336,38 +361,104 @@ function AdCard({ ad }) {
 
   return (
     <Card 
-      className="bg-gradient-to-br from-purple-900/20 via-gray-900/80 to-cyan-900/20 border-0 text-white overflow-hidden cursor-pointer hover:bg-purple-900/30 transition-all"
+      className={`border-0 text-white overflow-hidden cursor-pointer transition-all duration-300 ${
+        featured 
+          ? 'bg-gradient-to-br from-yellow-900/30 via-purple-900/40 to-pink-900/30 hover:from-yellow-900/40 hover:via-purple-900/50 hover:to-pink-900/40 shadow-lg shadow-yellow-500/10' 
+          : 'bg-gradient-to-br from-purple-900/20 via-gray-900/80 to-cyan-900/20 hover:bg-purple-900/30'
+      }`}
       onClick={handleAdClick}
     >
+      {/* Badge PATROCINADO em DESTAQUE */}
       <div className="absolute top-2 left-2 z-10">
-        <div className="bg-purple-600/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
-          <TrendingUp className="w-3 h-3" />
-          PATROCINADO
-        </div>
+        <Badge className={`backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold flex items-center gap-1 shadow-lg ${
+          featured 
+            ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-black border-2 border-yellow-300 animate-pulse' 
+            : 'bg-purple-600/90 text-white'
+        }`}>
+          {featured ? (
+            <>
+              <Sparkles className="w-3 h-3" />
+              DESTAQUE PATROCINADO
+            </>
+          ) : (
+            <>
+              <TrendingUp className="w-3 h-3" />
+              PATROCINADO
+            </>
+          )}
+        </Badge>
       </div>
 
-      {ad.image_url && (
-        <div className="relative w-full h-48 overflow-hidden">
-          <img
-            src={ad.image_url}
-            alt={ad.title || 'Anúncio'}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+      {/* NOVO: Badge de Impressões */}
+      {ad.impressions > 0 && (
+        <div className="absolute top-2 right-2 z-10">
+          <Badge className="bg-black/60 backdrop-blur-sm text-white text-[9px] px-1.5 py-0.5">
+            <Zap className="w-2.5 h-2.5 mr-0.5" />
+            {ad.impressions > 999 ? `${Math.floor(ad.impressions / 1000)}k` : ad.impressions} views
+          </Badge>
         </div>
       )}
 
-      <CardContent className="p-4">
+      {/* Imagem DESTACADA */}
+      {ad.image_url && (
+        <div className={`relative w-full overflow-hidden ${featured ? 'h-64' : 'h-48'}`}>
+          <img
+            src={ad.image_url}
+            alt={ad.title || 'Anúncio'}
+            className={`w-full h-full object-cover ${featured ? 'scale-105' : ''} transition-transform duration-500 hover:scale-110`}
+          />
+          <div className={`absolute inset-0 ${
+            featured 
+              ? 'bg-gradient-to-t from-yellow-900/80 via-purple-900/40 to-transparent' 
+              : 'bg-gradient-to-t from-black/60 via-transparent to-transparent'
+          }`} />
+          
+          {/* NOVO: Indicador de DESTAQUE */}
+          {featured && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="relative">
+                <Crown className="w-16 h-16 text-yellow-400 opacity-20 animate-pulse" />
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 opacity-10 blur-2xl rounded-full" />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <CardContent className={`${featured ? 'p-5' : 'p-4'}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
-            <h3 className="text-lg font-bold mb-1">{ad.title || 'Anúncio Patrocinado'}</h3>
-            <p className="text-sm text-gray-300 mb-3 line-clamp-2">{ad.description || ''}</p>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span>{ad.advertiser_name || 'Anunciante'}</span>
+            <h3 className={`font-bold mb-2 ${featured ? 'text-xl text-yellow-300' : 'text-lg'}`}>
+              {ad.title || 'Anúncio Patrocinado'}
+            </h3>
+            <p className={`text-gray-300 mb-3 ${featured ? 'text-base line-clamp-3' : 'text-sm line-clamp-2'}`}>
+              {ad.description || ''}
+            </p>
+            
+            {/* NOVO: Target Audience */}
+            {ad.target_audience && (ad.target_audience.genres?.length > 0 || ad.target_audience.cities?.length > 0) && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {ad.target_audience.genres?.slice(0, 3).map(genre => (
+                  <Badge key={genre} className="bg-purple-600/20 border-purple-500/30 text-purple-300 text-[9px]">
+                    {genre}
+                  </Badge>
+                ))}
+                {ad.target_audience.cities?.slice(0, 2).map(city => (
+                  <Badge key={city} className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-[9px]">
+                    📍 {city}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            
+            <div className="flex items-center gap-3 text-xs">
+              <span className={featured ? 'text-yellow-400 font-semibold' : 'text-gray-400'}>
+                {ad.advertiser_name || 'Anunciante'}
+              </span>
               {ad.link_url && (
-                <div className="flex items-center gap-1 text-cyan-400">
+                <div className={`flex items-center gap-1 ${featured ? 'text-yellow-400' : 'text-cyan-400'}`}>
                   <ExternalLink className="w-3 h-3" />
-                  <span>Saiba mais</span>
+                  <span className="font-semibold">Saiba mais</span>
                 </div>
               )}
             </div>
