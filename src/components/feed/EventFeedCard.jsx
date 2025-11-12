@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,8 +46,8 @@ export default function EventFeedCard({
   isGuest,
   initialLikes = [],
   initialComments = [],
-  initialRequestStatus = null, // ✅ NOVO: Default value added
-  onMouseEnter // ✅ NOVO: Callback para prefetching
+  initialRequestStatus = null,
+  onMouseEnter // ✅ Callback para prefetching
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -66,7 +65,6 @@ export default function EventFeedCard({
   const [showShareModal, setShowShareModal] = useState(false);
   const [newComment, setNewComment] = useState("");
 
-  // BUSCAR DADOS ATUALIZADOS DO ORGANIZADOR SEMPRE
   const { data: organizerData, refetch: refetchOrganizer } = useQuery({
     queryKey: ['organizer', event.organizer_id],
     queryFn: async () => {
@@ -240,374 +238,367 @@ export default function EventFeedCard({
   }
 
   return (
-    <Card 
-      className="border-0 text-white overflow-hidden relative rounded-none"
-      style={{
-        background: 'linear-gradient(to bottom, rgba(17, 24, 39, 0.6), rgba(0, 0, 0, 0.8))'
-      }}
-      onMouseEnter={onMouseEnter} // ✅ PREFETCHING ao hover
-    >
-      {/* Header Ultra Compacto */}
-      <CardHeader className="p-2.5 pb-1.5">
-        <div className="flex items-center gap-2">
-          <img 
-            src={organizerAvatar}
-            alt={organizerName}
-            className="w-8 h-8 rounded-full object-cover border border-cyan-500/50 cursor-pointer hover:border-cyan-400 transition-colors"
-            onClick={handleNavigateToOrganizer}
-            key={organizerAvatar}
+    <>
+      <Card 
+        className="border-0 text-white overflow-hidden relative rounded-none"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(17, 24, 39, 0.6), rgba(0, 0, 0, 0.8))'
+        }}
+        onMouseEnter={onMouseEnter}
+      >
+        <CardHeader className="p-2.5 pb-1.5">
+          <div className="flex items-center gap-2">
+            <img 
+              src={organizerAvatar}
+              alt={organizerName}
+              className="w-8 h-8 rounded-full object-cover border border-cyan-500/50 cursor-pointer hover:border-cyan-400 transition-colors"
+              onClick={handleNavigateToOrganizer}
+              key={organizerAvatar}
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1">
+                <p 
+                  className="font-semibold text-xs cursor-pointer hover:text-cyan-400 transition-colors truncate"
+                  onClick={handleNavigateToOrganizer}
+                >
+                  {organizerName}
+                </p>
+                {organizerData?.is_organizer && (
+                  <Badge className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-[8px] px-0.5 py-0 h-3.5">
+                    <Shield className="w-2 h-2 mr-0.5" />
+                    ORG
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400 truncate">{event.location?.city || "Local Desconhecido"}</p>
+            </div>
+            {event.is_secret && (
+              <Badge className="bg-purple-600/90 border border-purple-400 text-white font-bold px-1.5 py-0 shadow-lg shadow-purple-500/50 text-[9px] h-4">
+                🔒
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        
+        <div 
+          className="relative w-full bg-gray-800 cursor-pointer overflow-hidden"
+          style={{ aspectRatio: '16/9' }}
+          onClick={handleOpenEventDetails}
+        >
+          <img
+            src={event.image_url || `https://picsum.photos/800/450?random=${event.id}`}
+            alt={event.title}
+            className="w-full h-full object-cover object-center"
           />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1">
-              <p 
-                className="font-semibold text-xs cursor-pointer hover:text-cyan-400 transition-colors truncate"
-                onClick={handleNavigateToOrganizer}
+          
+          {!user?.is_pro_member && !isGuest && (
+            <div className="absolute top-1.5 right-1.5 bg-gradient-to-r from-yellow-500/90 to-orange-500/90 backdrop-blur-md px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-lg">
+              <Lock className="w-2 h-2 text-white" />
+              <span className="text-white text-[9px] font-bold">PRO</span>
+            </div>
+          )}
+          
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
+          
+          {event.audio_preview_url && (
+            <Button
+              size="icon"
+              className="absolute bottom-1.5 right-1.5 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-sm border border-white/20 z-10 h-7 w-7"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePlayAudio();
+              }}
+            >
+              {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+            </Button>
+          )}
+          
+          {event.vibe_tags && event.vibe_tags.length > 0 && (
+            <div className="absolute top-1.5 left-1.5 flex flex-wrap gap-1 z-10">
+              {event.vibe_tags.slice(0, 2).map((tag, index) => (
+                <Badge 
+                  key={index} 
+                  className="bg-gradient-to-r from-purple-600/90 to-pink-600/90 backdrop-blur-md border-0 shadow-lg text-[9px] px-1 py-0"
+                >
+                  #{tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        <CardContent className="p-2.5 pt-1.5 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="hover:text-red-500 transition-colors h-7 px-1.5 min-w-0"
+                onClick={handleLike}
               >
-                {organizerName}
-              </p>
-              {organizerData?.is_organizer && (
-                <Badge className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-[8px] px-0.5 py-0 h-3.5">
-                  <Shield className="w-2 h-2 mr-0.5" />
-                  ORG
+                <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                <span className="ml-1 text-xs">{likes}</span>
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="hover:text-cyan-400 transition-colors h-7 px-1.5 min-w-0"
+                onClick={handleComment}
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span className="ml-1 text-xs">{comments.length}</span>
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="hover:text-green-400 transition-colors h-7 px-1.5 min-w-0"
+                onClick={handleShare}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className={`border-cyan-500/30 h-6 text-[10px] px-2 ${
+                user?.is_pro_member 
+                  ? 'text-cyan-300 hover:bg-cyan-500/10' 
+                  : 'text-gray-500 cursor-not-allowed'
+              }`}
+              onClick={handleOpenEventDetails}
+            >
+              {user?.is_pro_member ? (
+                <>
+                  <Eye className="w-2.5 h-2.5 mr-0.5" />
+                  Ver+
+                </>
+              ) : (
+                <>
+                  <Lock className="w-2.5 h-2.5 mr-0.5" />
+                  PRO
+                </>
+              )}
+            </Button>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-bold mb-0.5 line-clamp-1">{event.title}</h3>
+            <div className="flex items-center gap-2 text-[10px] text-gray-400 flex-wrap">
+              <div className="flex items-center gap-0.5">
+                <Clock className="w-2.5 h-2.5" />
+                <span>{format(new Date(event.date), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
+              </div>
+              <div className="flex items-center gap-0.5">
+                <MapPin className="w-2.5 h-2.5" />
+                <span className="truncate max-w-[120px]">{event.location?.venue_name || event.location?.city}</span>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-1 mt-1">
+              <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-[9px] px-1 py-0 h-4">
+                {event.genre}
+              </Badge>
+              <Badge className="bg-purple-600/20 border-purple-500/30 text-purple-300 text-[9px] px-1 py-0 h-4">
+                {event.type}
+              </Badge>
+              {event.minimum_level > 1 && (
+                <Badge className="bg-orange-600/20 border-orange-500/30 text-orange-300 text-[9px] px-1 py-0 h-4">
+                  <Crown className="w-2 h-2 mr-0.5" />
+                  Nv{event.minimum_level}+
                 </Badge>
               )}
             </div>
-            <p className="text-[10px] text-gray-400 truncate">{event.location?.city || "Local Desconhecido"}</p>
-          </div>
-          {event.is_secret && (
-            <Badge className="bg-purple-600/90 border border-purple-400 text-white font-bold px-1.5 py-0 shadow-lg shadow-purple-500/50 text-[9px] h-4">
-              🔒
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      
-      {/* BANNER Otimizado */}
-      <div 
-        className="relative w-full bg-gray-800 cursor-pointer overflow-hidden"
-        style={{ aspectRatio: '16/9' }}
-        onClick={handleOpenEventDetails}
-      >
-        <img
-          src={event.image_url || `https://picsum.photos/800/450?random=${event.id}`}
-          alt={event.title}
-          className="w-full h-full object-cover object-center"
-        />
-        
-        {!user?.is_pro_member && !isGuest && (
-          <div className="absolute top-1.5 right-1.5 bg-gradient-to-r from-yellow-500/90 to-orange-500/90 backdrop-blur-md px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-lg">
-            <Lock className="w-2 h-2 text-white" />
-            <span className="text-white text-[9px] font-bold">PRO</span>
-          </div>
-        )}
-        
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
-        
-        {event.audio_preview_url && (
-          <Button
-            size="icon"
-            className="absolute bottom-1.5 right-1.5 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-sm border border-white/20 z-10 h-7 w-7"
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePlayAudio();
-            }}
-          >
-            {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-          </Button>
-        )}
-        
-        {event.vibe_tags && event.vibe_tags.length > 0 && (
-          <div className="absolute top-1.5 left-1.5 flex flex-wrap gap-1 z-10">
-            {event.vibe_tags.slice(0, 2).map((tag, index) => (
-              <Badge 
-                key={index} 
-                className="bg-gradient-to-r from-purple-600/90 to-pink-600/90 backdrop-blur-md border-0 shadow-lg text-[9px] px-1 py-0"
-              >
-                #{tag}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </div>
-      
-      {/* Content Ultra Compacto */}
-      <CardContent className="p-2.5 pt-1.5 space-y-1.5">
-        {/* Actions Minimalistas */}
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="hover:text-red-500 transition-colors h-7 px-1.5 min-w-0"
-              onClick={handleLike}
-            >
-              <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-              <span className="ml-1 text-xs">{likes}</span>
-            </Button>
 
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="hover:text-cyan-400 transition-colors h-7 px-1.5 min-w-0"
-              onClick={handleComment}
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              <span className="ml-1 text-xs">{comments.length}</span>
-            </Button>
-
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="hover:text-green-400 transition-colors h-7 px-1.5 min-w-0"
-              onClick={handleShare}
-            >
-              <Share2 className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className={`border-cyan-500/30 h-6 text-[10px] px-2 ${
-              user?.is_pro_member 
-                ? 'text-cyan-300 hover:bg-cyan-500/10' 
-                : 'text-gray-500 cursor-not-allowed'
-            }`}
-            onClick={handleOpenEventDetails}
-          >
-            {user?.is_pro_member ? (
-              <>
-                <Eye className="w-2.5 h-2.5 mr-0.5" />
-                Ver+
-              </>
-            ) : (
-              <>
-                <Lock className="w-2.5 h-2.5 mr-0.5" />
-                PRO
-              </>
-            )}
-          </Button>
-        </div>
-        
-        {/* Info Ultra Compacta */}
-        <div>
-          <h3 className="text-sm font-bold mb-0.5 line-clamp-1">{event.title}</h3>
-          <div className="flex items-center gap-2 text-[10px] text-gray-400 flex-wrap">
-            <div className="flex items-center gap-0.5">
-              <Clock className="w-2.5 h-2.5" />
-              <span>{format(new Date(event.date), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
-            </div>
-            <div className="flex items-center gap-0.5">
-              <MapPin className="w-2.5 h-2.5" />
-              <span className="truncate max-w-[120px]">{event.location?.venue_name || event.location?.city}</span>
-            </div>
-          </div>
-          
-          {/* Badges Minimalistas */}
-          <div className="flex flex-wrap gap-1 mt-1">
-            <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-[9px] px-1 py-0 h-4">
-              {event.genre}
-            </Badge>
-            <Badge className="bg-purple-600/20 border-purple-500/30 text-purple-300 text-[9px] px-1 py-0 h-4">
-              {event.type}
-            </Badge>
-            {event.minimum_level > 1 && (
-              <Badge className="bg-orange-600/20 border-orange-500/30 text-orange-300 text-[9px] px-1 py-0 h-4">
-                <Crown className="w-2 h-2 mr-0.5" />
-                Nv{event.minimum_level}+
-              </Badge>
+            {event.description && (
+              <p className="mt-1 text-[10px] text-gray-300 line-clamp-1">
+                {event.description}
+              </p>
             )}
           </div>
 
-          {/* Descrição Compacta */}
-          {event.description && (
-            <p className="mt-1 text-[10px] text-gray-300 line-clamp-1">
-              {event.description}
-            </p>
-          )}
-        </div>
-
-        {/* CTA Ultra Compacto */}
-        {requestStatus ? (
-          <div className="flex items-center justify-between p-1.5 bg-gray-800/50 rounded-lg">
-            {requestStatus === 'approved' ? (
-              <>
-                <div className="flex items-center gap-1 text-green-400">
-                  <Check className="w-3 h-3" />
-                  <span className="font-semibold text-[10px]">Aprovado!</span>
-                </div>
-                <Button 
-                  onClick={() => setShowApprovedModal(true)}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-6 text-[10px] px-2"
-                >
-                  Ingresso
-                </Button>
-              </>
-            ) : requestStatus === 'pending' ? (
-              <>
-                <div className="flex items-center gap-1 text-yellow-400">
-                  <Clock className="w-3 h-3" />
-                  <span className="font-semibold text-[10px]">Pendente</span>
-                </div>
-                <Button variant="outline" disabled className="border-gray-600 h-6 text-[10px] px-2">
-                  Aguardando
-                </Button>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-1 text-red-400">
-                  <AlertCircle className="w-3 h-3" />
-                  <span className="font-semibold text-[10px]">Negado</span>
-                </div>
-                <Button variant="outline" disabled className="border-gray-600 h-6 text-[10px] px-2">
-                  Negado
-                </Button>
-              </>
-            )}
-          </div>
-        ) : event.requires_approval ? (
-          <Button 
-            onClick={handleRequestAccess}
-            className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 h-8 text-xs"
-          >
-            <Zap className="w-3 h-3 mr-1" />
-            Solicitar Acesso
-          </Button>
-        ) : (
-          <Button 
-            onClick={() => navigate(createPageUrl("ComprarIngresso") + `?eventId=${event.id}`)}
-            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-8 text-xs"
-          >
-            <Users className="w-3 h-3 mr-1" />
-            Comprar Ingresso
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-
-    <Dialog open={showUpgradePrompt} onOpenChange={setShowUpgradePrompt}>
-      <DialogContent className="bg-gray-900 border-purple-500 text-white">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Crown className="w-6 h-6 text-yellow-500" />
-            Recurso PRO - Detalhes do Evento
-          </DialogTitle>
-          <DialogDescription className="text-gray-300">
-            Ver detalhes completos do evento é exclusivo para membros PRO.
-            <br />
-            <br />
-            <strong className="text-white">Mas você pode:</strong>
-            <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-              <li>✅ Curtir eventos</li>
-              <li>✅ Comentar em eventos</li>
-              <li>✅ Solicitar acesso</li>
-              <li>✅ Compartilhar com amigos</li>
-            </ul>
-            <br />
-            Faça upgrade para desbloquear tudo!
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => setShowUpgradePrompt(false)} className="flex-1">
-            Continuar Grátis
-          </Button>
-          <Button
-            onClick={() => {
-              setShowUpgradePrompt(false);
-              navigate(createPageUrl("Planos"));
-            }}
-            className="flex-1 bg-gradient-to-r from-yellow-600 to-orange-600"
-          >
-            <Crown className="w-4 h-4 mr-2" />
-            Ver Planos PRO
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-
-    <Dialog open={showComments} onOpenChange={setShowComments}>
-      <DialogContent className="bg-gray-900 border-cyan-500 text-white max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Comentários ({comments.length})
-            {isEventOrganizer && (
-              <Badge className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-xs">
-                <Shield className="w-3 h-3 mr-1" />
-                Moderador
-              </Badge>
-            )}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          {comments.map((comment, index) => (
-            <div key={comment.id || index} className="flex gap-3 p-3 bg-gray-800/50 rounded-lg relative group">
-              <img
-                src={`https://i.pravatar.cc/40?u=${comment.user_id}`}
-                alt={comment.user_name}
-                className="w-10 h-10 rounded-full"
-              />
-              <div className="flex-1">
-                <p className="font-semibold text-sm">{comment.user_name}</p>
-                <p className="text-gray-300 text-sm mt-1">{comment.content}</p>
-              </div>
-              
-              {isEventOrganizer && comment.id && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDeleteComment(comment.id)}
-                  className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-400"
-                  title="Remover comentário (moderador)"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+          {requestStatus ? (
+            <div className="flex items-center justify-between p-1.5 bg-gray-800/50 rounded-lg">
+              {requestStatus === 'approved' ? (
+                <>
+                  <div className="flex items-center gap-1 text-green-400">
+                    <Check className="w-3 h-3" />
+                    <span className="font-semibold text-[10px]">Aprovado!</span>
+                  </div>
+                  <Button 
+                    onClick={() => setShowApprovedModal(true)}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-6 text-[10px] px-2"
+                  >
+                    Ingresso
+                  </Button>
+                </>
+              ) : requestStatus === 'pending' ? (
+                <>
+                  <div className="flex items-center gap-1 text-yellow-400">
+                    <Clock className="w-3 h-3" />
+                    <span className="font-semibold text-[10px]">Pendente</span>
+                  </div>
+                  <Button variant="outline" disabled className="border-gray-600 h-6 text-[10px] px-2">
+                    Aguardando
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1 text-red-400">
+                    <AlertCircle className="w-3 h-3" />
+                    <span className="font-semibold text-[10px]">Negado</span>
+                  </div>
+                  <Button variant="outline" disabled className="border-gray-600 h-6 text-[10px] px-2">
+                    Negado
+                  </Button>
+                </>
               )}
             </div>
-          ))}
-          {comments.length === 0 && (
-            <p className="text-center text-gray-400 py-8">Nenhum comentário ainda. Seja o primeiro!</p>
+          ) : event.requires_approval ? (
+            <Button 
+              onClick={handleRequestAccess}
+              className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 h-8 text-xs"
+            >
+              <Zap className="w-3 h-3 mr-1" />
+              Solicitar Acesso
+            </Button>
+          ) : (
+            <Button 
+              onClick={() => navigate(createPageUrl("ComprarIngresso") + `?eventId=${event.id}`)}
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-8 text-xs"
+            >
+              <Users className="w-3 h-3 mr-1" />
+              Comprar Ingresso
+            </Button>
           )}
-        </div>
-        <div className="flex gap-2 mt-4">
-          <Input
-            placeholder="Adicione um comentário..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()}
-            className="bg-gray-800 border-gray-600 text-white"
-          />
-          <Button onClick={handleSubmitComment} disabled={!newComment.trim() || commentMutation.isPending}>
-            {commentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </CardContent>
+      </Card>
 
-    {showApprovedModal && (
-      <EventApprovedModal
-        event={event}
-        onClose={() => setShowApprovedModal(false)}
-      />
-    )}
+      <Dialog open={showUpgradePrompt} onOpenChange={setShowUpgradePrompt}>
+        <DialogContent className="bg-gray-900 border-purple-500 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="w-6 h-6 text-yellow-500" />
+              Recurso PRO - Detalhes do Evento
+            </DialogTitle>
+            <DialogDescription className="text-gray-300">
+              Ver detalhes completos do evento é exclusivo para membros PRO.
+              <br />
+              <br />
+              <strong className="text-white">Mas você pode:</strong>
+              <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                <li>✅ Curtir eventos</li>
+                <li>✅ Comentar em eventos</li>
+                <li>✅ Solicitar acesso</li>
+                <li>✅ Compartilhar com amigos</li>
+              </ul>
+              <br />
+              Faça upgrade para desbloquear tudo!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setShowUpgradePrompt(false)} className="flex-1">
+              Continuar Grátis
+            </Button>
+            <Button
+              onClick={() => {
+                setShowUpgradePrompt(false);
+                navigate(createPageUrl("Planos"));
+              }}
+              className="flex-1 bg-gradient-to-r from-yellow-600 to-orange-600"
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Ver Planos PRO
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-    {showRequestModal && (
-      <EventRequestModal
-        event={event}
-        user={user}
-        onClose={() => setShowRequestModal(false)}
-        onSuccess={(status) => {
-          setRequestStatus(status);
-          queryClient.invalidateQueries(['feedInteractions']);
-        }}
-      />
-    )}
+      <Dialog open={showComments} onOpenChange={setShowComments}>
+        <DialogContent className="bg-gray-900 border-cyan-500 text-white max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Comentários ({comments.length})
+              {isEventOrganizer && (
+                <Badge className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-xs">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Moderador
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {comments.map((comment, index) => (
+              <div key={comment.id || index} className="flex gap-3 p-3 bg-gray-800/50 rounded-lg relative group">
+                <img
+                  src={`https://i.pravatar.cc/40?u=${comment.user_id}`}
+                  alt={comment.user_name}
+                  className="w-10 h-10 rounded-full"
+                />
+                <div className="flex-1">
+                  <p className="font-semibold text-sm">{comment.user_name}</p>
+                  <p className="text-gray-300 text-sm mt-1">{comment.content}</p>
+                </div>
+                
+                {isEventOrganizer && comment.id && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteComment(comment.id)}
+                    className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-400"
+                    title="Remover comentário (moderador)"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            {comments.length === 0 && (
+              <p className="text-center text-gray-400 py-8">Nenhum comentário ainda. Seja o primeiro!</p>
+            )}
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Input
+              placeholder="Adicione um comentário..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()}
+              className="bg-gray-800 border-gray-600 text-white"
+            />
+            <Button onClick={handleSubmitComment} disabled={!newComment.trim() || commentMutation.isPending}>
+              {commentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-    {showShareModal && (
-      <ShareModal
-        event={event}
-        onClose={() => setShowShareModal(false)}
-      />
-    )}
-  </>
+      {showApprovedModal && (
+        <EventApprovedModal
+          event={event}
+          onClose={() => setShowApprovedModal(false)}
+        />
+      )}
+
+      {showRequestModal && (
+        <EventRequestModal
+          event={event}
+          user={user}
+          onClose={() => setShowRequestModal(false)}
+          onSuccess={(status) => {
+            setRequestStatus(status);
+            queryClient.invalidateQueries(['feedInteractions']);
+          }}
+        />
+      )}
+
+      {showShareModal && (
+        <ShareModal
+          event={event}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
+    </>
   );
 }
