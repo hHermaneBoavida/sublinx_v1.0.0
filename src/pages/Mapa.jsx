@@ -186,27 +186,27 @@ export default function Mapa() {
           case error.PERMISSION_DENIED:
             errorMsg = "Você negou o acesso à localização. Por favor, permita o acesso nas configurações do navegador.";
             break;
-          case error.POSITION_UNAVAILABLE:
-            errorMsg = "Localização indisponível. Verifique se o GPS está ativado ou se você está em um local com sinal.";
-            break;
-          case error.TIMEOUT:
-            errorMsg = "Tempo esgotado ao tentar obter sua localização. Tente novamente.";
-            break;
-          default:
-            errorMsg = "Erro desconhecido ao obter localização. Tente novamente.";
+            case error.POSITION_UNAVAILABLE:
+              errorMsg = "Localização indisponível. Verifique se o GPS está ativado ou se você está em um local com sinal.";
+              break;
+            case error.TIMEOUT:
+              errorMsg = "Tempo esgotado ao tentar obter sua localização. Tente novamente.";
+              break;
+            default:
+              errorMsg = "Erro desconhecido ao obter localização. Tente novamente.";
+          }
+          
+          setLocationError(true);
+          setLocationErrorMessage(errorMsg);
+          setLoadingLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
         }
-        
-        setLocationError(true);
-        setLocationErrorMessage(errorMsg);
-        setLoadingLocation(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
-      }
-    );
-  }, []);
+      );
+    }, []);
 
   const { data: events = [], isLoading: isLoadingEvents, error: eventsError, refetch: refetchEvents } = useQuery({
     queryKey: ['mapEvents', userLocation?.lat, userLocation?.lng],
