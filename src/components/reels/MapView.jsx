@@ -304,50 +304,31 @@ export default function MapView({
 
   // Sistema de clustering com zoom adaptativo
   const eventClusters = useMemo(() => {
-    return clusterEvents(validEvents, zoomLevel / 15); // Ajusta clustering baseado no zoom
+    return clusterEvents(validEvents, zoomLevel / 15);
   }, [validEvents, zoomLevel]);
 
-  // Bounds do mapa dinâmicos baseados no zoom
+  // CORREÇÃO: Calcular bounds baseado no zoom usando fórmula correta
   const mapBounds = useMemo(() => {
-    const zoomFactor = 0.05 * (15 / zoomLevel); // Quanto maior o zoom, menor a área
+    // Fórmula para calcular o tamanho do bbox baseado no zoom
+    // Zoom 10 = 0.1 graus, Zoom 15 = 0.01 graus, Zoom 18 = 0.001 graus
+    const latRange = 0.5 / Math.pow(2, zoomLevel - 10);
+    const lngRange = 0.5 / Math.pow(2, zoomLevel - 10);
     
-    if (validEvents.length === 0 && venues.length === 0) {
-      return {
-        minLat: userLocation.lat - zoomFactor,
-        maxLat: userLocation.lat + zoomFactor,
-        minLng: userLocation.lng - zoomFactor,
-        maxLng: userLocation.lng + zoomFactor
-      };
-    }
-
-    const allLats = [
-      ...validEvents.map(e => e.location.lat),
-      ...venues.map(v => v.location.lat),
-      userLocation.lat
-    ];
-    
-    const allLngs = [
-      ...validEvents.map(e => e.location.lng),
-      ...venues.map(v => v.location.lng),
-      userLocation.lng
-    ];
-
     return {
-      minLat: Math.min(...allLats) - zoomFactor,
-      maxLat: Math.max(...allLats) + zoomFactor,
-      minLng: Math.min(...allLngs) - zoomFactor,
-      maxLng: Math.max(...allLngs) + zoomFactor,
+      minLat: userLocation.lat - latRange,
+      maxLat: userLocation.lat + latRange,
+      minLng: userLocation.lng - lngRange,
+      maxLng: userLocation.lng + lngRange
     };
-  }, [validEvents, venues, userLocation, zoomLevel]);
+  }, [userLocation, zoomLevel]);
 
   const bbox = useMemo(() => {
     return `${mapBounds.minLng},${mapBounds.minLat},${mapBounds.maxLng},${mapBounds.maxLat}`;
   }, [mapBounds]);
 
   const coordToPosition = useCallback((lat, lng) => {
-    // Check for valid mapBounds to prevent division by zero or invalid calculations
     if (mapBounds.maxLng === mapBounds.minLng || mapBounds.maxLat === mapBounds.minLat) {
-      return { x: 50, y: 50 }; // Default to center if bounds are degenerate
+      return { x: 50, y: 50 };
     }
     const x = ((lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * 100;
     const y = ((mapBounds.maxLat - lat) / (mapBounds.maxLat - mapBounds.minLat)) * 100;
@@ -372,11 +353,11 @@ export default function MapView({
 
   // Controles de Zoom
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 1, 18)); // Máximo 18
+    setZoomLevel(prev => Math.min(prev + 1, 18));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 1, 10)); // Mínimo 10
+    setZoomLevel(prev => Math.max(prev - 1, 10));
   };
 
   return (
@@ -441,7 +422,7 @@ export default function MapView({
         />
       </div>
 
-      {/* Mapa OpenStreetMap - 60% MAIS CLARO */}
+      {/* Mapa OpenStreetMap - COM ZOOM FUNCIONAL */}
       <div className="absolute inset-0 z-1">
         <iframe
           key={`map-${zoomLevel}-${bbox}`}
