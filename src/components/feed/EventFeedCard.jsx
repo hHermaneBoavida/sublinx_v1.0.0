@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,8 +47,7 @@ export default function EventFeedCard({
   isGuest,
   initialLikes = [],
   initialComments = [],
-  initialRequestStatus = null,
-  onMouseEnter // ✅ Callback para prefetching
+  initialRequestStatus
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -65,6 +65,7 @@ export default function EventFeedCard({
   const [showShareModal, setShowShareModal] = useState(false);
   const [newComment, setNewComment] = useState("");
 
+  // BUSCAR DADOS ATUALIZADOS DO ORGANIZADOR SEMPRE
   const { data: organizerData, refetch: refetchOrganizer } = useQuery({
     queryKey: ['organizer', event.organizer_id],
     queryFn: async () => {
@@ -239,13 +240,8 @@ export default function EventFeedCard({
 
   return (
     <>
-      <Card 
-        className="border-0 text-white overflow-hidden relative rounded-none"
-        style={{
-          background: 'linear-gradient(to bottom, rgba(17, 24, 39, 0.6), rgba(0, 0, 0, 0.8))'
-        }}
-        onMouseEnter={onMouseEnter}
-      >
+      <Card className="bg-gray-900/95 border-0 text-white overflow-hidden shadow-none rounded-none">
+        {/* Header Ultra Compacto */}
         <CardHeader className="p-2.5 pb-1.5">
           <div className="flex items-center gap-2">
             <img 
@@ -280,6 +276,7 @@ export default function EventFeedCard({
           </div>
         </CardHeader>
         
+        {/* BANNER Otimizado */}
         <div 
           className="relative w-full bg-gray-800 cursor-pointer overflow-hidden"
           style={{ aspectRatio: '16/9' }}
@@ -327,7 +324,9 @@ export default function EventFeedCard({
           )}
         </div>
         
+        {/* Content Ultra Compacto */}
         <CardContent className="p-2.5 pt-1.5 space-y-1.5">
+          {/* Actions Minimalistas */}
           <div className="flex items-center justify-between">
             <div className="flex gap-2">
               <Button 
@@ -384,6 +383,7 @@ export default function EventFeedCard({
             </Button>
           </div>
           
+          {/* Info Ultra Compacta */}
           <div>
             <h3 className="text-sm font-bold mb-0.5 line-clamp-1">{event.title}</h3>
             <div className="flex items-center gap-2 text-[10px] text-gray-400 flex-wrap">
@@ -397,6 +397,7 @@ export default function EventFeedCard({
               </div>
             </div>
             
+            {/* Badges Minimalistas */}
             <div className="flex flex-wrap gap-1 mt-1">
               <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-[9px] px-1 py-0 h-4">
                 {event.genre}
@@ -412,6 +413,7 @@ export default function EventFeedCard({
               )}
             </div>
 
+            {/* Descrição Compacta */}
             {event.description && (
               <p className="mt-1 text-[10px] text-gray-300 line-clamp-1">
                 {event.description}
@@ -419,6 +421,7 @@ export default function EventFeedCard({
             )}
           </div>
 
+          {/* CTA Ultra Compacto */}
           {requestStatus ? (
             <div className="flex items-center justify-between p-1.5 bg-gray-800/50 rounded-lg">
               {requestStatus === 'approved' ? (
