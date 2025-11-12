@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, MapPin, Calendar, Users, Clock, Tag, Heart, Share2, Navigation, CheckCircle, Globe, ExternalLink } from 'lucide-react';
+import { X, MapPin, Calendar, Users, Clock, Tag, Heart, Share2, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -9,9 +8,6 @@ import { ptBR } from 'date-fns/locale';
 
 export default function EventDetailsModal({ event, onClose }) {
   if (!event || !event.location) return null;
-
-  // NOVO: Verificar se é evento externo
-  const isExternal = !event.verified_sublinx && event.external_source;
 
   return (
     <motion.div
@@ -38,25 +34,6 @@ export default function EventDetailsModal({ event, onClose }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
           
-          {/* NOVO: Badge de Fonte */}
-          {isExternal && (
-            <div className="absolute top-3 left-3 z-10">
-              <Badge className="bg-purple-600/90 backdrop-blur-md border-purple-400/50 text-white flex items-center gap-1.5 px-3 py-1">
-                <Globe className="w-3 h-3" />
-                <span className="text-xs font-semibold">{event.external_source?.toUpperCase()}</span>
-              </Badge>
-            </div>
-          )}
-
-          {event.verified_sublinx && (
-            <div className="absolute top-3 left-3 z-10">
-              <Badge className="bg-cyan-600/90 backdrop-blur-md border-cyan-400/50 text-white flex items-center gap-1.5 px-3 py-1">
-                <CheckCircle className="w-3 h-3" />
-                <span className="text-xs font-semibold">OFICIAL SUBLINX</span>
-              </Badge>
-            </div>
-          )}
-          
           {/* Botão Fechar */}
           <Button
             variant="ghost"
@@ -71,7 +48,7 @@ export default function EventDetailsModal({ event, onClose }) {
           <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4">
             <div className="flex items-start gap-2 sm:gap-3">
               <img 
-                src={event.organizer_avatar || `https://i.pravatar.cc/48?u=${event.organizer_id}`} 
+                src={`https://i.pravatar.cc/48?u=${event.organizer_id}`} 
                 alt={event.organizer}
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-cyan-500/50"
               />
@@ -85,32 +62,6 @@ export default function EventDetailsModal({ event, onClose }) {
 
         {/* Conteúdo Scrollável */}
         <div className="overflow-y-auto max-h-[calc(90vh-12rem)] sm:max-h-[calc(90vh-14rem)] md:max-h-96 p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-          {/* NOVO: Info de Evento Externo */}
-          {isExternal && (
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 sm:p-4">
-              <div className="flex items-start gap-3">
-                <Globe className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-semibold text-purple-300 mb-1">Evento Externo</h4>
-                  <p className="text-xs text-gray-300 mb-2">
-                    Este evento foi importado de <span className="font-semibold text-purple-400">{event.external_source}</span> e não é organizado diretamente pelo Sublinx.
-                  </p>
-                  {event.external_url && (
-                    <a 
-                      href={event.external_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      Ver na plataforma original
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Badges */}
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
             <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-xs">

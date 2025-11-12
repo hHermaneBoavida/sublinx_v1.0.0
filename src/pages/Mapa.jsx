@@ -8,7 +8,7 @@ import FilterPanel from "../components/map/FilterPanel";
 import VibeSelector from "../components/map/VibeSelector";
 import UploadReelModal from "../components/reels/UploadReelModal";
 import EventDetailsModal from "../components/map/EventDetailsModal";
-import { Loader2, MapPin, AlertCircle, RefreshCw, Globe } from "lucide-react";
+import { Loader2, MapPin, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 
@@ -20,16 +20,16 @@ export default function Mapa() {
   const [showVibeSelector, setShowVibeSelector] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(null); // CORREÇÃO: null até obter localização real
   const [locationError, setLocationError] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(true);
-  const [locationErrorMessage, setLocationErrorMessage] = useState("");
-  const [filters, setFilters] = useState({ genre: "all", type: "all", verified: "all" });
+  const [locationErrorMessage, setLocationErrorMessage] = useState(""); // NOVO: Mensagem de erro específica
+  const [filters, setFilters] = useState({ genre: "all", type: "all" });
   const [searchTerm, setSearchTerm] = useState("");
   const [activeVibe, setActiveVibe] = useState('all');
-  const [syncingExternal, setSyncingExternal] = useState(false);
   const queryClient = useQueryClient();
 
+  // CORREÇÃO: Obter localização REAL do usuário - SEM FALLBACK
   useEffect(() => {
     let isMounted = true;
     
@@ -45,6 +45,7 @@ export default function Mapa() {
       return;
     }
 
+    // Solicitar localização com alta precisão
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (isMounted) {
@@ -84,9 +85,9 @@ export default function Mapa() {
         }
       },
       {
-        enableHighAccuracy: true,
+        enableHighAccuracy: true, // CORREÇÃO: Usar alta precisão para localização real
         timeout: 10000,
-        maximumAge: 0
+        maximumAge: 0 // CORREÇÃO: Não usar cache, sempre pegar localização fresca
       }
     );
 
@@ -143,6 +144,7 @@ export default function Mapa() {
     );
   };
 
+  // CORREÇÃO: Apenas carregar eventos se tiver localização real
   const { data: events = [], isLoading: isLoadingEvents, error: eventsError, refetch: refetchEvents } = useQuery({
     queryKey: ['mapEvents', userLocation?.lat, userLocation?.lng],
     queryFn: async () => {
@@ -156,18 +158,10 @@ export default function Mapa() {
         const startTime = performance.now();
         
         const now = new Date();
-        
-        // 1. Carregar eventos internos (oficiais)
         const internalEvents = await base44.entities.Event.list('-date', 50);
         
-        // 2. NOVO: Adicionar eventos externos simulados (normalmente viriam de syncExternalEvents)
-        const externalEventsSimulated = generateNearbyExternalEvents(userLocation, 5);
-        
-        // 3. Combinar todos os eventos
-        const allEvents = [...(internalEvents || []), ...externalEventsSimulated];
-        
         // Filtrar e validar eventos - raio de 10km da localização REAL
-        const validEvents = allEvents
+        const validEvents = (internalEvents || [])
           .filter(e => {
             if (!e?.id || !e?.title || !e?.location?.lat || !e?.location?.lng) {
               return false;
@@ -190,11 +184,10 @@ export default function Mapa() {
             
             return distance <= 10; // 10km de raio da localização real
           })
-          .slice(0, 40);
+          .slice(0, 30);
 
         const endTime = performance.now();
         console.log(`✅ [MAPA] ${validEvents.length} eventos carregados em ${Math.round(endTime - startTime)}ms`);
-        console.log(`   📊 Internos: ${internalEvents?.length || 0} | Externos: ${externalEventsSimulated.length}`);
         
         return validEvents;
       } catch (error) {
@@ -202,21 +195,22 @@ export default function Mapa() {
         return [];
       }
     },
-    staleTime: 15 * 60 * 1000,
-    cacheTime: 30 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    cacheTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    refetchOnReconnect: true,
+    refetchOnReconnect: false,
     initialData: [],
-    enabled: !!userLocation,
+    enabled: !!userLocation, // CORREÇÃO: Só buscar eventos se tiver localização real
   });
 
+  // CORREÇÃO: Cache mais agressivo para reels
   const { data: reels = [], isLoading: isLoadingReels } = useQuery({
     queryKey: ['mapReels'],
     queryFn: async () => {
       try {
         console.log("🎬 [MAPA] Carregando reels...");
-        const data = await base44.entities.Reel.list("-created_date", 30);
+        const data = await base44.entities.Reel.list("-created_date", 30); // CORREÇÃO: Reduzido de 50 para 30
         console.log("✅ [MAPA] Reels carregados:", data?.length || 0);
         return data || [];
       } catch (error) {
@@ -224,7 +218,7 @@ export default function Mapa() {
         return [];
       }
     },
-    staleTime: 30 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // CORREÇÃO: 30 minutos
     cacheTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -232,6 +226,7 @@ export default function Mapa() {
     initialData: [],
   });
 
+  // CORREÇÃO: Filtro simplificado e consistente
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
     
@@ -245,19 +240,15 @@ export default function Mapa() {
     const filtered = events.filter(event => {
       if (!event || !event.location) return false;
       
+      // Filtros básicos
       const genreMatch = filters.genre === 'all' || event.genre === filters.genre;
       const typeMatch = filters.type === 'all' || event.type === filters.type;
-      
-      // Filter logic: `event.external_source` is no longer checked for 'external'
-      const verifiedMatch = filters.verified === 'all' || 
-        (filters.verified === 'verified' && event.verified_sublinx) ||
-        (filters.verified === 'external' && !event.verified_sublinx);
-      
       const searchMatch = searchTerm === '' || 
         event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.location?.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.genre?.toLowerCase().includes(searchTerm.toLowerCase());
       
+      // CORREÇÃO: Apenas um filtro de vibe unificado
       let vibeMatch = true;
       if (activeVibe !== 'all') {
         const vibeGenres = {
@@ -276,21 +267,12 @@ export default function Mapa() {
         vibeMatch = genreMatchVibe || vibeTagMatch;
       }
       
-      return genreMatch && typeMatch && searchMatch && vibeMatch && verifiedMatch;
+      return genreMatch && typeMatch && searchMatch && vibeMatch;
     });
     
-    console.log(`✅ [MAPA] ${filtered.length} eventos após filtro`);
+    console.log(`✅ [MAPA] ${filtered.length} eventos após filtro (vibe: ${activeVibe})`);
     return filtered;
   }, [events, filters, searchTerm, activeVibe]);
-
-  const eventStats = useMemo(() => {
-    return {
-      total: events.length,
-      verified: events.filter(e => e.verified_sublinx).length,
-      external: events.filter(e => !e.verified_sublinx && e.external_source).length,
-      filtered: filteredEvents.length
-    };
-  }, [events, filteredEvents]);
 
   const handlePinClick = useCallback((eventId) => {
     console.log("📍 Pin clicado:", eventId);
@@ -315,17 +297,17 @@ export default function Mapa() {
   
   const handleApplyFilters = useCallback((newFilters) => {
     console.log("🎛️ [MAPA] Aplicando filtros:", newFilters);
+    // CORREÇÃO: Não incluir vibe aqui
     setFilters(prev => ({
       genre: newFilters.genre || prev.genre,
-      type: newFilters.type || prev.type,
-      verified: newFilters.verified || prev.verified
+      type: newFilters.type || prev.type
     }));
     setShowFilterPanel(false);
   }, []);
 
   const handleVibeSelect = useCallback((vibe) => {
     console.log("💫 [MAPA] Vibe selecionada:", vibe);
-    setActiveVibe(vibe);
+    setActiveVibe(vibe); // CORREÇÃO: Apenas setar activeVibe
     setShowVibeSelector(false);
   }, []);
 
@@ -334,12 +316,7 @@ export default function Mapa() {
     queryClient.invalidateQueries(["mapReels"]);
   }, [queryClient]);
 
-  const handleRefreshEvents = useCallback(async () => {
-    setSyncingExternal(true);
-    await refetchEvents();
-    setTimeout(() => setSyncingExternal(false), 1000);
-  }, [refetchEvents]);
-
+  // Loading state
   if (loadingLocation) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
@@ -352,6 +329,7 @@ export default function Mapa() {
     );
   }
 
+  // Error state - SEM OPÇÃO DE USAR LOCALIZAÇÃO PADRÃO
   if (locationError || !userLocation) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
@@ -365,6 +343,7 @@ export default function Mapa() {
               {locationErrorMessage || "Não foi possível obter sua localização."}
             </p>
 
+            {/* Instruções para habilitar localização */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6 text-left">
               <p className="text-xs sm:text-sm font-semibold text-blue-300 mb-2">
                 💡 Como habilitar a localização:
@@ -406,6 +385,7 @@ export default function Mapa() {
     );
   }
 
+  // Loading events
   if (isLoadingEvents || isLoadingReels) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black">
@@ -415,6 +395,7 @@ export default function Mapa() {
     );
   }
 
+  // Error state
   if (eventsError) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
@@ -432,37 +413,6 @@ export default function Mapa() {
 
   return (
     <div className="w-full h-screen bg-black overflow-hidden relative">
-      <div className="absolute top-2 left-2 right-2 z-40 pointer-events-none">
-        <div className="flex justify-between items-start">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="bg-black/70 backdrop-blur-md rounded-lg px-3 py-1.5 border border-cyan-500/30 pointer-events-auto"
-          >
-            <div className="flex items-center gap-2 text-xs">
-              <Globe className="w-3 h-3 text-cyan-400" />
-              <span className="text-white font-semibold">{eventStats.filtered}</span>
-              <span className="text-gray-400">eventos</span>
-              <div className="w-px h-3 bg-gray-600 mx-1" />
-              <span className="text-cyan-400">{eventStats.verified}</span>
-              <span className="text-gray-500">oficiais</span>
-              <span className="text-purple-400">{eventStats.external}</span>
-              <span className="text-gray-500">externos</span>
-            </div>
-          </motion.div>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleRefreshEvents}
-            disabled={syncingExternal}
-            className="bg-black/70 backdrop-blur-md rounded-lg p-2 border border-gray-700/50 pointer-events-auto hover:border-cyan-500/50 transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 text-cyan-400 ${syncingExternal ? 'animate-spin' : ''}`} />
-          </motion.button>
-        </div>
-      </div>
-
       <AnimatePresence mode="wait">
         {viewMode === "map" && (
           <motion.div
@@ -470,7 +420,7 @@ export default function Mapa() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.2 }} // CORREÇÃO: Transição mais rápida
             className="absolute inset-0 z-10"
           >
             <MapView 
@@ -497,7 +447,7 @@ export default function Mapa() {
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
             exit={{ y: "100%" }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
+            transition={{ duration: 0.4, ease: "easeInOut" }} // CORREÇÃO: Transição mais rápida
             className="absolute inset-0 z-20"
           >
             <ReelsView
@@ -515,7 +465,6 @@ export default function Mapa() {
           <FilterPanel 
             onClose={() => setShowFilterPanel(false)}
             onApplyFilters={handleApplyFilters}
-            currentFilters={filters}
           />
         )}
       </AnimatePresence>
@@ -525,7 +474,7 @@ export default function Mapa() {
           <VibeSelector
             onClose={() => setShowVibeSelector(false)}
             onVibeSelect={handleVibeSelect}
-            events={events}
+            events={events} // Pass events to VibeSelector
           />
         )}
       </AnimatePresence>
@@ -550,52 +499,4 @@ export default function Mapa() {
       )}
     </div>
   );
-}
-
-function generateNearbyExternalEvents(userLocation, count = 5) {
-  const externalEvents = [];
-  const genres = ['techno', 'house', 'trance', 'drum_bass', 'dubstep', 'ambient', 'funk'];
-  const types = ['club', 'warehouse', 'rooftop', 'underground'];
-  const sources = ['eventbrite', 'jambase', 'allevents'];
-  
-  for (let i = 0; i < count; i++) {
-    const offsetLat = (Math.random() - 0.5) * 0.09;
-    const offsetLng = (Math.random() - 0.5) * 0.09;
-    
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + Math.floor(Math.random() * 30) + 1);
-    
-    externalEvents.push({
-      id: `external_${sources[i % sources.length]}_${Date.now()}_${i}`,
-      title: `${['Underground', 'Secret', 'Hidden', 'Warehouse', 'Rooftop'][Math.floor(Math.random() * 5)]} ${genres[i % genres.length].toUpperCase()} Night`,
-      description: `Evento ${sources[i % sources.length]} - Música eletrônica de qualidade`,
-      genre: genres[i % genres.length],
-      type: types[i % types.length],
-      location: {
-        lat: userLocation.lat + offsetLat,
-        lng: userLocation.lng + offsetLng,
-        address: `Rua Descoberta ${i + 1}, Bairro Underground`,
-        venue_name: `${['Club', 'Warehouse', 'Loft', 'Bar'][i % 4]} ${i + 1}`,
-        is_secret: false
-      },
-      date: futureDate.toISOString(),
-      duration_hours: 6,
-      price: Math.floor(Math.random() * 50) + 20,
-      is_secret: false,
-      organizer: `${sources[i % sources.length].toUpperCase()} Eventos`,
-      organizer_id: `external_${sources[i % sources.length]}`,
-      max_capacity: 200,
-      current_attendees: Math.floor(Math.random() * 150),
-      image_url: `https://picsum.photos/800/400?random=${Date.now()}_${i}`,
-      vibe_tags: ['external', 'music', 'party'],
-      requires_approval: false,
-      minimum_level: 1,
-      external_source: sources[i % sources.length],
-      external_id: `ext_${Date.now()}_${i}`,
-      verified_sublinx: false,
-      sync_date: new Date().toISOString()
-    });
-  }
-  
-  return externalEvents;
 }

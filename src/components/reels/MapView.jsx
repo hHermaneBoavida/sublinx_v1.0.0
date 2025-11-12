@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, MapPin, Navigation, Music2 } from 'lucide-react';
+import { Plus, Eye, Menu, Search, MapPin, Navigation, Compass, Music2, Layers } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery } from '@tanstack/react-query';
@@ -12,7 +13,7 @@ import { base44 } from '@/api/base44Client';
 const clusterEvents = (events, zoomLevel = 1) => {
   if (!events || events.length === 0) return [];
   
-  const CLUSTER_RADIUS = 0.01 * (1 / zoomLevel);
+  const CLUSTER_RADIUS = 0.01 * (1 / zoomLevel); // Ajusta com zoom
   const clusters = [];
   const processed = new Set();
 
@@ -25,6 +26,7 @@ const clusterEvents = (events, zoomLevel = 1) => {
       isCluster: false
     };
 
+    // Buscar eventos próximos
     events.forEach((other, otherIndex) => {
       if (index === otherIndex || processed.has(otherIndex)) return;
 
@@ -39,6 +41,7 @@ const clusterEvents = (events, zoomLevel = 1) => {
       }
     });
 
+    // Calcular centro do cluster
     if (cluster.events.length > 1) {
       cluster.isCluster = true;
       cluster.center = {
@@ -84,16 +87,16 @@ const EventPin = memo(({ cluster, position, onClick, theme, isExpanded }) => {
         }}
       >
         {isClusterGroup ? (
-          <div>
+          <>
             <div className="font-bold text-cyan-300 mb-1">
               {events.length} eventos próximos
             </div>
             <div className="text-[9px] text-gray-400">
               Clique para ver todos
             </div>
-          </div>
+          </>
         ) : (
-          <div>
+          <>
             <div className="font-bold text-cyan-300 mb-1 flex items-center gap-1">
               <Music2 className="w-3 h-3" />
               {mainEvent.title}
@@ -104,7 +107,7 @@ const EventPin = memo(({ cluster, position, onClick, theme, isExpanded }) => {
                 {mainEvent.location.venue_name}
               </span>
             </div>
-          </div>
+          </>
         )}
       </motion.div>
 
@@ -183,14 +186,18 @@ EventPin.displayName = 'EventPin';
 export default function MapView({
   events,
   userLocation,
+  onPinClick,
   onPinDetailsClick,
   onSwipeUp,
+  onOpenFilters,
   onOpenVibe,
   onOpenUpload,
+  searchTerm,
+  onSearchChange,
   activeVibe = 'all'
 }) {
+  const [showRadiusInfo, setShowRadiusInfo] = useState(false);
   const [expandedCluster, setExpandedCluster] = useState(null);
-  const [zoomLevel] = useState(1); // Fixed zoom level
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -207,6 +214,7 @@ export default function MapView({
 
   const canCreateReels = user && (user.is_pro_member || user.is_organizer);
 
+  // Tema visual por vibe
   const vibeTheme = useMemo(() => {
     const themes = {
       'all': {
@@ -235,6 +243,7 @@ export default function MapView({
 
   const RADIUS_KM = 10;
 
+  // Validar e filtrar eventos
   const validEvents = useMemo(() => {
     if (!events || !Array.isArray(events)) return [];
     
@@ -254,33 +263,32 @@ export default function MapView({
     });
   }, [events, userLocation]);
 
+  // Sistema de clustering
   const eventClusters = useMemo(() => {
-    return clusterEvents(validEvents, zoomLevel);
-  }, [validEvents, zoomLevel]);
+    return clusterEvents(validEvents, 1);
+  }, [validEvents]);
 
+  // Bounds do mapa
   const mapBounds = useMemo(() => {
-    const zoomFactor = 0.05 / zoomLevel;
-    
     if (validEvents.length === 0) {
       return {
-        minLat: userLocation.lat - zoomFactor,
-        maxLat: userLocation.lat + zoomFactor,
-        minLng: userLocation.lng - zoomFactor,
-        maxLng: userLocation.lng + zoomFactor
+        minLat: userLocation.lat - 0.05,
+        maxLat: userLocation.lat + 0.05,
+        minLng: userLocation.lng - 0.05,
+        maxLng: userLocation.lng + 0.05
       };
     }
 
     const lats = validEvents.map(e => e.location.lat);
     const lngs = validEvents.map(e => e.location.lng);
-    const padding = 0.01 / zoomLevel;
 
     return {
-      minLat: Math.min(...lats, userLocation.lat) - padding,
-      maxLat: Math.max(...lats, userLocation.lat) + padding,
-      minLng: Math.min(...lngs, userLocation.lng) - padding,
-      maxLng: Math.max(...lngs, userLocation.lng) + padding,
+      minLat: Math.min(...lats, userLocation.lat) - 0.01,
+      maxLat: Math.max(...lats, userLocation.lat) + 0.01,
+      minLng: Math.min(...lngs, userLocation.lng) - 0.01,
+      maxLng: Math.max(...lngs, userLocation.lat) + 0.01,
     };
-  }, [validEvents, userLocation, zoomLevel]);
+  }, [validEvents, userLocation]);
 
   const bbox = useMemo(() => {
     return `${mapBounds.minLng},${mapBounds.minLat},${mapBounds.maxLng},${mapBounds.maxLat}`;
@@ -316,12 +324,13 @@ export default function MapView({
         }
       }}
     >
-      {/* Background Temático UNDERGROUND - 75% MAIS CLARO */}
-      <div className="absolute inset-0 z-0 bg-gray-800">
+      {/* Background Temático UNDERGROUND - MAIS CLARO */}
+      <div className="absolute inset-0 z-0 bg-gray-900">
         <div className={`absolute inset-0 bg-gradient-to-br ${vibeTheme.overlayGradient}`} />
         
+        {/* Grid Cyber UNDERGROUND - REDUZIDO */}
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute inset-0 opacity-[0.08]"
           style={{
             backgroundImage: `
               linear-gradient(to right, ${vibeTheme.glowColor} 1px, transparent 1px),
@@ -332,14 +341,15 @@ export default function MapView({
           }}
         />
 
+        {/* Linhas Diagonais Underground - REDUZIDAS */}
         <div
-          className="absolute inset-0 opacity-[0.02]"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage: `
               repeating-linear-gradient(
                 45deg,
-                ${vibeTheme.glowColor}15 0px,
-                ${vibeTheme.glowColor}15 1px,
+                ${vibeTheme.glowColor}20 0px,
+                ${vibeTheme.glowColor}20 1px,
                 transparent 1px,
                 transparent 40px
               )
@@ -347,26 +357,26 @@ export default function MapView({
           }}
         />
 
+        {/* Spots de Luz Underground - REDUZIDOS */}
         <div 
-          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-05"
+          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-10"
           style={{
             background: `radial-gradient(circle, ${vibeTheme.glowColor}, transparent 70%)`,
             animation: 'pulse-slow 6s ease-in-out infinite'
           }}
         />
         <div 
-          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-04"
+          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-08"
           style={{
-            background: `radial-gradient(circle, rgba(168, 85, 247, 0.5), transparent 70%)`,
+            background: `radial-gradient(circle, rgba(168, 85, 247, 0.6), transparent 70%)`,
             animation: 'pulse-slow 8s ease-in-out infinite 1s'
           }}
         />
       </div>
 
-      {/* Mapa OpenStreetMap - 75% MAIS CLARO */}
+      {/* Mapa OpenStreetMap - 60% MAIS CLARO */}
       <div className="absolute inset-0 z-1">
         <iframe
-          key={`map-${bbox}-${zoomLevel}`}
           width="100%"
           height="100%"
           frameBorder="0"
@@ -374,21 +384,23 @@ export default function MapView({
           src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${userLocation.lat},${userLocation.lng}`}
           className="absolute inset-0"
           style={{
-            filter: 'grayscale(60%) invert(96%) brightness(1.15) contrast(1.1) hue-rotate(190deg) saturate(1.1)',
-            opacity: 1.0,
-            pointerEvents: 'auto',
-            mixBlendMode: 'normal'
+            filter: 'grayscale(70%) invert(94%) brightness(0.88) contrast(1.2) hue-rotate(190deg) saturate(1.0)',
+            opacity: 0.95,
+            pointerEvents: 'none',
+            mixBlendMode: 'luminosity'
           }}
           loading="lazy"
         />
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-black/08 pointer-events-none z-2" />
+      {/* Overlay Gradiente - MUITO MAIS TRANSPARENTE */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/15 pointer-events-none z-2" />
 
+      {/* Efeito de Scan Line Underground - REDUZIDO */}
       <motion.div
         className="absolute inset-0 pointer-events-none z-3"
         style={{
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(6, 182, 212, 0.008) 50%, transparent 100%)',
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(6, 182, 212, 0.015) 50%, transparent 100%)',
           height: '100%'
         }}
         animate={{
@@ -401,16 +413,17 @@ export default function MapView({
         }}
       />
 
+      {/* Vinheta Sutil - MUITO REDUZIDA */}
       <div 
         className="absolute inset-0 pointer-events-none z-3"
         style={{
-          background: 'radial-gradient(circle at center, transparent 0%, transparent 75%, rgba(0,0,0,0.08) 100%)'
+          background: 'radial-gradient(circle at center, transparent 0%, transparent 70%, rgba(0,0,0,0.15) 100%)'
         }}
       />
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* Marcador do Usuário */}
+        {/* Marcador do Usuário - EXTRA COMPACTO */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto z-40"
           style={{ 
@@ -427,6 +440,7 @@ export default function MapView({
           }}
         >
           <div className="relative flex items-center justify-center">
+            {/* Camada 1: Glow Ambiente - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
@@ -450,6 +464,7 @@ export default function MapView({
               }}
             />
 
+            {/* Camada 2: Rastro de Energia - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
@@ -472,6 +487,7 @@ export default function MapView({
               }}
             />
 
+            {/* Camada 3: Pulso Sonar - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
@@ -491,6 +507,7 @@ export default function MapView({
               }}
             />
 
+            {/* Camada 4: Anel de Alcance - EXTRA REDUZIDO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
@@ -519,6 +536,7 @@ export default function MapView({
               }}
             />
 
+            {/* Camada 5: Marcador Central - EXTRA REDUZIDO PARA 8x8 (32px) */}
             <motion.div 
               className="relative z-50" 
               style={{
@@ -533,6 +551,7 @@ export default function MapView({
                 ease: "easeInOut"
               }}
             >
+              {/* Núcleo Externo - EXTRA REDUZIDO PARA 8x8 (32px) */}
               <div 
                 className="w-8 h-8 rounded-full relative overflow-hidden"
                 style={{
@@ -550,6 +569,7 @@ export default function MapView({
                   `,
                 }}
               >
+                {/* Brilho Interno Animado */}
                 <motion.div
                   className="absolute inset-0 rounded-full"
                   style={{
@@ -568,6 +588,7 @@ export default function MapView({
                   }}
                 />
 
+                {/* Ícone de Navegação - EXTRA REDUZIDO */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Navigation 
                     className="w-3.5 h-3.5 text-white" 
@@ -578,6 +599,7 @@ export default function MapView({
                   />
                 </div>
 
+                {/* Reflexo Superior */}
                 <div 
                   className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
                   style={{
@@ -586,6 +608,7 @@ export default function MapView({
                 />
               </div>
 
+              {/* Anel Orbital Externo - AJUSTADO */}
               <motion.div
                 className="absolute inset-0 rounded-full border"
                 style={{
@@ -603,6 +626,7 @@ export default function MapView({
                 }}
               />
 
+              {/* Anel Orbital Interno - AJUSTADO */}
               <motion.div
                 className="absolute inset-0 rounded-full"
                 style={{
@@ -621,6 +645,7 @@ export default function MapView({
               />
             </motion.div>
 
+            {/* Camada 6: Partículas Flutuantes - EXTRA REDUZIDAS */}
             {[...Array(2)].map((_, i) => (
               <motion.div
                 key={i}
@@ -650,7 +675,7 @@ export default function MapView({
           </div>
         </motion.div>
 
-        {/* Event Clusters */}
+        {/* Event Clusters com AnimatePresence */}
         <AnimatePresence>
           {eventClusters.map((cluster, index) => {
             const position = coordToPosition(cluster.center.lat, cluster.center.lng);
@@ -667,33 +692,93 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* Header ULTRA MINIMALISTA - APENAS VIBES E MENU */}
-      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 z-30 flex justify-between items-center">
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={onOpenVibe}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border transition-all text-white text-xs"
-          style={{
-            borderColor: vibeTheme.glowColor,
-            boxShadow: `0 0 15px ${vibeTheme.glowColor}40`
-          }}
-        >
-          <Music2 className="w-3.5 h-3.5" />
-          <span>Vibes</span>
-        </motion.button>
-
-        <Link to={createPageUrl("Feed")}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-black/40 backdrop-blur-xl border-gray-700/30 text-white hover:bg-black/60 h-8 w-8"
+      {/* Header Minimalista */}
+      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 z-30 flex flex-col gap-2">
+        {/* Barra de Controles */}
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onOpenVibe}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border transition-all text-white text-xs"
+            style={{
+              borderColor: vibeTheme.glowColor,
+              boxShadow: `0 0 15px ${vibeTheme.glowColor}40`
+            }}
           >
-            <Menu className="w-4 h-4" />
-          </Button>
-        </Link>
+            <Music2 className="w-3.5 h-3.5" />
+            <span>Vibes</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowRadiusInfo(!showRadiusInfo)}
+            className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-600/80 backdrop-blur-xl border border-blue-400/50 text-white text-xs"
+          >
+            <MapPin className="w-3 h-3" />
+            <span>{RADIUS_KM}km</span>
+          </motion.button>
+
+          <Link to={createPageUrl("Feed")} className="ml-auto">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-black/40 backdrop-blur-xl border-gray-700/30 text-white hover:bg-black/60 h-8 w-8"
+            >
+              <Menu className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 z-10" />
+          <Input
+            placeholder="Buscar eventos..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-9 pr-3 py-2 bg-black/60 backdrop-blur-xl border-cyan-500/30 text-white placeholder:text-gray-500 focus:border-cyan-500/60 text-sm h-9 rounded-xl"
+          />
+        </div>
+
+        {/* Info do Raio */}
+        <AnimatePresence>
+          {showRadiusInfo && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="bg-black/95 backdrop-blur-xl border-2 rounded-xl p-4 text-xs text-white"
+              style={{
+                borderColor: `${vibeTheme.glowColor}40`,
+                boxShadow: `0 0 30px ${vibeTheme.glowColor}30`
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Layers className="w-5 h-5 text-cyan-400" />
+                <span className="font-bold text-cyan-300">Área de Eventos</span>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-gray-400">
+                  📍 {validEvents.length} evento(s) próximo(s)
+                </p>
+                <p className="text-gray-400">
+                  🎯 Raio: {RADIUS_KM}km
+                </p>
+                {eventClusters.length > 0 && (
+                  <p className="text-gray-400">
+                    🔗 {eventClusters.filter(c => c.isCluster).length} grupo(s)
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
+      {/* FAB Upload */}
       {canCreateReels && (
         <motion.div
           className="absolute bottom-20 right-3 z-30"
@@ -710,6 +795,7 @@ export default function MapView({
         </motion.div>
       )}
 
+      {/* Ver Reels Button */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-20 pb-3 px-4"
         drag="y"
@@ -751,6 +837,7 @@ export default function MapView({
         </div>
       </motion.div>
 
+      {/* Modal de Cluster Expandido */}
       <AnimatePresence>
         {expandedCluster && (
           <motion.div
@@ -800,6 +887,7 @@ export default function MapView({
         )}
       </AnimatePresence>
 
+      {/* Adicionar CSS para animações */}
       <style jsx>{`
         @keyframes grid-pulse {
           0%, 100% {
