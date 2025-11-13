@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import { motion } from "framer-motion"; // NEW: Import motion from framer-motion
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -162,147 +163,424 @@ export default function Layout({ children, currentPageName }) {
         }
       `}</style>
       
-      {/* Background Effects */}
-      <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-black to-cyan-900/20 pointer-events-none" />
-      <div className="fixed top-0 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-      <div className="fixed bottom-0 right-1/4 w-64 h-64 md:w-96 md:h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+      {/* NOVO: Background Cyberpunk Melhorado */}
+      <div 
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background: 'linear-gradient(135deg, #0a1628 0%, #000000 50%, #0f0f23 100%)'
+        }}
+      />
 
-      {/* Header - Mobile First */}
-      <header className="relative z-10 p-3 sm:p-4 md:p-6 border-b border-gray-800/50 backdrop-blur-sm">
+      {/* NOVO: Grid Neon Pulsante */}
+      <div
+        className="fixed inset-0 pointer-events-none opacity-[0.08]"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(6, 182, 212, 0.8) 0.5px, transparent 0.5px),
+            linear-gradient(to bottom, rgba(6, 182, 212, 0.8) 0.5px, transparent 0.5px)
+          `,
+          backgroundSize: '50px 50px',
+          animation: 'grid-glow 6s ease-in-out infinite'
+        }}
+      />
+
+      {/* Spots de Luz - Cyan e Violeta */}
+      <div 
+        className="fixed top-0 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none opacity-15"
+        style={{
+          background: 'radial-gradient(circle, rgba(6, 182, 212, 0.8) 0%, transparent 70%)',
+          animation: 'pulse-glow 8s ease-in-out infinite'
+        }}
+      />
+      <div 
+        className="fixed bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none opacity-12"
+        style={{
+          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.8) 0%, transparent 70%)',
+          animation: 'pulse-glow 10s ease-in-out infinite 2s'
+        }}
+      />
+
+      {/* NOVO: Linhas Diagonais Urbanas */}
+      <div
+        className="fixed inset-0 pointer-events-none opacity-[0.04]"
+        style={{
+          backgroundImage: `
+            repeating-linear-gradient(
+              45deg,
+              rgba(6, 182, 212, 0.6) 0px,
+              rgba(6, 182, 212, 0.6) 1px,
+              transparent 1px,
+              transparent 60px
+            )
+          `,
+          animation: 'diagonal-move 25s linear infinite'
+        }}
+      />
+
+      {/* Header - Redesenhado com Glass Neon */}
+      <header className="relative z-10 p-3 sm:p-4 md:p-6 backdrop-blur-xl border-b-2" style={{
+        background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(17,24,39,0.5))',
+        borderColor: 'rgba(6, 182, 212, 0.2)',
+        boxShadow: '0 0 30px rgba(6, 182, 212, 0.15), inset 0 -1px 0 rgba(6, 182, 212, 0.3)'
+      }}>
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link to={createPageUrl("Mapa")} className="group flex items-center gap-2 sm:gap-3">
-            <img 
+            <motion.img 
+              whileHover={{ scale: 1.15, rotate: 10 }}
+              whileTap={{ scale: 0.95 }}
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/116e0559c_Sublinx_icon.png" 
               alt="SUBLINX Icon" 
-              className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-300 group-hover:scale-110"
+              className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-300"
+              style={{
+                filter: 'drop-shadow(0 0 15px rgba(6, 182, 212, 0.7))'
+              }}
             />
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-lime-400 bg-clip-text text-transparent hidden xs:block">
+            <motion.h1 
+              className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-lime-400 bg-clip-text text-transparent hidden xs:block"
+              style={{
+                textShadow: '0 0 30px rgba(6, 182, 212, 0.5)'
+              }}
+              whileHover={{
+                textShadow: '0 0 40px rgba(6, 182, 212, 0.8)'
+              }}
+            >
               SUBLINX
-            </h1>
+            </motion.h1>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-2">
             {navigationItems.map((item) => (
+              <motion.div
+                key={item.title}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 <Link
-                  key={item.title}
                   to={item.url}
-                  className={`flex items-center space-x-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-300 ${
+                  className={`flex items-center space-x-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-300 relative overflow-hidden ${
                     location.pathname === item.url
-                      ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 text-cyan-300'
-                      : 'hover:bg-gray-800/50 text-gray-300 hover:text-white'
+                      ? 'text-cyan-300'
+                      : 'text-gray-300 hover:text-white'
                   }`}
+                  style={{
+                    background: location.pathname === item.url
+                      ? 'linear-gradient(to right, rgba(6, 182, 212, 0.2), rgba(168, 85, 247, 0.2))'
+                      : 'transparent',
+                    borderColor: location.pathname === item.url ? 'rgba(6, 182, 212, 0.4)' : 'transparent',
+                    boxShadow: location.pathname === item.url 
+                      ? '0 0 20px rgba(6, 182, 212, 0.3), inset 0 0 15px rgba(6, 182, 212, 0.15)'
+                      : 'none'
+                  }}
                 >
-                  <item.icon className="w-4 h-4" />
-                  <span className="text-sm lg:text-base">{item.title}</span>
+                  {/* Reflexo superior quando ativo */}
+                  {location.pathname === item.url && (
+                    <div 
+                      className="absolute top-0 left-0 right-0 h-1/2 rounded-t-lg"
+                      style={{
+                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.15), transparent)'
+                      }}
+                    />
+                  )}
+
+                  <item.icon className="w-4 h-4 relative z-10" />
+                  <span className="text-sm lg:text-base relative z-10">{item.title}</span>
                 </Link>
-              ))}
+              </motion.div>
+            ))}
           </nav>
 
-          {/* Header Right Side - Mobile Optimized */}
-          {/* CORREÇÃO: Mostrar opção de login para guests */}
+          {/* Header Right Side */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Planos Button */}
             {(!user?.is_pro_member || isGuest) && (
               <Link to={createPageUrl("Planos")}>
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  className="hidden sm:flex bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border-yellow-500/50 text-yellow-400 hover:bg-gradient-to-r hover:from-yellow-600/30 hover:to-orange-600/30 text-xs lg:text-sm"
+                <motion.div
+                  whileHover={{ scale: 1.08, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <Crown className="w-3 h-3 lg:w-4 lg:h-4 mr-1" />
-                  <span className="hidden lg:inline">Upgrade</span>
-                  <span className="lg:hidden">Pro</span>
-                </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="hidden sm:flex text-xs lg:text-sm relative overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(to right, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2))',
+                      borderColor: 'rgba(251, 191, 36, 0.5)',
+                      color: '#FBBF24',
+                      boxShadow: '0 0 20px rgba(251, 191, 36, 0.4)'
+                    }}
+                  >
+                    <div 
+                      className="absolute top-0 left-0 right-0 h-1/2"
+                      style={{
+                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.2), transparent)'
+                      }}
+                    />
+                    <Crown className="w-3 h-3 lg:w-4 lg:h-4 mr-1 relative z-10" />
+                    <span className="hidden lg:inline relative z-10">Upgrade</span>
+                    <span className="lg:hidden relative z-10">Pro</span>
+                  </Button>
+                </motion.div>
               </Link>
             )}
 
-            {/* Notifications Bell */}
             {!isGuest && (
-              <Link
-                to={createPageUrl("Notificacoes")}
-                className="relative p-2 rounded-lg hover:bg-gray-800/50 transition-all duration-300"
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Bell className="w-5 h-5 text-gray-300 hover:text-white" />
-                {unreadCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 p-0 bg-red-500 text-white text-[10px] sm:text-xs flex items-center justify-center rounded-full">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </Badge>
-                )}
-              </Link>
+                <Link
+                  to={createPageUrl("Notificacoes")}
+                  className="relative p-2 rounded-lg hover:bg-gray-800/50 transition-all duration-300"
+                >
+                  <Bell className="w-5 h-5 text-gray-300 hover:text-white" />
+                  {unreadCount > 0 && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 p-0 text-white text-[10px] sm:text-xs flex items-center justify-center rounded-full"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 1), rgba(220, 38, 38, 1))',
+                        boxShadow: '0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.5)'
+                      }}
+                    >
+                      <motion.span
+                        animate={{
+                          scale: [1, 1.1, 1]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </motion.span>
+                    </motion.div>
+                  )}
+                </Link>
+              </motion.div>
             )}
 
             {/* Mobile Profile/Login */}
             <div className="md:hidden">
               {user ? (
-                <Link to={createPageUrl("Perfil")}>
-                  <img 
-                    src={user.avatar_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/5048ab8ec_perfil.png"} 
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-cyan-500/50 object-cover" 
-                    alt="User Avatar" 
-                  />
-                </Link>
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Link to={createPageUrl("Perfil")}>
+                    <img 
+                      src={user.avatar_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/5048ab8ec_perfil.png"} 
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover" 
+                      alt="User Avatar"
+                      style={{
+                        border: '2px solid rgba(6, 182, 212, 0.5)',
+                        boxShadow: '0 0 15px rgba(6, 182, 212, 0.5)'
+                      }}
+                    />
+                  </Link>
+                </motion.div>
               ) : (
-                <Link to={createPageUrl("BemVindo")}>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-800 flex items-center justify-center border-2 border-gray-600 hover:border-cyan-500/50 transition-colors">
-                    <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400"/>
-                  </div>
-                </Link>
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Link to={createPageUrl("BemVindo")}>
+                    <div 
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-800 flex items-center justify-center border-2 transition-all"
+                      style={{
+                        borderColor: 'rgba(6, 182, 212, 0.5)',
+                        boxShadow: '0 0 15px rgba(6, 182, 212, 0.3)'
+                      }}
+                    >
+                      <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400"/>
+                    </div>
+                  </Link>
+                </motion.div>
               )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Floating Action Button - Mobile Optimized */}
+      {/* FAB - Redesenhado com Neon */}
       {showFAB && (
-        <Link
-          to={createPageUrl("CriarEvento")}
+        <motion.div
           className="fixed bottom-20 sm:bottom-24 md:bottom-8 right-4 sm:right-6 md:right-8 z-30 group"
+          whileHover={{ scale: 1.15, rotate: 10 }}
+          whileTap={{ scale: 0.9, rotate: -10 }}
         >
-          <Button
-            size="lg"
-            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 shadow-2xl hover:shadow-cyan-500/25 transition-all duration-300 group-hover:scale-110"
+          {/* Glow Pulsante */}
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.5) 0%, transparent 70%)',
+              filter: 'blur(20px)',
+              width: '80px',
+              height: '80px',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.5, 0.8, 0.5]
+            }}
+            transition={{
+              duration: 2.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+
+          <Link to={createPageUrl("CriarEvento")}>
+            <Button
+              size="lg"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-3 border-white/30 shadow-2xl relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 1), rgba(168, 85, 247, 1))',
+                boxShadow: '0 0 30px rgba(6, 182, 212, 0.7), 0 0 60px rgba(168, 85, 247, 0.5)'
+              }}
+            >
+              {/* Reflexo dinâmico */}
+              <motion.div
+                className="absolute inset-0"
+                style={{
+                  background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5), transparent 65%)'
+                }}
+                animate={{
+                  opacity: [0.3, 0.7, 0.3],
+                  scale: [1, 1.15, 1]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+
+              <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-white relative z-10" />
+            </Button>
+          </Link>
+
+          {/* Tooltip Neon */}
+          <motion.div 
+            className="absolute bottom-full right-0 mb-2 sm:mb-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap backdrop-blur-xl border-2"
+            style={{
+              background: 'rgba(0, 0, 0, 0.9)',
+              borderColor: 'rgba(6, 182, 212, 0.5)',
+              boxShadow: '0 0 25px rgba(6, 182, 212, 0.5)'
+            }}
           >
-            <Plus className="w-6 h-6 sm:w-8 sm:h-8" />
-          </Button>
-          <div className="absolute bottom-full right-0 mb-2 sm:mb-3 px-2 sm:px-3 py-1 sm:py-1.5 bg-black/80 text-white text-xs sm:text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
-            Criar Evento
-            <div className="absolute top-full right-3 sm:right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/80" />
-          </div>
-        </Link>
+            <span 
+              className="text-white text-xs sm:text-sm font-semibold"
+              style={{
+                textShadow: '0 0 10px rgba(6, 182, 212, 0.8)'
+              }}
+            >
+              Criar Evento
+            </span>
+            <div 
+              className="absolute top-full right-3 sm:right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent"
+              style={{
+                borderTopColor: 'rgba(6, 182, 212, 0.5)'
+              }}
+            />
+          </motion.div>
+        </motion.div>
       )}
 
-      {/* Main Content - Mobile Optimized */}
+      {/* Main Content */}
       <main className="relative z-0 pb-20 sm:pb-24 md:pb-0">
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-lg border-t border-gray-800/50 z-20 safe-area-inset-bottom">
+      {/* Mobile Bottom Navigation - Glass Neon */}
+      <div 
+        className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-xl border-t-2 z-20 safe-area-inset-bottom"
+        style={{
+          background: 'linear-gradient(to top, rgba(0,0,0,0.95), rgba(17,24,39,0.8))',
+          borderColor: 'rgba(6, 182, 212, 0.2)',
+          boxShadow: '0 -5px 30px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(6, 182, 212, 0.2)'
+        }}
+      >
         <div className="grid grid-cols-4 h-16 sm:h-18">
           {navigationItems.map((item) => (
+            <motion.div
+              key={item.title}
+              whileTap={{ scale: 0.9 }}
+            >
               <Link
-                key={item.title}
                 to={item.url}
-                className={`flex flex-col items-center justify-center py-2 px-1 transition-all duration-300 ${
+                className={`flex flex-col items-center justify-center py-2 px-1 transition-all duration-300 relative ${
                   location.pathname === item.url
                     ? 'text-cyan-400'
                     : 'text-gray-500 hover:text-white'
                 }`}
               >
-                <item.icon className="w-5 h-5 sm:w-6 sm:h-6 mb-0.5 sm:mb-1" />
+                <motion.div
+                  animate={location.pathname === item.url ? {
+                    filter: [
+                      'drop-shadow(0 0 8px rgba(6, 182, 212, 0.8))',
+                      'drop-shadow(0 0 15px rgba(6, 182, 212, 1))',
+                      'drop-shadow(0 0 8px rgba(6, 182, 212, 0.8))'
+                    ]
+                  } : {}}
+                  transition={{ duration: 2, repeat: location.pathname === item.url ? Infinity : 0 }}
+                >
+                  <item.icon className="w-5 h-5 sm:w-6 sm:h-6 mb-0.5 sm:mb-1" />
+                </motion.div>
+
                 <span className="text-[10px] sm:text-xs">{item.title}</span>
+
                 {location.pathname === item.url && (
-                  <div className="w-1 h-1 bg-cyan-400 rounded-full mt-0.5 sm:mt-1 animate-pulse" />
+                  <motion.div 
+                    className="w-1 h-1 rounded-full mt-0.5 sm:mt-1"
+                    style={{
+                      background: 'rgba(6, 182, 212, 1)',
+                      boxShadow: '0 0 10px rgba(6, 182, 212, 1)'
+                    }}
+                    animate={{
+                      boxShadow: [
+                        '0 0 10px rgba(6, 182, 212, 1)',
+                        '0 0 20px rgba(6, 182, 212, 1)',
+                        '0 0 10px rgba(6, 182, 212, 1)'
+                      ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
                 )}
               </Link>
-            ))}
+            </motion.div>
+          ))}
         </div>
       </div>
 
-      {/* PWA Install Prompt */}
       <PWAInstallPrompt />
+
+      {/* NOVO: CSS Animations Cyberpunk */}
+      <style jsx>{`
+        @keyframes grid-glow {
+          0%, 100% {
+            opacity: 0.08;
+          }
+          50% {
+            opacity: 0.15;
+          }
+        }
+
+        @keyframes pulse-glow {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.15;
+          }
+          50% {
+            transform: scale(1.12);
+            opacity: 0.25;
+          }
+        }
+
+        @keyframes diagonal-move {
+          0% {
+            background-position: 0 0;
+          }
+          100% {
+            background-position: 120px 120px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
