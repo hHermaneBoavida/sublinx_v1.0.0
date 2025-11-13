@@ -1,372 +1,329 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Calendar, Users, Clock, Tag, Heart, Share2, Navigation, Zap, Lock, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import useRealtimeEvent from '../events/useRealtimeEvent';
-import LiveIndicator from '../events/LiveIndicator';
-import AttendeeCounter from '../events/AttendeeCounter';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  X, MapPin, Calendar, Users, DollarSign, Clock,
+  Navigation, Share2, Heart, MessageCircle, Zap,
+  Music, TrendingUp, ExternalLink
+} from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { GenreBadge } from "../shared/EventBadge";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import useCurrentUser from "../shared/useCurrentUser";
 
+/**
+ * MODAL DE DETALHES DO EVENTO - MELHORADO
+ * Visual imersivo com todas as informações
+ */
 export default function EventDetailsModal({ event, onClose }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
   const navigate = useNavigate();
-  const [previousCount, setPreviousCount] = useState(event?.current_attendees || 0);
-  const prevCountRef = useRef(event?.current_attendees || 0);
+  const queryClient = useQueryClient();
+  const { data: user } = useCurrentUser();
 
-  // NOVO: Hook de dados em tempo real
-  const { 
-    event: realtimeEvent, 
-    isLoading, 
-    isConnected,
-    occupancyPercentage,
-    availabilityStatus,
-    isRealtime 
-  } = useRealtimeEvent(event?.id);
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      const existing = await base44.entities.Like.filter({
+        user_id: user.id,
+        event_id: event.id
+      });
 
-  // Detectar mudanças no número de participantes
-  useEffect(() => {
-    if (realtimeEvent?.current_attendees !== prevCountRef.current) {
-      setPreviousCount(prevCountRef.current);
-      prevCountRef.current = realtimeEvent?.current_attendees || 0;
+      if (existing && existing.length > 0) {
+        await base44.entities.Like.delete(existing[0].id);
+        return 'unliked';
+      } else {
+        await base44.entities.Like.create({
+          user_id: user.id,
+          event_id: event.id
+        });
+        return 'liked';
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['feedInteractions']);
     }
-  }, [realtimeEvent?.current_attendees]);
+  });
 
-  // Usar dados em tempo real se disponível, senão usar dados originais
-  const displayEvent = realtimeEvent || event;
-
-  if (!displayEvent || !displayEvent.location) return null;
-
-  const handleViewReels = () => {
-    onClose();
-    // Navegar para reels deste evento seria implementado aqui
+  const handleGetDirections = () => {
+    if (!event.location?.lat || !event.location?.lng) return;
+    
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${event.location.lat},${event.location.lng}`;
+    window.open(url, '_blank');
   };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: event.title,
+          text: `Confira esse evento: ${event.title}`,
+          url: window.location.href
+        });
+      } catch (err) {
+        console.log('Share cancelled');
+      }
+    }
+  };
+
+  const occupancy = event.max_capacity > 0 
+    ? (event.current_attendees / event.max_capacity) * 100 
+    : 0;
+
+  const occupancyColor = 
+    occupancy >= 90 ? 'text-red-400' :
+    occupancy >= 70 ? 'text-yellow-400' :
+    'text-green-400';
+
+  const ticketPrice = event.price || event.ticket_types?.[0]?.price || 0;
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 overflow-y-auto"
       onClick={onClose}
     >
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="bg-gradient-to-b from-gray-900 to-black border-t md:border md:rounded-2xl w-full md:max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl border-cyan-500/30"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header com Imagem */}
-        <div className="relative h-40 sm:h-48 md:h-64 overflow-hidden">
-          <img
-            src={displayEvent.image_url || `https://picsum.photos/800/400?random=${displayEvent.id}`}
-            alt={displayEvent.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-          
-          {/* NOVO: Live Indicator */}
-          <div className="absolute top-2 sm:top-4 left-2 sm:left-4">
-            <LiveIndicator isConnected={isConnected} variant="badge" />
-          </div>
-
-          {/* Status Badge */}
-          {availabilityStatus === 'sold_out' && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute top-2 sm:top-4 right-12 sm:right-16"
-            >
-              <Badge className="bg-red-600 border-red-500 text-white font-bold px-3 py-1">
-                LOTADO
-              </Badge>
-            </motion.div>
-          )}
-
-          {availabilityStatus === 'almost_full' && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute top-2 sm:top-4 right-12 sm:right-16"
-            >
-              <Badge className="bg-orange-600 border-orange-500 text-white font-bold px-3 py-1 flex items-center gap-1">
-                <Zap className="w-3 h-3" />
-                QUASE LOTADO
-              </Badge>
-            </motion.div>
-          )}
-
-          {/* Botão Fechar */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black/60 backdrop-blur-md hover:bg-black/80 text-white rounded-full h-8 w-8 sm:h-10 sm:w-10 z-10"
-          >
-            <X className="w-4 h-4 sm:w-5 sm:h-5" />
-          </Button>
-
-          {/* Título e Organizador */}
-          <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <img 
-                src={displayEvent.organizer_avatar || `https://i.pravatar.cc/48?u=${displayEvent.organizer_id}`} 
-                alt={displayEvent.organizer}
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-cyan-500/50"
+      <div className="max-w-2xl mx-auto min-h-screen flex items-center p-4" onClick={(e) => e.stopPropagation()}>
+        <motion.div
+          initial={{ scale: 0.9, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 20 }}
+          className="w-full"
+        >
+          <Card className="bg-gray-900 border-2 border-cyan-500/30 overflow-hidden shadow-2xl">
+            {/* Image Header */}
+            <div className="relative h-64 sm:h-80 overflow-hidden">
+              <img
+                src={event.image_url || `https://picsum.photos/800/600?random=${event.id}`}
+                alt={event.title}
+                className={`w-full h-full object-cover transition-all duration-500 ${
+                  imageLoaded ? 'scale-100 blur-0' : 'scale-110 blur-sm'
+                }`}
+                onLoad={() => setImageLoaded(true)}
               />
-              <div className="flex-1 min-w-0">
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-0.5 sm:mb-1 line-clamp-2">
-                  {displayEvent.title}
-                </h2>
-                <p className="text-gray-300 text-xs sm:text-sm truncate">
-                  {displayEvent.organizer}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+              
+              {/* Close button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="absolute top-3 right-3 bg-black/60 backdrop-blur-xl border border-white/20 text-white hover:bg-black/80 h-10 w-10 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </Button>
 
-        {/* Conteúdo Scrollável */}
-        <div className="overflow-y-auto max-h-[calc(90vh-12rem)] sm:max-h-[calc(90vh-14rem)] md:max-h-96 p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-          {/* Badges */}
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-xs">
-              {displayEvent.genre}
-            </Badge>
-            <Badge className="bg-purple-600/20 border-purple-500/30 text-purple-300 text-xs">
-              {displayEvent.type}
-            </Badge>
-            {displayEvent.is_secret && (
-              <Badge className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-xs">
-                🔒 Secreto
-              </Badge>
-            )}
-            {displayEvent.requires_approval && (
-              <Badge className="bg-orange-600/20 border-orange-500/30 text-orange-300 text-xs">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Requer Aprovação
-              </Badge>
-            )}
-          </div>
-
-          {/* NOVO: Contador de participantes em tempo real */}
-          <div className="p-4 bg-gray-800/50 rounded-xl border border-gray-700/50">
-            <AttendeeCounter
-              currentAttendees={displayEvent.current_attendees || 0}
-              maxCapacity={displayEvent.max_capacity || 0}
-              previousCount={previousCount}
-              isRealtime={isRealtime}
-              compact={false}
-            />
-          </div>
-
-          {/* Info Grid */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 flex-shrink-0" />
-              <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs text-gray-400">Data</div>
-                <div className="text-xs sm:text-sm text-white font-medium truncate">
-                  {format(new Date(displayEvent.date), "dd MMM yyyy", { locale: ptBR })}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
-              <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs text-gray-400">Horário</div>
-                <div className="text-xs sm:text-sm text-white font-medium truncate">
-                  {format(new Date(displayEvent.date), "HH:mm", { locale: ptBR })}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-              <Tag className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 flex-shrink-0" />
-              <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs text-gray-400">Preço</div>
-                <div className="text-xs sm:text-sm text-white font-medium truncate">
-                  {displayEvent.ticket_types && displayEvent.ticket_types.length > 0 ? (
-                    `A partir de R$ ${Math.min(...displayEvent.ticket_types.map(t => t.price)).toFixed(2)}`
-                  ) : (
-                    `R$ ${displayEvent.price?.toFixed(2) || '0.00'}`
+              {/* Title overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <h1 className="text-3xl font-bold text-white mb-3 drop-shadow-lg">
+                  {event.title}
+                </h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <GenreBadge genre={event.genre} />
+                  <Badge className="bg-purple-600/80 border-purple-500/50 text-white backdrop-blur-sm">
+                    {event.type}
+                  </Badge>
+                  {event.is_secret && (
+                    <Badge className="bg-yellow-600/80 border-yellow-500/50 text-white backdrop-blur-sm">
+                      🔒 Secreto
+                    </Badge>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 flex-shrink-0" />
-              <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs text-gray-400">Duração</div>
-                <div className="text-xs sm:text-sm text-white font-medium truncate">
-                  {displayEvent.duration_hours ? `${displayEvent.duration_hours}h` : '—'}
+            <CardContent className="p-6 space-y-6">
+              {/* Quick Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-cyan-600/20 flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-cyan-400" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-400">Data</div>
+                      <div className="text-sm font-semibold text-white">
+                        {format(new Date(event.date), "dd/MM", { locale: ptBR })}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-300">
+                    {format(new Date(event.date), "EEEE 'às' HH:mm", { locale: ptBR })}
+                  </div>
+                </div>
+
+                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center">
+                      <MapPin className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-gray-400">Local</div>
+                      <div className="text-sm font-semibold text-white truncate">
+                        {event.location?.venue_name || 'Secreto'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-300 truncate">
+                    {event.location?.city || 'São Paulo'}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Localização */}
-          <div className="p-3 sm:p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 mt-1 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="text-xs sm:text-sm font-semibold text-white mb-0.5 sm:mb-1 truncate">
-                  {displayEvent.location.venue_name}
-                </div>
-                <div className="text-[10px] sm:text-xs text-gray-400 line-clamp-2">
-                  {displayEvent.location.address || `${displayEvent.location.city || 'Local'}`}
-                </div>
-              </div>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 text-xs flex-shrink-0 h-8 px-2 sm:px-3"
-                onClick={() => {
-                  const { lat, lng } = displayEvent.location;
-                  window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
-                }}
-              >
-                <Navigation className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                <span className="hidden sm:inline">Rota</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* Descrição */}
-          {displayEvent.description && (
-            <div>
-              <h3 className="text-xs sm:text-sm font-semibold text-white mb-1 sm:mb-2">Sobre o Evento</h3>
-              <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
-                {displayEvent.description}
-              </p>
-            </div>
-          )}
-
-          {/* Vibes */}
-          {displayEvent.vibe_tags && displayEvent.vibe_tags.length > 0 && (
-            <div>
-              <h3 className="text-xs sm:text-sm font-semibold text-white mb-1 sm:mb-2">Vibes</h3>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {displayEvent.vibe_tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="px-2 sm:px-3 py-0.5 sm:py-1 bg-purple-600/20 border border-purple-500/30 rounded-full text-[10px] sm:text-xs text-purple-300"
-                  >
-                    #{tag}
+              {/* Attendance */}
+              <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-400" />
+                    <span className="text-sm font-semibold text-white">Presença</span>
+                  </div>
+                  <span className={`text-sm font-bold ${occupancyColor}`}>
+                    {occupancy.toFixed(0)}%
                   </span>
-                ))}
+                </div>
+                
+                {/* Progress bar */}
+                <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${occupancy}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 relative"
+                  >
+                    <motion.div
+                      className="absolute inset-0 bg-white/30"
+                      animate={{
+                        x: ['-100%', '100%']
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                    />
+                  </motion.div>
+                </div>
+                
+                <div className="flex justify-between mt-2 text-xs text-gray-400">
+                  <span>{event.current_attendees || 0} confirmados</span>
+                  <span>{event.max_capacity || 0} max</span>
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* NOVO: Indicador de atualização em tempo real */}
-          {isRealtime && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 p-2 bg-green-900/20 border border-green-500/30 rounded-lg"
-            >
-              <div className="flex items-center gap-2 flex-1">
-                <motion.div
-                  className="w-2 h-2 rounded-full bg-green-500"
-                  animate={{
-                    boxShadow: [
-                      '0 0 5px rgba(34, 197, 94, 0.8)',
-                      '0 0 15px rgba(34, 197, 94, 1)',
-                      '0 0 5px rgba(34, 197, 94, 0.8)'
-                    ]
-                  }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                />
-                <p className="text-[10px] sm:text-xs text-green-300 font-semibold">
-                  Dados atualizados há poucos segundos
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Footer com Ações */}
-        <div className="p-3 sm:p-4 border-t border-gray-800 bg-black/50 backdrop-blur-md space-y-2">
-          <div className="flex gap-2 sm:gap-3">
-            <Button 
-              variant="outline" 
-              className="flex-1 border-gray-700 text-gray-300 text-xs sm:text-sm h-9 sm:h-10"
-              onClick={(e) => {
-                e.stopPropagation();
-                alert('💚 Salvo nos favoritos!');
-              }}
-            >
-              <Heart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden xs:inline">Salvar</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="flex-1 border-gray-700 text-gray-300 text-xs sm:text-sm h-9 sm:h-10"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (navigator.share) {
-                  navigator.share({
-                    title: displayEvent.title,
-                    text: `Confira este evento: ${displayEvent.title}`,
-                    url: window.location.href
-                  });
-                }
-              }}
-            >
-              <Share2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden xs:inline">Compartilhar</span>
-            </Button>
-            <Button 
-              className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-xs sm:text-sm h-9 sm:h-10"
-              onClick={handleViewReels}
-            >
-              Ver Reels
-            </Button>
-          </div>
-
-          {/* Botão principal de ação */}
-          {displayEvent.requires_approval ? (
-            <Button
-              className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-sm h-11"
-              onClick={() => {
-                onClose();
-                navigate(createPageUrl("Feed"));
-              }}
-            >
-              <Lock className="w-4 h-4 mr-2" />
-              Solicitar Acesso ao Evento
-            </Button>
-          ) : (
-            <Button
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-sm h-11"
-              disabled={availabilityStatus === 'sold_out'}
-              onClick={() => {
-                onClose();
-                navigate(createPageUrl("ComprarIngresso") + `?eventId=${displayEvent.id}`);
-              }}
-            >
-              {availabilityStatus === 'sold_out' ? (
-                <>
-                  <Users className="w-4 h-4 mr-2" />
-                  Evento Lotado
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Garantir Meu Lugar
-                </>
+              {/* Price */}
+              {ticketPrice > 0 && (
+                <div className="bg-gradient-to-r from-yellow-900/20 to-orange-900/20 border border-yellow-500/30 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-yellow-600/20 flex items-center justify-center">
+                        <DollarSign className="w-5 h-5 text-yellow-400" />
+                      </div>
+                      <div>
+                        <div className="text-xs text-yellow-300">Entrada</div>
+                        <div className="text-2xl font-bold text-yellow-400">
+                          R$ {parseFloat(ticketPrice).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {event.ticket_types && event.ticket_types.length > 1 && (
+                      <Badge className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-xs">
+                        +{event.ticket_types.length - 1} tipo{event.ticket_types.length > 2 ? 's' : ''}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
               )}
-            </Button>
-          )}
-        </div>
-      </motion.div>
+
+              {/* Description */}
+              {event.description && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-cyan-400" />
+                    Sobre o Evento
+                  </h3>
+                  <p className="text-sm text-gray-300 leading-relaxed">
+                    {event.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Organizer */}
+              <div className="flex items-center gap-3 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
+                <img
+                  src={event.organizer_avatar || "https://i.pravatar.cc/80?u=organizer"}
+                  alt={event.organizer}
+                  className="w-12 h-12 rounded-full border-2 border-cyan-500/30"
+                />
+                <div className="flex-1">
+                  <div className="text-xs text-gray-400">Organizado por</div>
+                  <div className="text-sm font-semibold text-white">{event.organizer}</div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/10"
+                >
+                  Ver Perfil
+                </Button>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={handleGetDirections}
+                  variant="outline"
+                  className="border-green-500/30 text-green-400 hover:bg-green-600/10"
+                >
+                  <Navigation className="w-4 h-4 mr-2" />
+                  Rota
+                </Button>
+
+                <Button
+                  onClick={handleShare}
+                  variant="outline"
+                  className="border-purple-500/30 text-purple-400 hover:bg-purple-600/10"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Compartilhar
+                </Button>
+              </div>
+
+              {/* Main CTA */}
+              <Button
+                onClick={() => {
+                  navigate(createPageUrl("Feed"));
+                  onClose();
+                }}
+                className="w-full h-14 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-base shadow-xl relative overflow-hidden group"
+              >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
+                  animate={{
+                    x: ['-100%', '200%']
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                />
+                <Zap className="w-5 h-5 mr-2 relative z-10" />
+                <span className="relative z-10">
+                  {event.requires_approval ? 'Solicitar Acesso' : 'Comprar Ingresso'}
+                </span>
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }

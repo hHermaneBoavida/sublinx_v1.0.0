@@ -2,32 +2,35 @@ import React, { useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, Search, MapPin, Navigation, Music2, Loader2 } from 'lucide-react';
+import { Plus, Eye, Menu, Search, Navigation, Music2, Loader2 } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import SearchResults from "../map/SearchResults";
+import MapControls from "../map/MapControls";
+import MiniMap from "../map/MiniMap";
+import ClusterExpansion from "../map/ClusterExpansion";
 import { intelligentSearch } from "@/functions/intelligentSearch";
 import useCurrentUser from "../shared/useCurrentUser";
 import { clusterEvents, getClusterVisualSize, getClusterColor } from "../shared/services/clusteringAlgorithm";
 
-// OTIMIZAÇÃO: Memoizar pin para evitar re-renders
-const EventPin = memo(({ cluster, position, onClick, theme }) => {
+const EventPin = memo(({ cluster, position, onClick, theme, isPulsing }) => {
   const { events, isCluster: isClusterGroup, density = 1 } = cluster;
   const eventColor = getClusterColor(cluster);
   const sizes = getClusterVisualSize(cluster);
-  const glowIntensity = Math.min(0.9, 0.3 + (density / 15));
 
   return (
     <motion.div
-      className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group pointer-events-auto z-10"
-      style={{ left: `${position.x}%`, top: `${position.y}%` }}
-      whileHover={{ scale: 1.15, zIndex: 20 }}
+      className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group pointer-events-auto"
+      style={{ left: `${position.x}%`, top: `${position.y}%`, zIndex: isClusterGroup ? 15 : 12 }}
+      whileHover={{ scale: 1.2, zIndex: 25 }}
+      whileTap={{ scale: 0.9 }}
       onClick={() => onClick(cluster)}
       initial={{ opacity: 0, scale: 0 }}
       animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0 }}
       transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
     >
-      {/* Tooltip simplificado */}
+      {/* Tooltip */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         whileHover={{ opacity: 1, y: 0 }}
@@ -37,59 +40,102 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
           boxShadow: `0 0 20px ${eventColor}`
         }}
       >
-        {isClusterGroup ? (
-          <div className="font-bold" style={{ color: eventColor }}>
-            ⚡ {events.length} eventos
-          </div>
-        ) : (
-          <div className="font-bold" style={{ color: eventColor }}>
-            {events[0].title}
+        <div className="font-bold" style={{ color: eventColor }}>
+          {isClusterGroup ? `⚡ ${events.length} eventos` : events[0].title}
+        </div>
+        {!isClusterGroup && (
+          <div className="text-[10px] text-gray-400 mt-1">
+            {events[0].location?.venue_name}
           </div>
         )}
       </motion.div>
 
-      {/* Glow simplificado */}
+      {/* Glow pulsante */}
       <motion.div
-        className="absolute inset-0 rounded-full pointer-events-none"
+        className="absolute rounded-full pointer-events-none"
         style={{
           width: sizes.glow,
           height: sizes.glow,
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          background: `radial-gradient(circle, ${eventColor}40 0%, transparent 70%)`,
-          filter: 'blur(12px)',
+          background: `radial-gradient(circle, ${eventColor}50 0%, transparent 70%)`,
+          filter: 'blur(15px)',
         }}
         animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.4, 0.7, 0.4]
+          scale: isPulsing ? [1, 1.4, 1] : 1,
+          opacity: isPulsing ? [0.5, 0.8, 0.5] : 0.6
         }}
-        transition={{ duration: 2.5, repeat: Infinity }}
+        transition={{ 
+          duration: 2, 
+          repeat: isPulsing ? Infinity : 0,
+          ease: "easeInOut" 
+        }}
       />
 
-      {/* Pin */}
-      <div
-        className={`${sizes.pin} rounded-full border-3 border-white/90 flex items-center justify-center relative overflow-hidden`}
+      {/* Pin principal */}
+      <motion.div
+        className={`${sizes.pin} rounded-full border-2 border-white flex items-center justify-center relative overflow-hidden`}
         style={{
-          background: `linear-gradient(135deg, ${eventColor}, ${eventColor}CC)`,
-          boxShadow: `0 0 15px ${eventColor}`
+          background: `linear-gradient(135deg, ${eventColor}, ${eventColor}DD)`,
+          boxShadow: `0 0 20px ${eventColor}, inset 0 2px 8px rgba(255,255,255,0.3)`
         }}
+        animate={isPulsing ? {
+          boxShadow: [
+            `0 0 15px ${eventColor}`,
+            `0 0 30px ${eventColor}, 0 0 45px ${eventColor}90`,
+            `0 0 15px ${eventColor}`
+          ]
+        } : {}}
+        transition={{ duration: 2, repeat: isPulsing ? Infinity : 0 }}
       >
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent 70%)',
+          }}
+        />
+
         {isClusterGroup ? (
-          <div className="text-white font-bold text-xs z-10">
+          <div className="text-white font-bold z-10" style={{ fontSize: sizes.fontSize }}>
             {events.length}
           </div>
         ) : (
-          <div className="w-3 h-3 rounded-full bg-white z-10" />
+          <motion.div
+            className="w-3 h-3 rounded-full bg-white z-10"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
         )}
-      </div>
+      </motion.div>
+
+      {/* Ring pulsante para clusters */}
+      {isClusterGroup && (
+        <motion.div
+          className="absolute rounded-full border-2 pointer-events-none"
+          style={{
+            borderColor: eventColor,
+            width: '60px',
+            height: '60px',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+          animate={{
+            scale: [1, 1.5, 1],
+            opacity: [0.7, 0, 0.7]
+          }}
+          transition={{ duration: 2.5, repeat: Infinity }}
+        />
+      )}
     </motion.div>
   );
 }, (prev, next) => {
   return (
     prev.cluster.events.length === next.cluster.events.length &&
     prev.position.x === next.position.x &&
-    prev.position.y === next.position.y
+    prev.position.y === next.position.y &&
+    prev.isPulsing === next.isPulsing
   );
 });
 
@@ -107,15 +153,18 @@ export default function MapView({
   onSearchChange,
   activeVibe = 'all'
 }) {
-  const [zoomLevel] = useState(15); // OTIMIZAÇÃO: Remover setZoomLevel se não usado
+  const [zoomLevel, setZoomLevel] = useState(15);
+  const [mapCenter, setMapCenter] = useState(userLocation);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [expandedCluster, setExpandedCluster] = useState(null);
+  const [showLayers, setShowLayers] = useState(true);
+  const [pulsingPins, setPulsingPins] = useState(new Set());
 
   const { data: user } = useCurrentUser();
   const canCreateReels = user && (user.is_pro_member || user.is_organizer);
 
-  // OTIMIZAÇÃO: Theme simplificado
   const vibeTheme = useMemo(() => {
     const themes = {
       'all': { color: '#06B6D4' },
@@ -127,33 +176,30 @@ export default function MapView({
     return themes[activeVibe] || themes['all'];
   }, [activeVibe]);
 
-  // OTIMIZAÇÃO: Validar eventos uma vez
   const validEvents = useMemo(() => {
     if (!events || !Array.isArray(events)) return [];
     return events.filter(e => e?.id && e?.title && e?.location?.lat && e?.location?.lng);
   }, [events]);
 
-  // OTIMIZAÇÃO: Clustering otimizado
   const eventClusters = useMemo(() => {
     return clusterEvents(validEvents, zoomLevel, 1);
   }, [validEvents, zoomLevel]);
 
-  // OTIMIZAÇÃO: Bounds calculados uma vez
   const mapBounds = useMemo(() => {
     const latRange = 0.5 / Math.pow(2, zoomLevel - 10);
     const lngRange = 0.5 / Math.pow(2, zoomLevel - 10);
 
     return {
-      minLat: userLocation.lat - latRange,
-      maxLat: userLocation.lat + latRange,
-      minLng: userLocation.lng - lngRange,
-      maxLng: userLocation.lng + lngRange
+      minLat: mapCenter.lat - latRange,
+      maxLat: mapCenter.lat + latRange,
+      minLng: mapCenter.lng - lngRange,
+      maxLng: mapCenter.lng + lngRange
     };
-  }, [userLocation.lat, userLocation.lng, zoomLevel]);
+  }, [mapCenter, zoomLevel]);
 
   const bbox = useMemo(() => {
     return `${mapBounds.minLng},${mapBounds.minLat},${mapBounds.maxLng},${mapBounds.maxLat}`;
-  }, [mapBounds.minLng, mapBounds.minLat, mapBounds.maxLng, mapBounds.maxLat]);
+  }, [mapBounds]);
 
   const coordToPosition = useCallback((lat, lng) => {
     const x = ((lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * 100;
@@ -163,17 +209,39 @@ export default function MapView({
 
   const userPosition = useMemo(() => 
     coordToPosition(userLocation.lat, userLocation.lng), 
-    [userLocation.lat, userLocation.lng, coordToPosition]
+    [userLocation, coordToPosition]
   );
 
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel(prev => Math.min(18, prev + 1));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel(prev => Math.max(10, prev - 1));
+  }, []);
+
+  const handleRecenter = useCallback(() => {
+    setMapCenter(userLocation);
+    setZoomLevel(15);
+    
+    // Pulse todos os pins brevemente
+    setPulsingPins(new Set(eventClusters.map((c, i) => i)));
+    setTimeout(() => setPulsingPins(new Set()), 2000);
+  }, [userLocation, eventClusters]);
+
   const handleClusterClick = useCallback((cluster) => {
-    if (cluster.isCluster) {
-      // Expandir cluster (simplificado)
-      onPinDetailsClick(cluster.events[0]);
+    if (cluster.isCluster && cluster.events.length > 1) {
+      setExpandedCluster(cluster);
+      
+      // Zoom para o cluster
+      setMapCenter({ lat: cluster.center.lat, lng: cluster.center.lng });
+      if (zoomLevel < 16) {
+        setZoomLevel(16);
+      }
     } else {
       onPinDetailsClick(cluster.events[0]);
     }
-  }, [onPinDetailsClick]);
+  }, [zoomLevel, onPinDetailsClick]);
 
   const handleIntelligentSearch = useCallback(async () => {
     if (!searchTerm || searchTerm.trim().length === 0) {
@@ -187,12 +255,12 @@ export default function MapView({
     try {
       const { data } = await intelligentSearch({
         query: searchTerm,
-        userLocation: userLocation
+        userLocation: mapCenter
       });
 
       setSearchResults(data);
     } catch (error) {
-      console.error('❌ Erro na busca:', error);
+      console.error('Erro na busca:', error);
       setSearchResults({
         query: searchTerm,
         detected_type: 'error',
@@ -202,17 +270,56 @@ export default function MapView({
     } finally {
       setIsSearching(false);
     }
-  }, [searchTerm, userLocation]);
+  }, [searchTerm, mapCenter]);
+
+  // Pan com teclado
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const panAmount = 0.01;
+      
+      switch(e.key) {
+        case 'ArrowUp':
+          setMapCenter(prev => ({ ...prev, lat: prev.lat + panAmount }));
+          e.preventDefault();
+          break;
+        case 'ArrowDown':
+          setMapCenter(prev => ({ ...prev, lat: prev.lat - panAmount }));
+          e.preventDefault();
+          break;
+        case 'ArrowLeft':
+          setMapCenter(prev => ({ ...prev, lng: prev.lng - panAmount }));
+          e.preventDefault();
+          break;
+        case 'ArrowRight':
+          setMapCenter(prev => ({ ...prev, lng: prev.lng + panAmount }));
+          e.preventDefault();
+          break;
+        case '+':
+        case '=':
+          handleZoomIn();
+          e.preventDefault();
+          break;
+        case '-':
+        case '_':
+          handleZoomOut();
+          e.preventDefault();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleZoomIn, handleZoomOut]);
 
   return (
     <div className="w-full h-full relative overflow-hidden">
-      {/* Background simplificado */}
-      <div className="absolute inset-0 z-0 bg-black" />
+      {/* Background */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-gray-900 via-black to-gray-900" />
 
       {/* Mapa OpenStreetMap */}
       <div className="absolute inset-0 z-1">
         <iframe
-          key={`map-${bbox}`}
+          key={`map-${bbox}-${zoomLevel}`}
           width="100%"
           height="100%"
           frameBorder="0"
@@ -220,44 +327,107 @@ export default function MapView({
           src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&zoom=${zoomLevel}`}
           className="absolute inset-0"
           style={{
-            filter: 'grayscale(80%) invert(96%) brightness(0.85) contrast(1.3)',
-            opacity: 0.9,
-            pointerEvents: 'none'
+            filter: 'grayscale(90%) invert(95%) brightness(0.8) contrast(1.4)',
+            opacity: showLayers ? 0.9 : 0.4,
+            pointerEvents: 'none',
+            transition: 'opacity 0.3s ease'
           }}
           loading="lazy"
         />
       </div>
 
-      {/* Eventos overlay */}
-      <div className="absolute inset-0 pointer-events-none z-10">
-        {/* User marker */}
+      {/* Grid overlay */}
+      {showLayers && (
         <div
-          className="absolute transform -translate-x-1/2 -translate-y-1/2 z-40"
+          className="absolute inset-0 z-2 pointer-events-none opacity-10"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, ${vibeTheme.color} 0.5px, transparent 0.5px),
+              linear-gradient(to bottom, ${vibeTheme.color} 0.5px, transparent 0.5px)
+            `,
+            backgroundSize: '40px 40px',
+          }}
+        />
+      )}
+
+      {/* Events overlay */}
+      <div className="absolute inset-0 pointer-events-none z-10">
+        {/* User marker com pulse */}
+        <motion.div
+          className="absolute transform -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none"
           style={{ left: `${userPosition.x}%`, top: `${userPosition.y}%` }}
+          animate={{
+            scale: [1, 1.05, 1]
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
         >
-          <div
-            className="w-6 h-6 rounded-full relative"
+          {/* Glow */}
+          <motion.div
+            className="absolute rounded-full"
             style={{
-              background: `radial-gradient(circle, ${vibeTheme.color}, ${vibeTheme.color}CC)`,
-              border: `2px solid white`,
-              boxShadow: `0 0 15px ${vibeTheme.color}`
+              width: '60px',
+              height: '60px',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: `radial-gradient(circle, ${vibeTheme.color}30 0%, transparent 70%)`,
+              filter: 'blur(12px)',
+            }}
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.5, 0.9, 0.5]
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+          />
+
+          {/* Marker */}
+          <div
+            className="w-7 h-7 rounded-full relative"
+            style={{
+              background: `radial-gradient(circle, ${vibeTheme.color}, ${vibeTheme.color}DD)`,
+              border: `3px solid white`,
+              boxShadow: `0 0 20px ${vibeTheme.color}, 0 4px 10px rgba(0,0,0,0.5)`
             }}
           >
-            <Navigation className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            <Navigation 
+              className="w-4 h-4 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" 
+              strokeWidth={3}
+            />
           </div>
-        </div>
+
+          {/* Pulse ring */}
+          <motion.div
+            className="absolute rounded-full border-2"
+            style={{
+              borderColor: vibeTheme.color,
+              width: '50px',
+              height: '50px',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
+            animate={{
+              scale: [1, 2, 1],
+              opacity: [0.8, 0, 0.8]
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+          />
+        </motion.div>
 
         {/* Event pins */}
         <AnimatePresence>
           {eventClusters.map((cluster, index) => {
             const position = coordToPosition(cluster.center.lat, cluster.center.lng);
+            const isPulsing = pulsingPins.has(index);
+            
             return (
               <EventPin
-                key={`cluster-${index}-${cluster.events[0].id}`}
+                key={`cluster-${index}-${cluster.events[0]?.id || index}`}
                 cluster={cluster}
                 position={position}
                 onClick={handleClusterClick}
                 theme={vibeTheme}
+                isPulsing={isPulsing}
               />
             );
           })}
@@ -265,12 +435,12 @@ export default function MapView({
       </div>
 
       {/* Top bar */}
-      <div className="absolute top-3 left-3 right-3 z-30 flex flex-col gap-2">
-        <div className="flex gap-2 items-center">
+      <div className="absolute top-3 left-3 right-36 z-30 flex flex-col gap-2">
+        <div className="flex gap-2">
           <Button
             onClick={onOpenVibe}
             size="sm"
-            className="px-3 py-2 h-9 bg-gray-900/80 backdrop-blur-xl border border-cyan-500/30 text-white"
+            className="px-3 h-9 bg-black/70 backdrop-blur-xl border border-cyan-500/40 text-white hover:bg-cyan-600/20"
           >
             <Music2 className="w-4 h-4 mr-1.5" />
             Vibes
@@ -280,7 +450,7 @@ export default function MapView({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 bg-black/50 backdrop-blur-xl border border-gray-700 text-white"
+              className="h-9 w-9 bg-black/70 backdrop-blur-xl border border-gray-700 text-white"
             >
               <Menu className="w-4 h-4" />
             </Button>
@@ -296,7 +466,7 @@ export default function MapView({
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleIntelligentSearch()}
-              className="pl-10 pr-3 h-10 bg-black/60 backdrop-blur-xl border border-cyan-500/30 text-white placeholder:text-gray-500 text-sm rounded-lg"
+              className="pl-10 h-10 bg-black/70 backdrop-blur-xl border border-cyan-500/40 text-white placeholder:text-gray-500 text-sm rounded-lg"
             />
           </div>
           <Button
@@ -313,35 +483,119 @@ export default function MapView({
         </div>
       </div>
 
+      {/* Mini Map */}
+      {showLayers && (
+        <MiniMap
+          events={validEvents}
+          userLocation={userLocation}
+          mapBounds={mapBounds}
+          currentZoom={zoomLevel}
+        />
+      )}
+
+      {/* Map Controls */}
+      <MapControls
+        zoomLevel={zoomLevel}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onRecenter={handleRecenter}
+        eventCount={validEvents.length}
+        clusterCount={eventClusters.filter(c => c.isCluster).length}
+        onToggleLayers={() => setShowLayers(!showLayers)}
+      />
+
       {/* FAB Upload */}
       {canCreateReels && (
-        <div className="absolute bottom-20 right-3 z-30">
+        <motion.div
+          className="absolute bottom-20 right-3 z-30"
+          whileHover={{ scale: 1.15, rotate: 10 }}
+          whileTap={{ scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, type: "spring" }}
+        >
           <Button
             onClick={onOpenUpload}
             size="icon"
-            className="w-14 h-14 rounded-full bg-gradient-to-r from-cyan-600 to-purple-600 shadow-lg"
+            className="w-14 h-14 rounded-full border-3 border-white/30 relative overflow-hidden shadow-2xl"
+            style={{
+              background: `linear-gradient(135deg, ${vibeTheme.color}, ${vibeTheme.color}DD)`,
+              boxShadow: `0 0 30px ${vibeTheme.color}`
+            }}
           >
-            <Plus className="w-6 h-6" />
+            <motion.div
+              className="absolute inset-0"
+              style={{
+                background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent 70%)',
+              }}
+              animate={{ opacity: [0.3, 0.7, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            <Plus className="w-6 h-6 relative z-10 text-white" />
           </Button>
-        </div>
+        </motion.div>
       )}
 
       {/* Swipe up area */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 pb-3 px-4">
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 z-20 pb-3 px-4"
+        drag="y"
+        dragConstraints={{ top: -80, bottom: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(e, info) => {
+          if (info.offset.y < -50) onSwipeUp();
+        }}
+      >
         <div className="flex flex-col items-center cursor-pointer" onClick={onSwipeUp}>
-          <div 
-            className="w-12 h-1.5 rounded-full mb-2 bg-gradient-to-r from-cyan-400 to-purple-400"
+          <motion.div
+            className="w-12 h-1.5 rounded-full mb-2"
+            style={{
+              background: `linear-gradient(to right, ${vibeTheme.color}, ${vibeTheme.color}DD)`,
+              boxShadow: `0 0 15px ${vibeTheme.color}`
+            }}
+            animate={{ 
+              scaleX: [1, 1.3, 1],
+              opacity: [0.7, 1, 0.7] 
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
           />
-          <Button
-            className="px-6 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-purple-600 shadow-xl"
-          >
-            <Eye className="w-5 h-5 mr-2" />
-            Ver Reels
-          </Button>
-        </div>
-      </div>
 
-      {/* Search Results Modal */}
+          <motion.div
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button
+              className="px-6 py-3 rounded-full relative overflow-hidden shadow-2xl"
+              style={{
+                background: `linear-gradient(135deg, ${vibeTheme.color}, ${vibeTheme.color}DD)`,
+                border: '2px solid rgba(255,255,255,0.3)',
+                boxShadow: `0 0 30px ${vibeTheme.color}`
+              }}
+            >
+              <motion.div
+                className="absolute inset-0"
+                style={{
+                  background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), transparent 70%)',
+                }}
+                animate={{ opacity: [0.3, 0.6, 0.3] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <Eye className="w-5 h-5 mr-2 relative z-10 text-white" />
+              <span className="text-white relative z-10 font-semibold">Ver Reels</span>
+            </Button>
+          </motion.div>
+
+          <motion.p
+            className="text-white/40 text-xs mt-2"
+            animate={{ opacity: [0.3, 0.7, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            Arraste para cima
+          </motion.p>
+        </div>
+      </motion.div>
+
+      {/* Search Results */}
       <AnimatePresence>
         {showSearchResults && (
           <SearchResults
@@ -355,13 +609,45 @@ export default function MapView({
               if (event) {
                 onPinDetailsClick(event);
                 setShowSearchResults(false);
+                
+                // Centralizar no evento
+                setMapCenter({ lat: event.location.lat, lng: event.location.lng });
+                setZoomLevel(17);
               }
             }}
             isLoading={isSearching}
+            userLocation={mapCenter}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Cluster Expansion */}
+      <AnimatePresence>
+        {expandedCluster && (
+          <ClusterExpansion
+            cluster={expandedCluster}
+            onClose={() => setExpandedCluster(null)}
+            onEventClick={(event) => {
+              onPinDetailsClick(event);
+              setExpandedCluster(null);
+            }}
             userLocation={userLocation}
           />
         )}
       </AnimatePresence>
+
+      {/* Keyboard hints */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2 }}
+        className="absolute bottom-24 left-3 bg-black/70 backdrop-blur-xl border border-gray-700/50 rounded-lg px-3 py-2 text-xs text-gray-400 hidden sm:block"
+      >
+        <div className="flex items-center gap-3">
+          <span>⌨️ Setas: mover</span>
+          <span>+/- : zoom</span>
+        </div>
+      </motion.div>
     </div>
   );
 }

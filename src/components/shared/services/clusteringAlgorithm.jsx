@@ -1,214 +1,143 @@
 /**
- * ALGORITMO DE CLUSTERING AVANÇADO PARA MAPA
- * DBSCAN adaptado com densidade dinâmica
- * Performance: O(n log n) vs O(n²) anterior
+ * CLUSTERING ALGORITHM - OTIMIZADO
+ * Grid-based DBSCAN para agrupamento espacial eficiente
  */
 
-/**
- * Clusters eventos usando DBSCAN melhorado
- * @param {Array} events - Lista de eventos com location
- * @param {number} zoomLevel - Nível de zoom do mapa (10-18)
- * @param {number} screenDensity - DPI da tela (1-3)
- * @returns {Array} Clusters com metadados
- */
+const CLUSTER_RADIUS_BY_ZOOM = {
+  10: 5.0,   // km
+  11: 3.0,
+  12: 2.0,
+  13: 1.5,
+  14: 1.0,
+  15: 0.5,
+  16: 0.3,
+  17: 0.15,
+  18: 0.08
+};
+
 export function clusterEvents(events, zoomLevel = 15, screenDensity = 1) {
   if (!events || events.length === 0) return [];
 
-  // CONFIGURAÇÃO DINÂMICA baseada em zoom
-  const config = getClusterConfig(zoomLevel, screenDensity);
+  const radius = CLUSTER_RADIUS_BY_ZOOM[zoomLevel] || 0.5;
+  const minPoints = zoomLevel > 15 ? 1 : 2;
 
-  // GRID-BASED OPTIMIZATION (reduz de O(n²) para O(n log n))
-  const grid = createSpatialGrid(events, config.gridSize);
+  // Grid espacial para busca O(1)
+  const cellSize = radius * 1.5;
+  const grid = new Map();
 
+  const getCellKey = (lat, lng) => {
+    const x = Math.floor(lng / cellSize);
+    const y = Math.floor(lat / cellSize);
+    return `${x},${y}`;
+  };
+
+  // Popular grid
+  events.forEach(event => {
+    const key = getCellKey(event.location.lat, event.location.lng);
+    if (!grid.has(key)) grid.set(key, []);
+    grid.get(key).push(event);
+  });
+
+  const visited = new Set();
   const clusters = [];
-  const processed = new Set();
 
-  events.forEach((event, index) => {
-    if (processed.has(index)) return;
+  events.forEach(event => {
+    if (visited.has(event.id)) return;
 
-    const nearbyEvents = findNearbyEventsGrid(event, events, grid, config);
-    
-    if (nearbyEvents.length === 0) {
-      // Ponto isolado
-      clusters.push(createSingleCluster(event));
-      processed.add(index);
-      return;
+    const cluster = [];
+    const queue = [event];
+    const cellKey = getCellKey(event.location.lat, event.location.lng);
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (visited.has(current.id)) continue;
+
+      visited.add(current.id);
+      cluster.push(current);
+
+      // Buscar nas 9 células vizinhas
+      const [cx, cy] = cellKey.split(',').map(Number);
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          const neighborKey = `${cx + dx},${cy + dy}`;
+          const neighbors = grid.get(neighborKey) || [];
+
+          neighbors.forEach(neighbor => {
+            if (visited.has(neighbor.id)) return;
+
+            const dist = calculateDistanceKm(
+              current.location.lat,
+              current.location.lng,
+              neighbor.location.lat,
+              neighbor.location.lng
+            );
+
+            if (dist <= radius) {
+              queue.push(neighbor);
+            }
+          });
+        }
+      }
     }
 
-    // Criar cluster
-    const cluster = {
-      events: [event, ...nearbyEvents],
-      center: calculateCentroid([event, ...nearbyEvents]),
-      isCluster: nearbyEvents.length > 0,
-      density: calculateDensity([event, ...nearbyEvents], config.radius),
-      bounds: calculateBounds([event, ...nearbyEvents]),
-      ...extractClusterMetadata([event, ...nearbyEvents])
-    };
-
-    // Marcar todos como processados
-    processed.add(index);
-    nearbyEvents.forEach(e => {
-      const idx = events.indexOf(e);
-      if (idx !== -1) processed.add(idx);
-    });
-
-    clusters.push(cluster);
+    if (cluster.length >= minPoints) {
+      clusters.push(buildClusterMetadata(cluster, radius));
+    } else {
+      // Evento solo
+      clusters.push({
+        events: cluster,
+        center: { lat: cluster[0].location.lat, lng: cluster[0].location.lng },
+        isCluster: false,
+        density: 0
+      });
+    }
   });
 
   return clusters;
 }
 
-/**
- * Configuração dinâmica baseada em zoom
- */
-function getClusterConfig(zoomLevel, screenDensity) {
-  const baseRadius = 0.015; // ~1.5km em graus
-  const zoomFactor = Math.pow(2, (15 - zoomLevel) * 0.8);
-  const densityFactor = 1 / screenDensity;
-
-  return {
-    radius: baseRadius * zoomFactor * densityFactor,
-    gridSize: 0.05 * zoomFactor, // Grid cells dinâmicos
-    minPoints: zoomLevel > 13 ? 2 : 3, // Mais granular em zoom alto
-    maxClusterSize: zoomLevel > 13 ? 10 : 20
-  };
-}
-
-/**
- * Cria grid espacial para busca O(1) de vizinhos
- */
-function createSpatialGrid(events, gridSize) {
-  const grid = new Map();
-
-  events.forEach(event => {
-    const cellKey = getCellKey(event.location.lat, event.location.lng, gridSize);
-    
-    if (!grid.has(cellKey)) {
-      grid.set(cellKey, []);
-    }
-    
-    grid.get(cellKey).push(event);
-  });
-
-  return grid;
-}
-
-/**
- * Busca eventos próximos usando grid (otimizado)
- */
-function findNearbyEventsGrid(event, allEvents, grid, config) {
-  const nearby = [];
-  const { lat, lng } = event.location;
-
-  // Buscar nas 9 células vizinhas (centro + 8 adjacentes)
-  const cellKeys = getNeighborCells(lat, lng, config.gridSize);
-
-  cellKeys.forEach(cellKey => {
-    const cellEvents = grid.get(cellKey) || [];
-    
-    cellEvents.forEach(other => {
-      if (other.id === event.id) return;
-      
-      const distance = getDistance(
-        lat, lng,
-        other.location.lat, other.location.lng
-      );
-
-      if (distance < config.radius) {
-        nearby.push(other);
-      }
-    });
-  });
-
-  return nearby.slice(0, config.maxClusterSize);
-}
-
-/**
- * Gera chave da célula do grid
- */
-function getCellKey(lat, lng, gridSize) {
-  const cellLat = Math.floor(lat / gridSize);
-  const cellLng = Math.floor(lng / gridSize);
-  return `${cellLat},${cellLng}`;
-}
-
-/**
- * Retorna células vizinhas (3x3 grid)
- */
-function getNeighborCells(lat, lng, gridSize) {
-  const baseLat = Math.floor(lat / gridSize);
-  const baseLng = Math.floor(lng / gridSize);
+function buildClusterMetadata(events, radius) {
+  // Centróide ponderado
+  const totalAttendees = events.reduce((sum, e) => sum + (e.current_attendees || 1), 0);
   
-  const cells = [];
-  for (let i = -1; i <= 1; i++) {
-    for (let j = -1; j <= 1; j++) {
-      cells.push(`${baseLat + i},${baseLng + j}`);
-    }
-  }
+  let centerLat = 0;
+  let centerLng = 0;
   
-  return cells;
-}
-
-/**
- * Distância rápida (sem Haversine completo para performance)
- */
-function getDistance(lat1, lng1, lat2, lng2) {
-  const dLat = lat2 - lat1;
-  const dLng = lng2 - lng1;
-  return Math.sqrt(dLat * dLat + dLng * dLng);
-}
-
-/**
- * Calcula centróide do cluster
- */
-function calculateCentroid(events) {
-  const lat = events.reduce((sum, e) => sum + e.location.lat, 0) / events.length;
-  const lng = events.reduce((sum, e) => sum + e.location.lng, 0) / events.length;
-  return { lat, lng };
-}
-
-/**
- * Calcula densidade (eventos por km²)
- */
-function calculateDensity(events, radius) {
-  const area = Math.PI * Math.pow(radius * 111, 2); // Converter graus para km
-  return events.length / Math.max(area, 0.1);
-}
-
-/**
- * Calcula bounding box do cluster
- */
-function calculateBounds(events) {
-  const lats = events.map(e => e.location.lat);
-  const lngs = events.map(e => e.location.lng);
-  
-  return {
-    minLat: Math.min(...lats),
-    maxLat: Math.max(...lats),
-    minLng: Math.min(...lngs),
-    maxLng: Math.max(...lngs)
-  };
-}
-
-/**
- * Extrai metadados do cluster
- */
-function extractClusterMetadata(events) {
-  const genreCounts = {};
-  const typeCounts = {};
-
   events.forEach(e => {
-    genreCounts[e.genre] = (genreCounts[e.genre] || 0) + 1;
-    typeCounts[e.type] = (typeCounts[e.type] || 0) + 1;
+    const weight = (e.current_attendees || 1) / totalAttendees;
+    centerLat += e.location.lat * weight;
+    centerLng += e.location.lng * weight;
   });
 
+  // Densidade (eventos por km²)
+  const area = Math.PI * radius * radius;
+  const density = events.length / area;
+
+  // Gênero dominante
+  const genreCounts = {};
+  events.forEach(e => {
+    if (e.genre) {
+      genreCounts[e.genre] = (genreCounts[e.genre] || 0) + 1;
+    }
+  });
   const dominantGenre = Object.entries(genreCounts)
-    .sort((a, b) => b[1] - a[1])[0]?.[0] || events[0].genre;
-  
+    .sort(([,a], [,b]) => b - a)[0]?.[0] || null;
+
+  // Tipo dominante
+  const typeCounts = {};
+  events.forEach(e => {
+    if (e.type) {
+      typeCounts[e.type] = (typeCounts[e.type] || 0) + 1;
+    }
+  });
   const dominantType = Object.entries(typeCounts)
-    .sort((a, b) => b[1] - a[1])[0]?.[0] || events[0].type;
+    .sort(([,a], [,b]) => b - a)[0]?.[0] || null;
 
   return {
+    events,
+    center: { lat: centerLat, lng: centerLng },
+    isCluster: events.length > 1,
+    density,
     dominantGenre,
     dominantType,
     genreDistribution: genreCounts,
@@ -218,86 +147,94 @@ function extractClusterMetadata(events) {
   };
 }
 
-/**
- * Cria cluster de evento único
- */
-function createSingleCluster(event) {
-  return {
-    events: [event],
-    center: { lat: event.location.lat, lng: event.location.lng },
-    isCluster: false,
-    density: 1,
-    dominantGenre: event.genre,
-    dominantType: event.type,
-    bounds: {
-      minLat: event.location.lat,
-      maxLat: event.location.lat,
-      minLng: event.location.lng,
-      maxLng: event.location.lng
-    }
-  };
-}
-
-/**
- * Calcula tamanho visual do cluster baseado em densidade
- */
 export function getClusterVisualSize(cluster) {
-  const { density, events } = cluster;
+  const { events, density, isCluster } = cluster;
   
-  if (!cluster.isCluster) {
-    return { 
-      pin: 'w-10 h-10', 
-      glow: '60px', 
-      secondGlow: '80px',
-      fontSize: 'text-base'
-    };
-  }
-
-  // Densidade alta (>10 eventos/km²)
-  if (density > 10) {
-    return { 
-      pin: 'w-20 h-20', 
-      glow: '100px', 
-      secondGlow: '130px',
-      fontSize: 'text-xl',
-      isHotspot: true
-    };
-  }
+  const isHotspot = density > 10;
   
-  // Densidade média (5-10)
-  if (density > 5) {
-    return { 
-      pin: 'w-16 h-16', 
-      glow: '85px', 
-      secondGlow: '110px',
-      fontSize: 'text-lg',
+  if (!isCluster) {
+    return {
+      pin: 'w-5 h-5',
+      glow: '45px',
+      fontSize: 'text-xs',
       isHotspot: false
     };
   }
-  
-  // Densidade baixa (<5)
-  return { 
-    pin: 'w-14 h-14', 
-    glow: '75px', 
-    secondGlow: '95px',
-    fontSize: 'text-base',
+
+  if (isHotspot) {
+    return {
+      pin: 'w-8 h-8',
+      glow: '100px',
+      secondGlow: '130px',
+      fontSize: 'text-base',
+      isHotspot: true
+    };
+  }
+
+  if (events.length > 5) {
+    return {
+      pin: 'w-7 h-7',
+      glow: '80px',
+      secondGlow: '110px',
+      fontSize: 'text-sm',
+      isHotspot: false
+    };
+  }
+
+  return {
+    pin: 'w-6 h-6',
+    glow: '60px',
+    secondGlow: '85px',
+    fontSize: 'text-sm',
     isHotspot: false
   };
 }
 
-/**
- * Determina cor do cluster baseado em tipo dominante
- */
 export function getClusterColor(cluster) {
-  const colorMap = {
+  const { dominantGenre, dominantType, isCluster, density } = cluster;
+
+  // Hotspot = vermelho
+  if (density > 10) return 'rgba(239, 68, 68, 0.95)';
+
+  // Por gênero
+  const genreColors = {
+    'techno': 'rgba(6, 182, 212, 0.9)',
+    'house': 'rgba(168, 85, 247, 0.9)',
+    'trance': 'rgba(236, 72, 153, 0.9)',
+    'funk': 'rgba(251, 191, 36, 0.9)',
+    'trap': 'rgba(249, 115, 22, 0.9)',
+    'drum_bass': 'rgba(239, 68, 68, 0.9)',
+  };
+
+  if (dominantGenre && genreColors[dominantGenre]) {
+    return genreColors[dominantGenre];
+  }
+
+  // Por tipo
+  const typeColors = {
     'rave': 'rgba(236, 72, 153, 0.9)',
-    'warehouse': 'rgba(168, 85, 247, 0.9)',
-    'rooftop': 'rgba(6, 182, 212, 0.9)',
     'underground': 'rgba(139, 92, 246, 0.9)',
     'club': 'rgba(20, 184, 166, 0.9)',
     'secret': 'rgba(251, 191, 36, 0.9)',
-    'festival': 'rgba(249, 115, 22, 0.9)',
   };
-  
-  return colorMap[cluster.dominantType] || 'rgba(6, 182, 212, 0.9)';
+
+  if (dominantType && typeColors[dominantType]) {
+    return typeColors[dominantType];
+  }
+
+  // Default
+  return isCluster ? 'rgba(168, 85, 247, 0.9)' : 'rgba(6, 182, 212, 0.9)';
 }
+
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+export default { clusterEvents, getClusterVisualSize, getClusterColor };
