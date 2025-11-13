@@ -263,7 +263,7 @@ export default function Layout({ children, currentPageName }) {
                 whileTap={{ scale: 0.95 }}
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png" 
                 alt="SUBLINX Icon" 
-                className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-300"
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 transition-transform duration-300"
                 style={{
                   filter: 'drop-shadow(0 0 15px rgba(6, 182, 212, 0.7))'
                 }}
