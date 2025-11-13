@@ -261,7 +261,7 @@ export default function Layout({ children, currentPageName }) {
               <motion.img 
                 whileHover={{ scale: 1.15, rotate: 10 }}
                 whileTap={{ scale: 0.95 }}
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/116e0559c_Sublinx_icon.png" 
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png" 
                 alt="SUBLINX Icon" 
                 className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-300"
                 style={{
