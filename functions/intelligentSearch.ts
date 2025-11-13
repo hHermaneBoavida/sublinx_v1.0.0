@@ -20,57 +20,64 @@ Deno.serve(async (req) => {
       });
     }
 
-    // NOVO: Normalizar query (correção de typos)
     const normalizedQuery = normalizeQuery(query);
 
-    // 1. BATCH FETCH - 3 requests paralelos
-    const [events, users, communities] = await Promise.all([
+    // 1. BATCH FETCH - paralelo
+    const [events, users, communities, userHistory] = await Promise.all([
       base44.asServiceRole.entities.Event.list('-date', 100),
       base44.asServiceRole.entities.User.filter({ is_organizer: true }, '', 50),
-      base44.asServiceRole.entities.Community.list('', 50)
+      base44.asServiceRole.entities.Community.list('', 50),
+      getUserSearchHistory(user.id)
     ]);
 
     // 2. LLM PARA CLASSIFICAR
     const llmResponse = await base44.integrations.Core.InvokeLLM({
-      prompt: buildLLMPrompt(normalizedQuery, userLocation),
+      prompt: buildLLMPrompt(normalizedQuery, userLocation, userHistory),
       add_context_from_internet: false,
       response_json_schema: getLLMSchema()
     });
 
     const { detected_type, entities, search_intent } = llmResponse;
 
-    // 3. FUZZY SEARCH nos dados
+    // 3. FUZZY SEARCH com BOOST de proximidade
     let relevantEvents = fuzzyFilterEvents(events, normalizedQuery, entities);
     const relevantUsers = fuzzyFilterUsers(users, normalizedQuery, entities);
     const relevantCommunities = fuzzyFilterCommunities(communities, normalizedQuery, entities);
 
-    // 4. CALCULAR DISTÂNCIA E ENRIQUECER
+    // 4. CALCULAR DISTÂNCIA E SCORE (PRIORIDADE PROXIMIDADE)
     if (userLocation?.lat && userLocation?.lng) {
-      relevantEvents = relevantEvents.map(event => ({
-        ...event,
-        distance: calculateDistance(
+      relevantEvents = relevantEvents.map(event => {
+        const distance = calculateDistance(
           userLocation.lat,
           userLocation.lng,
           event.location?.lat,
           event.location?.lng
-        ),
-        _score: calculateRelevanceScore(event, normalizedQuery, entities, userLocation)
-      }));
+        );
+
+        // NOVO: Score com peso MAIOR para proximidade
+        const relevanceScore = calculateRelevanceScore(event, normalizedQuery, entities, userLocation, distance);
+
+        return {
+          ...event,
+          distance,
+          _score: relevanceScore
+        };
+      });
     } else {
       relevantEvents = relevantEvents.map(event => ({
         ...event,
-        _score: calculateRelevanceScore(event, normalizedQuery, entities, null)
+        _score: calculateRelevanceScore(event, normalizedQuery, entities, null, null)
       }));
     }
 
-    // Ordenar por relevância (score)
+    // Ordenar: PROXIMIDADE + RELEVÂNCIA
     relevantEvents.sort((a, b) => (b._score || 0) - (a._score || 0));
 
     // 5. MONTAR RESULTADOS
     const results = [];
 
-    // EVENTOS (top 15)
-    relevantEvents.slice(0, 15).forEach(event => {
+    // EVENTOS (top 20)
+    relevantEvents.slice(0, 20).forEach(event => {
       results.push({
         type: "event",
         id: event.id,
@@ -129,8 +136,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 6. SUGESTÕES INTELIGENTES
-    const suggestions = generateSuggestions(results, normalizedQuery, query);
+    // 6. SUGESTÕES INTELIGENTES (histórico + populares)
+    const suggestions = generateSmartSuggestions(results, normalizedQuery, query, userHistory, events);
 
     return Response.json({
       query,
@@ -214,41 +221,48 @@ function normalizeQuery(query) {
 }
 
 // ============================================
-// SCORING E RANKING
+// SCORING E RANKING - PRIORIDADE PROXIMIDADE
 // ============================================
 
-function calculateRelevanceScore(event, query, entities, userLocation) {
+function calculateRelevanceScore(event, query, entities, userLocation, distance) {
   let score = 0;
 
-  // Peso 1: Match no título (40 pontos)
+  // PESO 1: Match no título (30 pontos) - REDUZIDO
   const titleScore = fuzzyMatch(query, event.title || '', 0.5);
-  score += titleScore * 40;
+  score += titleScore * 30;
 
-  // Peso 2: Match no gênero (25 pontos)
+  // PESO 2: Match no gênero (20 pontos) - REDUZIDO
   if (entities.genre && event.genre) {
     const genreScore = fuzzyMatch(entities.genre, event.genre, 0.6);
-    score += genreScore * 25;
+    score += genreScore * 20;
   }
 
-  // Peso 3: Match na descrição (15 pontos)
+  // PESO 3: Match na descrição (10 pontos) - REDUZIDO
   if (event.description) {
     const descScore = fuzzyMatch(query, event.description, 0.4);
-    score += descScore * 15;
+    score += descScore * 10;
   }
 
-  // Peso 4: Proximidade (20 pontos)
-  if (userLocation && event.distance) {
-    const distanceScore = Math.max(0, 1 - (event.distance / 50)); // 50km = 0 score
-    score += distanceScore * 20;
+  // PESO 4: PROXIMIDADE (35 pontos) - AUMENTADO! 🎯
+  if (userLocation && distance !== null && distance !== undefined) {
+    // Eventos a menos de 5km = MÁXIMO score
+    // Score decai até 50km
+    const proximityScore = Math.max(0, 1 - (distance / 50));
+    score += proximityScore * 35;
+
+    // BONUS: Eventos <2km = +10 pontos extra
+    if (distance < 2) {
+      score += 10;
+    }
   }
 
-  // Peso 5: Popularidade (10 pontos)
+  // PESO 5: Popularidade (5 pontos) - REDUZIDO
   if (event.current_attendees && event.max_capacity) {
     const popularityScore = event.current_attendees / event.max_capacity;
-    score += popularityScore * 10;
+    score += popularityScore * 5;
   }
 
-  // Peso 6: Evento em breve (+5 bonus)
+  // PESO 6: Evento em breve (+5 bonus)
   const daysUntil = (new Date(event.date) - new Date()) / (1000 * 60 * 60 * 24);
   if (daysUntil >= 0 && daysUntil <= 7) {
     score += 5;
@@ -269,20 +283,16 @@ function fuzzyFilterEvents(events, query, entities) {
     .map(event => {
       const scores = [];
       
-      // Score título
       scores.push(fuzzyMatch(query, event.title || '', 0.5));
       
-      // Score gênero
       if (entities.genre && event.genre) {
         scores.push(fuzzyMatch(entities.genre, event.genre, 0.6));
       }
       
-      // Score descrição
       if (event.description) {
         scores.push(fuzzyMatch(query, event.description, 0.4));
       }
       
-      // Score venue
       if (event.location?.venue_name) {
         scores.push(fuzzyMatch(query, event.location.venue_name, 0.5));
       }
@@ -330,12 +340,16 @@ function fuzzyFilterCommunities(communities, query, entities) {
 // LLM HELPERS
 // ============================================
 
-function buildLLMPrompt(query, userLocation) {
+function buildLLMPrompt(query, userLocation, userHistory) {
+  const historyContext = userHistory && userHistory.length > 0 
+    ? `\n**Histórico do usuário:** ${userHistory.slice(0, 5).join(', ')}`
+    : '';
+
   return `
 Você é o motor de busca do SUBLINX.
 
 **Query:** "${query}"
-**Localização:** ${userLocation ? `${userLocation.lat}, ${userLocation.lng}` : 'não informada'}
+**Localização:** ${userLocation ? `${userLocation.lat}, ${userLocation.lng}` : 'não informada'}${historyContext}
 
 **Classifique em:** city, venue, event, artist, genre, vibe, mixed
 
@@ -385,22 +399,81 @@ function getLLMSchema() {
   };
 }
 
-function generateSuggestions(results, normalizedQuery, originalQuery) {
-  if (results.length > 0) return [];
+// NOVO: Sugestões inteligentes baseadas em histórico + popularidade
+function generateSmartSuggestions(results, normalizedQuery, originalQuery, userHistory, allEvents) {
+  if (results.length > 0) {
+    // Sugestões de refinamento
+    const suggestions = [];
+    
+    // Gêneros mais populares nos resultados
+    const genreCounts = {};
+    results.filter(r => r.type === 'event' && r.genre).forEach(r => {
+      genreCounts[r.genre] = (genreCounts[r.genre] || 0) + 1;
+    });
+    
+    const topGenres = Object.entries(genreCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 2)
+      .map(([genre]) => genre);
+    
+    if (topGenres.length > 0) {
+      suggestions.push(`Refinar por: ${topGenres.join(' ou ')}`);
+    }
+    
+    // Cidades próximas com eventos
+    const citiesInResults = [...new Set(
+      results.filter(r => r.type === 'event' && r.location)
+        .map(r => r.location.split(',')[1]?.trim())
+        .filter(Boolean)
+    )].slice(0, 2);
+    
+    if (citiesInResults.length > 0) {
+      suggestions.push(`Eventos em: ${citiesInResults.join(', ')}`);
+    }
+    
+    return suggestions.slice(0, 3);
+  }
   
-  const suggestions = [
-    "Tente usar o nome do gênero (techno, house, trap)",
-    "Busque por cidade (São Paulo, Rio, Belo Horizonte)",
-    "Procure por nome de DJ ou artista",
-    "Use termos temporais (hoje, amanhã, fim de semana)"
-  ];
+  // Sem resultados - sugestões com histórico do usuário
+  const suggestions = [];
   
-  // Se houve correção, sugerir
+  // Sugestões do histórico
+  if (userHistory && userHistory.length > 0) {
+    suggestions.push(`Você já buscou: ${userHistory.slice(0, 3).join(', ')}`);
+  }
+  
+  // Eventos populares PRÓXIMOS
+  const now = new Date();
+  const futureEvents = allEvents
+    .filter(e => new Date(e.date) > now)
+    .sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
+    .slice(0, 3);
+  
+  if (futureEvents.length > 0) {
+    const popularGenres = [...new Set(futureEvents.map(e => e.genre).filter(Boolean))];
+    suggestions.push(`Populares agora: ${popularGenres.join(', ')}`);
+  }
+  
+  suggestions.push("Tente: techno são paulo, house hoje, trap amanhã");
+  
+  // Se houve correção, informar
   if (normalizedQuery !== originalQuery.toLowerCase()) {
     suggestions.unshift(`💡 Buscando por: "${normalizedQuery}"`);
   }
   
-  return suggestions;
+  return suggestions.slice(0, 4);
+}
+
+async function getUserSearchHistory(userId) {
+  try {
+    const stored = await Deno.env.get(`search_history_${userId}`);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    return [];
+  } catch {
+    return [];
+  }
 }
 
 // ============================================

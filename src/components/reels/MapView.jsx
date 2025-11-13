@@ -1,12 +1,12 @@
 import React, { useState, useMemo, memo, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, Search, Navigation, Music2, Loader2 } from 'lucide-react';
+import { Plus, Eye, Menu, Music2 } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import SearchResults from "../map/SearchResults";
 import ClusterExpansion from "../map/ClusterExpansion";
+import SearchBar from "../search/SearchBar";
 import { intelligentSearch } from "@/functions/intelligentSearch";
 import useCurrentUser from "../shared/useCurrentUser";
 import { clusterEvents, getClusterVisualSize, getClusterColor } from "../shared/services/clusteringAlgorithm";
@@ -48,7 +48,7 @@ const EventPin = memo(({ cluster, position, onClick, theme, isPulsing }) => {
         )}
       </motion.div>
 
-      {/* Glow pulsante */}
+      {/* Glow */}
       <motion.div
         className="absolute rounded-full pointer-events-none"
         style={{
@@ -71,7 +71,7 @@ const EventPin = memo(({ cluster, position, onClick, theme, isPulsing }) => {
         }}
       />
 
-      {/* Pin principal */}
+      {/* Pin */}
       <motion.div
         className={`${sizes.pin} rounded-full border-2 border-white flex items-center justify-center relative overflow-hidden`}
         style={{
@@ -107,7 +107,7 @@ const EventPin = memo(({ cluster, position, onClick, theme, isPulsing }) => {
         )}
       </motion.div>
 
-      {/* Ring pulsante para clusters */}
+      {/* Ring para clusters */}
       {isClusterGroup && (
         <motion.div
           className="absolute rounded-full border-2 pointer-events-none"
@@ -182,6 +182,13 @@ export default function MapView({
     return clusterEvents(validEvents, zoomLevel, 1);
   }, [validEvents, zoomLevel]);
 
+  // Eventos populares para sugestões
+  const popularEvents = useMemo(() => {
+    return validEvents
+      .sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
+      .slice(0, 5);
+  }, [validEvents]);
+
   const mapBounds = useMemo(() => {
     const latRange = 0.5 / Math.pow(2, zoomLevel - 10);
     const lngRange = 0.5 / Math.pow(2, zoomLevel - 10);
@@ -220,7 +227,6 @@ export default function MapView({
   const handleClusterClick = useCallback((cluster) => {
     if (cluster.isCluster && cluster.events.length > 1) {
       setExpandedCluster(cluster);
-      
       setMapCenter({ lat: cluster.center.lat, lng: cluster.center.lng });
       if (zoomLevel < 16) {
         setZoomLevel(16);
@@ -230,8 +236,8 @@ export default function MapView({
     }
   }, [zoomLevel, onPinDetailsClick]);
 
-  const handleIntelligentSearch = useCallback(async () => {
-    if (!searchTerm || searchTerm.trim().length === 0) {
+  const handleIntelligentSearch = useCallback(async (query) => {
+    if (!query || query.trim().length === 0) {
       setShowSearchResults(false);
       return;
     }
@@ -241,7 +247,7 @@ export default function MapView({
 
     try {
       const { data } = await intelligentSearch({
-        query: searchTerm,
+        query: query,
         userLocation: mapCenter
       });
 
@@ -249,7 +255,7 @@ export default function MapView({
     } catch (error) {
       console.error('Erro na busca:', error);
       setSearchResults({
-        query: searchTerm,
+        query: query,
         detected_type: 'error',
         results: [],
         suggestions: ['Erro ao buscar. Tente novamente.']
@@ -257,7 +263,7 @@ export default function MapView({
     } finally {
       setIsSearching(false);
     }
-  }, [searchTerm, mapCenter]);
+  }, [mapCenter]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -332,7 +338,7 @@ export default function MapView({
       />
 
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* User marker - COMPACTO E PROPORCIONAL */}
+        {/* User marker - COMPACTO */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none"
           style={{ left: `${userPosition.x}%`, top: `${userPosition.y}%` }}
@@ -341,7 +347,7 @@ export default function MapView({
           }}
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          {/* Glow principal - reduzido */}
+          {/* Glow principal */}
           <motion.div
             className="absolute rounded-full"
             style={{
@@ -360,7 +366,7 @@ export default function MapView({
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
 
-          {/* Glow secundário - mais sutil */}
+          {/* Glow secundário */}
           <motion.div
             className="absolute rounded-full"
             style={{
@@ -379,7 +385,7 @@ export default function MapView({
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           />
 
-          {/* Marker principal - TAMANHO REDUZIDO */}
+          {/* Marker */}
           <motion.div
             className="w-5 h-5 rounded-full relative"
             style={{
@@ -396,7 +402,6 @@ export default function MapView({
             }}
             transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            {/* Shine interno */}
             <motion.div
               className="absolute inset-0 rounded-full"
               style={{
@@ -407,15 +412,9 @@ export default function MapView({
               }}
               transition={{ duration: 2, repeat: Infinity }}
             />
-
-            {/* Ícone menor */}
-            <Navigation 
-              className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-md" 
-              strokeWidth={3}
-            />
           </motion.div>
 
-          {/* Partículas menores */}
+          {/* Partículas */}
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
@@ -461,6 +460,7 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
+      {/* Top bar com SearchBar inteligente */}
       <div className="absolute top-3 left-3 right-3 z-30 flex flex-col gap-2">
         <div className="flex gap-2">
           <Button
@@ -483,29 +483,14 @@ export default function MapView({
           </Link>
         </div>
 
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 z-10" />
-            <Input
-              placeholder="Buscar eventos..."
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleIntelligentSearch()}
-              className="pl-10 h-10 bg-black/70 backdrop-blur-xl border border-cyan-500/40 text-white placeholder:text-gray-500 text-sm rounded-lg"
-            />
-          </div>
-          <Button
-            onClick={handleIntelligentSearch}
-            disabled={isSearching || !searchTerm}
-            className="h-10 px-4 bg-gradient-to-r from-cyan-600 to-purple-600"
-          >
-            {isSearching ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Search className="w-4 h-4" />
-            )}
-          </Button>
-        </div>
+        {/* Search Bar Inteligente */}
+        <SearchBar
+          value={searchTerm}
+          onChange={onSearchChange}
+          onSearch={handleIntelligentSearch}
+          popularEvents={popularEvents}
+          placeholder="Buscar eventos, artistas, locais..."
+        />
       </div>
 
       {canCreateReels && (
