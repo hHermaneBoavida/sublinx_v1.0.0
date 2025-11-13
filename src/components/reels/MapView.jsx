@@ -6,8 +6,6 @@ import { Plus, Eye, Menu, Search, Navigation, Music2, Loader2 } from 'lucide-rea
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import SearchResults from "../map/SearchResults";
-import MapControls from "../map/MapControls";
-import MiniMap from "../map/MiniMap";
 import ClusterExpansion from "../map/ClusterExpansion";
 import { intelligentSearch } from "@/functions/intelligentSearch";
 import useCurrentUser from "../shared/useCurrentUser";
@@ -159,7 +157,6 @@ export default function MapView({
   const [searchResults, setSearchResults] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [expandedCluster, setExpandedCluster] = useState(null);
-  const [showLayers, setShowLayers] = useState(true);
   const [pulsingPins, setPulsingPins] = useState(new Set());
 
   const { data: user } = useCurrentUser();
@@ -219,15 +216,6 @@ export default function MapView({
   const handleZoomOut = useCallback(() => {
     setZoomLevel(prev => Math.max(10, prev - 1));
   }, []);
-
-  const handleRecenter = useCallback(() => {
-    setMapCenter(userLocation);
-    setZoomLevel(15);
-    
-    // Pulse todos os pins brevemente
-    setPulsingPins(new Set(eventClusters.map((c, i) => i)));
-    setTimeout(() => setPulsingPins(new Set()), 2000);
-  }, [userLocation, eventClusters]);
 
   const handleClusterClick = useCallback((cluster) => {
     if (cluster.isCluster && cluster.events.length > 1) {
@@ -328,7 +316,7 @@ export default function MapView({
           className="absolute inset-0"
           style={{
             filter: 'grayscale(90%) invert(95%) brightness(0.8) contrast(1.4)',
-            opacity: showLayers ? 0.9 : 0.4,
+            opacity: 0.9,
             pointerEvents: 'none',
             transition: 'opacity 0.3s ease'
           }}
@@ -337,18 +325,16 @@ export default function MapView({
       </div>
 
       {/* Grid overlay */}
-      {showLayers && (
-        <div
-          className="absolute inset-0 z-2 pointer-events-none opacity-10"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, ${vibeTheme.color} 0.5px, transparent 0.5px),
-              linear-gradient(to bottom, ${vibeTheme.color} 0.5px, transparent 0.5px)
-            `,
-            backgroundSize: '40px 40px',
-          }}
-        />
-      )}
+      <div
+        className="absolute inset-0 z-2 pointer-events-none opacity-10"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, ${vibeTheme.color} 0.5px, transparent 0.5px),
+            linear-gradient(to bottom, ${vibeTheme.color} 0.5px, transparent 0.5px)
+          `,
+          backgroundSize: '40px 40px',
+        }}
+      />
 
       {/* Events overlay */}
       <div className="absolute inset-0 pointer-events-none z-10">
@@ -435,7 +421,7 @@ export default function MapView({
       </div>
 
       {/* Top bar */}
-      <div className="absolute top-3 left-3 right-36 z-30 flex flex-col gap-2">
+      <div className="absolute top-3 left-3 right-3 z-30 flex flex-col gap-2">
         <div className="flex gap-2">
           <Button
             onClick={onOpenVibe}
@@ -482,27 +468,6 @@ export default function MapView({
           </Button>
         </div>
       </div>
-
-      {/* Mini Map */}
-      {showLayers && (
-        <MiniMap
-          events={validEvents}
-          userLocation={userLocation}
-          mapBounds={mapBounds}
-          currentZoom={zoomLevel}
-        />
-      )}
-
-      {/* Map Controls */}
-      <MapControls
-        zoomLevel={zoomLevel}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onRecenter={handleRecenter}
-        eventCount={validEvents.length}
-        clusterCount={eventClusters.filter(c => c.isCluster).length}
-        onToggleLayers={() => setShowLayers(!showLayers)}
-      />
 
       {/* FAB Upload */}
       {canCreateReels && (
@@ -635,19 +600,6 @@ export default function MapView({
           />
         )}
       </AnimatePresence>
-
-      {/* Keyboard hints */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2 }}
-        className="absolute bottom-24 left-3 bg-black/70 backdrop-blur-xl border border-gray-700/50 rounded-lg px-3 py-2 text-xs text-gray-400 hidden sm:block"
-      >
-        <div className="flex items-center gap-3">
-          <span>⌨️ Setas: mover</span>
-          <span>+/- : zoom</span>
-        </div>
-      </motion.div>
     </div>
   );
 }
