@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -566,7 +567,7 @@ export default function MapView({
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* ⭐ ÚNICO MARCADOR - SUA LOCALIZAÇÃO ⭐ */}
+        {/* ⭐ ÚNICO MARCADOR COMPACTO - SUA LOCALIZAÇÃO ⭐ */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-40"
           style={{ 
@@ -583,17 +584,17 @@ export default function MapView({
           }}
         >
           <div className="relative flex items-center justify-center">
-            {/* Layer 1: Glow Ambiente DUPLO (Cyan + Violet) */}
+            {/* Layer 1: Glow Ambiente REDUZIDO (100px) */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '160px',
-                height: '160px',
+                width: '100px',
+                height: '100px',
                 background: `radial-gradient(circle at center, 
                   ${vibeTheme.glowColor}25 0%, 
                   ${vibeTheme.secondaryGlow}12 45%, 
                   transparent 70%)`,
-                filter: 'blur(22px)',
+                filter: 'blur(18px)',
               }}
               animate={{
                 scale: [1, 1.15, 1],
@@ -606,17 +607,17 @@ export default function MapView({
               }}
             />
 
-            {/* Layer 2: Rastro de Energia Intenso */}
+            {/* Layer 2: Rastro de Energia (70px) */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '110px',
-                height: '110px',
+                width: '70px',
+                height: '70px',
                 background: `radial-gradient(circle at center, 
                   ${vibeTheme.glowColor}22 0%, 
                   ${vibeTheme.secondaryGlow}10 50%, 
                   transparent 70%)`,
-                filter: 'blur(12px)',
+                filter: 'blur(10px)',
               }}
               animate={{
                 scale: [1, 1.3, 1],
@@ -630,17 +631,17 @@ export default function MapView({
               }}
             />
 
-            {/* Layer 3: Pulso Sonar GIGANTE */}
+            {/* Layer 3: Pulso Sonar COMPACTO */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '10px',
-                height: '10px',
+                width: '6px',
+                height: '6px',
                 background: `radial-gradient(circle, ${vibeTheme.glowColor} 0%, transparent 70%)`,
-                boxShadow: `0 0 40px ${vibeTheme.glowColor}, 0 0 80px ${vibeTheme.glowColor}90`
+                boxShadow: `0 0 25px ${vibeTheme.glowColor}, 0 0 50px ${vibeTheme.glowColor}80`
               }}
               animate={{
-                scale: [1, 25, 1],
+                scale: [1, 18, 1],
                 opacity: [0.9, 0, 0.9]
               }}
               transition={{
@@ -651,11 +652,11 @@ export default function MapView({
               }}
             />
 
-            {/* Layer 4: Marcador Central PREMIUM - Maior e Mais Brilhante */}
+            {/* Layer 4: Marcador Central COMPACTO (8x8px) */}
             <motion.div 
               className="relative z-50" 
               style={{
-                filter: `drop-shadow(0 0 25px ${vibeTheme.glowColor}) drop-shadow(0 0 50px ${vibeTheme.glowColor}90) drop-shadow(0 0 75px ${vibeTheme.secondaryGlow}70)`,
+                filter: `drop-shadow(0 0 18px ${vibeTheme.glowColor}) drop-shadow(0 0 35px ${vibeTheme.glowColor}90) drop-shadow(0 0 50px ${vibeTheme.secondaryGlow}70)`,
               }}
               animate={{
                 scale: [1, 1.08, 1],
@@ -667,7 +668,7 @@ export default function MapView({
               }}
             >
               <div 
-                className="w-14 h-14 rounded-full relative overflow-hidden"
+                className="w-8 h-8 rounded-full relative overflow-hidden"
                 style={{
                   background: `
                     radial-gradient(circle at 30% 30%, 
@@ -675,12 +676,12 @@ export default function MapView({
                       ${vibeTheme.secondaryGlow} 50%,
                       ${vibeTheme.accentColor} 100%)
                   `,
-                  border: `4px solid rgba(255, 255, 255, 1)`,
+                  border: `3px solid rgba(255, 255, 255, 1)`,
                   boxShadow: `
-                    0 0 35px ${vibeTheme.glowColor},
-                    0 0 70px ${vibeTheme.glowColor}80,
-                    0 0 100px ${vibeTheme.secondaryGlow}60,
-                    inset 0 0 30px rgba(255, 255, 255, 0.5)
+                    0 0 25px ${vibeTheme.glowColor},
+                    0 0 50px ${vibeTheme.glowColor}80,
+                    0 0 70px ${vibeTheme.secondaryGlow}60,
+                    inset 0 0 20px rgba(255, 255, 255, 0.5)
                   `,
                 }}
               >
@@ -704,13 +705,13 @@ export default function MapView({
                   }}
                 />
 
-                {/* Ícone de Navegação MAIOR */}
+                {/* Ícone de Navegação COMPACTO */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Navigation 
-                    className="w-6 h-6 text-white" 
+                    className="w-3.5 h-3.5 text-white" 
                     strokeWidth={3.5}
                     style={{
-                      filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.9))'
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.9))'
                     }}
                   />
                 </div>
@@ -731,17 +732,17 @@ export default function MapView({
                 />
               </div>
 
-              {/* Anel Orbital ÚNICO - Mais Proeminente */}
+              {/* Anel Orbital ÚNICO - COMPACTO (45px) */}
               <motion.div
-                className="absolute inset-0 rounded-full border-3 pointer-events-none"
+                className="absolute inset-0 rounded-full border-2 pointer-events-none"
                 style={{
                   borderColor: `${vibeTheme.glowColor}50`,
-                  width: '70px',
-                  height: '70px',
+                  width: '45px',
+                  height: '45px',
                   left: '50%',
                   top: '50%',
                   transform: 'translate(-50%, -50%)',
-                  boxShadow: `0 0 20px ${vibeTheme.glowColor}50, inset 0 0 15px ${vibeTheme.glowColor}30`
+                  boxShadow: `0 0 18px ${vibeTheme.glowColor}50, inset 0 0 12px ${vibeTheme.glowColor}30`
                 }}
                 animate={{
                   scale: [1, 1.5, 1],
@@ -756,30 +757,30 @@ export default function MapView({
               />
             </motion.div>
 
-            {/* Partículas Flutuantes - Mais Vibrantes */}
-            {[...Array(6)].map((_, i) => (
+            {/* Partículas Flutuantes REDUZIDAS - 4 partículas menores */}
+            {[...Array(4)].map((_, i) => (
               <motion.div
                 key={i}
                 className="absolute rounded-full pointer-events-none"
                 style={{
-                  width: '4px',
-                  height: '4px',
+                  width: '2.5px',
+                  height: '2.5px',
                   background: i % 2 === 0 ? vibeTheme.glowColor : vibeTheme.secondaryGlow,
-                  filter: `blur(${1.5 + Math.random()}px)`,
-                  left: `${15 + (i * 18)}%`,
-                  top: `${10 + (i * 20)}%`,
-                  boxShadow: `0 0 15px ${i % 2 === 0 ? vibeTheme.glowColor : vibeTheme.secondaryGlow}`
+                  filter: `blur(${1 + Math.random()}px)`,
+                  left: `${20 + (i * 20)}%`,
+                  top: `${15 + (i * 25)}%`,
+                  boxShadow: `0 0 12px ${i % 2 === 0 ? vibeTheme.glowColor : vibeTheme.secondaryGlow}`
                 }}
                 animate={{
-                  y: [0, -18, 0],
-                  x: [0, Math.sin(i) * 12, 0],
-                  opacity: [0, 1, 0],
-                  scale: [0.5, 1.5, 0.5]
+                  y: [0, -12, 0],
+                  x: [0, Math.sin(i) * 8, 0],
+                  opacity: [0, 0.8, 0],
+                  scale: [0.5, 1.2, 0.5]
                 }}
                 transition={{
-                  duration: 5 + Math.random() * 3,
+                  duration: 4 + Math.random() * 2,
                   repeat: Infinity,
-                  delay: Math.random() * 4,
+                  delay: Math.random() * 3,
                   ease: "easeInOut"
                 }}
               />
