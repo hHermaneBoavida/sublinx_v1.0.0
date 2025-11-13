@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Heart, MessageCircle, Share2, Play, Pause, MapPin, Clock, Users, Crown, Zap,
+  Heart, MessageCircle, Share2, MapPin, Clock, Users, Crown, Zap,
   Check, Eye, AlertCircle, Loader2, Send, Lock, Shield, Trash2
 } from "lucide-react";
 import { format } from "date-fns";
@@ -21,6 +21,8 @@ import ShareModal from "./ShareModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { CACHE_CONFIG } from "../shared/helpers";
 import LazyImage from "./LazyImage";
+import useRealtimeEvent from "../events/useRealtimeEvent";
+import AttendeeCounter from "../events/AttendeeCounter";
 
 export default function EventFeedCard({
   event,
@@ -29,7 +31,7 @@ export default function EventFeedCard({
   initialLikes = [],
   initialComments = [],
   initialRequestStatus,
-  index = 0 // Para delay de animação
+  index = 0
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -44,6 +46,16 @@ export default function EventFeedCard({
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [previousAttendees, setPreviousAttendees] = useState(event.current_attendees || 0);
+
+  const { event: realtimeEvent, isConnected, isRealtime } = useRealtimeEvent(event.id);
+  const displayEvent = realtimeEvent || event;
+
+  useEffect(() => {
+    if (displayEvent.current_attendees !== previousAttendees) {
+      setPreviousAttendees(displayEvent.current_attendees);
+    }
+  }, [displayEvent.current_attendees, previousAttendees]);
 
   const { data: organizerData } = useQuery({
     queryKey: ['organizer', event.organizer_id],
@@ -190,7 +202,7 @@ export default function EventFeedCard({
     deleteCommentMutation.mutate(commentId);
   };
 
-  if (!event?.location) return null;
+  if (!displayEvent?.location) return null;
 
   return (
     <>
@@ -203,7 +215,7 @@ export default function EventFeedCard({
           stiffness: 300,
           damping: 30,
           mass: 0.8,
-          delay: Math.min(index * 0.05, 0.3) // Delay baseado no índice (max 0.3s)
+          delay: Math.min(index * 0.05, 0.3)
         }}
       >
         <Card className="bg-gray-900/95 border-0 text-white overflow-hidden shadow-none rounded-none relative">
@@ -235,10 +247,26 @@ export default function EventFeedCard({
                       ORG
                     </Badge>
                   )}
+                  {isRealtime && (
+                    <Badge className="bg-green-600/20 border-green-500/50 text-green-300 text-[8px] px-1 py-0 h-3.5">
+                      <motion.div
+                        className="w-1 h-1 rounded-full bg-green-500 mr-0.5"
+                        animate={{
+                          boxShadow: [
+                            '0 0 3px rgba(34, 197, 94, 0.8)',
+                            '0 0 6px rgba(34, 197, 94, 1)',
+                            '0 0 3px rgba(34, 197, 94, 0.8)'
+                          ]
+                        }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
+                      LIVE
+                    </Badge>
+                  )}
                 </div>
-                <p className="text-[10px] text-gray-400 truncate">{event.location?.city || "Local Desconhecido"}</p>
+                <p className="text-[10px] text-gray-400 truncate">{displayEvent.location?.city || "Local Desconhecido"}</p>
               </div>
-              {event.is_secret && (
+              {displayEvent.is_secret && (
                 <Badge className="bg-purple-600/90 border border-purple-400 text-white font-bold px-1.5 py-0 text-[9px] h-4">
                   🔒
                 </Badge>
@@ -246,17 +274,12 @@ export default function EventFeedCard({
             </div>
           </CardHeader>
 
-          {/* OTIMIZADO: Lazy Image com fade-in */}
           <LazyImage
-            src={event.image_url || `https://picsum.photos/800/450?random=${event.id}`}
-            alt={event.title}
+            src={displayEvent.image_url || `https://picsum.photos/800/450?random=${displayEvent.id}`}
+            alt={displayEvent.title}
             aspectRatio="16/9"
             className="cursor-pointer"
-            onLoad={() => {
-              // Opcional: Track image load
-            }}
           >
-            {/* Overlays renderizados após image load */}
             <div
               className="absolute inset-0 cursor-pointer"
               onClick={() => {
@@ -286,14 +309,14 @@ export default function EventFeedCard({
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
 
-              {event.vibe_tags?.length > 0 && (
+              {displayEvent.vibe_tags?.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 }}
                   className="absolute top-1.5 left-1.5 flex flex-wrap gap-1"
                 >
-                  {event.vibe_tags.slice(0, 2).map((tag, idx) => (
+                  {displayEvent.vibe_tags.slice(0, 2).map((tag, idx) => (
                     <Badge
                       key={idx}
                       className="backdrop-blur-md border text-[9px] px-1 py-0"
@@ -339,30 +362,40 @@ export default function EventFeedCard({
             </div>
 
             <div>
-              <h3 className="text-sm font-bold mb-0.5 line-clamp-1">{event.title}</h3>
+              <h3 className="text-sm font-bold mb-0.5 line-clamp-1">{displayEvent.title}</h3>
               <div className="flex items-center gap-2 text-[10px] text-gray-400 flex-wrap">
                 <div className="flex items-center gap-0.5">
                   <Clock className="w-2.5 h-2.5" />
-                  <span>{format(new Date(event.date), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
+                  <span>{format(new Date(displayEvent.date), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
                 </div>
                 <div className="flex items-center gap-0.5">
                   <MapPin className="w-2.5 h-2.5" />
-                  <span className="truncate max-w-[120px]">{event.location?.venue_name || event.location?.city}</span>
+                  <span className="truncate max-w-[120px]">{displayEvent.location?.venue_name || displayEvent.location?.city}</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-1 mt-1">
                 <Badge className="border text-[9px] px-1 py-0 h-4" style={{ background: 'rgba(6, 182, 212, 0.2)', borderColor: 'rgba(6, 182, 212, 0.4)', color: '#06B6D4' }}>
-                  {event.genre}
+                  {displayEvent.genre}
                 </Badge>
                 <Badge className="border text-[9px] px-1 py-0 h-4" style={{ background: 'rgba(168, 85, 247, 0.2)', borderColor: 'rgba(168, 85, 247, 0.4)', color: '#A855F7' }}>
-                  {event.type}
+                  {displayEvent.type}
                 </Badge>
               </div>
 
-              {event.description && (
-                <p className="mt-1 text-[10px] text-gray-300 line-clamp-1">{event.description}</p>
+              {displayEvent.description && (
+                <p className="mt-1 text-[10px] text-gray-300 line-clamp-1">{displayEvent.description}</p>
               )}
+            </div>
+
+            <div className="p-2 bg-gray-800/30 rounded-lg border border-gray-700/30">
+              <AttendeeCounter
+                currentAttendees={displayEvent.current_attendees || 0}
+                maxCapacity={displayEvent.max_capacity || 0}
+                previousCount={previousAttendees}
+                isRealtime={isRealtime}
+                compact={true}
+              />
             </div>
 
             {requestStatus ? (
@@ -402,7 +435,7 @@ export default function EventFeedCard({
                   </>
                 )}
               </div>
-            ) : event.requires_approval ? (
+            ) : displayEvent.requires_approval ? (
               <Button
                 onClick={() => isGuest ? navigate(createPageUrl("BemVindo")) : setShowRequestModal(true)}
                 className="w-full h-8 text-xs bg-gradient-to-r from-cyan-600 to-purple-600"
@@ -412,7 +445,7 @@ export default function EventFeedCard({
               </Button>
             ) : (
               <Button
-                onClick={() => navigate(createPageUrl("ComprarIngresso") + `?eventId=${event.id}`)}
+                onClick={() => navigate(createPageUrl("ComprarIngresso") + `?eventId=${displayEvent.id}`)}
                 className="w-full h-8 text-xs bg-gradient-to-r from-green-600 to-emerald-600"
               >
                 <Users className="w-3 h-3 mr-1" />
@@ -490,9 +523,9 @@ export default function EventFeedCard({
         </DialogContent>
       </Dialog>
 
-      {showApprovedModal && <EventApprovedModal event={event} onClose={() => setShowApprovedModal(false)} />}
-      {showRequestModal && <EventRequestModal event={event} user={user} onClose={() => setShowRequestModal(false)} onSuccess={(status) => { setRequestStatus(status); queryClient.invalidateQueries(['feedInteractions']); }} />}
-      {showShareModal && <ShareModal event={event} onClose={() => setShowShareModal(false)} />}
+      {showApprovedModal && <EventApprovedModal event={displayEvent} onClose={() => setShowApprovedModal(false)} />}
+      {showRequestModal && <EventRequestModal event={displayEvent} user={user} onClose={() => setShowRequestModal(false)} onSuccess={(status) => { setRequestStatus(status); queryClient.invalidateQueries(['feedInteractions']); }} />}
+      {showShareModal && <ShareModal event={displayEvent} onClose={() => setShowShareModal(false)} />}
     </>
   );
 }
