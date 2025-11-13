@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -20,24 +19,20 @@ export default function Mapa() {
   const [showVibeSelector, setShowVibeSelector] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState(false);
-  const [userLocation, setUserLocation] = useState(null); // CORREÇÃO: null até obter localização real
+  const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(true);
-  const [locationErrorMessage, setLocationErrorMessage] = useState(""); // NOVO: Mensagem de erro específica
+  const [locationErrorMessage, setLocationErrorMessage] = useState("");
   const [filters, setFilters] = useState({ genre: "all", type: "all" });
   const [searchTerm, setSearchTerm] = useState("");
   const [activeVibe, setActiveVibe] = useState('all');
   const queryClient = useQueryClient();
 
-  // CORREÇÃO: Obter localização REAL do usuário - SEM FALLBACK
   useEffect(() => {
     let isMounted = true;
     
-    console.log("📍 [MAPA] Solicitando localização REAL do usuário...");
-    
     if (!navigator.geolocation) {
       if (isMounted) {
-        console.error("❌ [MAPA] Geolocalização não suportada");
         setLocationError(true);
         setLocationErrorMessage("Seu navegador não suporta geolocalização. Use um navegador moderno (Chrome, Firefox, Safari).");
         setLoadingLocation(false);
@@ -45,7 +40,6 @@ export default function Mapa() {
       return;
     }
 
-    // Solicitar localização com alta precisão
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (isMounted) {
@@ -53,7 +47,6 @@ export default function Mapa() {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
-          console.log("✅ [MAPA] Localização REAL obtida:", location);
           setUserLocation(location);
           setLocationError(false);
           setLocationErrorMessage("");
@@ -61,7 +54,6 @@ export default function Mapa() {
         }
       },
       (error) => {
-        console.error("❌ [MAPA] Erro ao obter localização:", error);
         if (isMounted) {
           let errorMsg = "";
           
@@ -85,9 +77,9 @@ export default function Mapa() {
         }
       },
       {
-        enableHighAccuracy: true, // CORREÇÃO: Usar alta precisão para localização real
+        enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 0 // CORREÇÃO: Não usar cache, sempre pegar localização fresca
+        maximumAge: 0
       }
     );
 
@@ -107,15 +99,12 @@ export default function Mapa() {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
-        console.log("✅ [MAPA] Localização REAL obtida (retry):", location);
         setUserLocation(location);
         setLocationError(false);
         setLocationErrorMessage("");
         setLoadingLocation(false);
       },
       (error) => {
-        console.error("❌ [MAPA] Erro ao obter localização (retry):", error);
-        
         let errorMsg = "";
         
         switch (error.code) {
@@ -144,23 +133,19 @@ export default function Mapa() {
     );
   };
 
-  // CORREÇÃO: Apenas carregar eventos se tiver localização real
+  // Carregar TODOS os eventos (sem limite de distância)
   const { data: events = [], isLoading: isLoadingEvents, error: eventsError, refetch: refetchEvents } = useQuery({
-    queryKey: ['mapEvents', userLocation?.lat, userLocation?.lng],
+    queryKey: ['mapEvents'],
     queryFn: async () => {
       if (!userLocation) {
-        console.log("⏳ [MAPA] Aguardando localização real do usuário...");
         return [];
       }
 
       try {
-        console.log("🗺️ [MAPA] Carregando eventos próximos a:", userLocation);
-        const startTime = performance.now();
-        
         const now = new Date();
-        const internalEvents = await base44.entities.Event.list('-date', 50);
+        const internalEvents = await base44.entities.Event.list('-date', 100);
         
-        // Filtrar e validar eventos - raio de 10km da localização REAL
+        // Apenas validar campos e data futura
         const validEvents = (internalEvents || [])
           .filter(e => {
             if (!e?.id || !e?.title || !e?.location?.lat || !e?.location?.lng) {
@@ -168,30 +153,12 @@ export default function Mapa() {
             }
             
             const eventDate = new Date(e.date);
-            if (eventDate < now) {
-              return false;
-            }
-            
-            // Calcular distância da localização REAL do usuário
-            const R = 6371;
-            const dLat = (e.location.lat - userLocation.lat) * Math.PI / 180;
-            const dLng = (e.location.lng - userLocation.lng) * Math.PI / 180;
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(e.location.lat * Math.PI / 180) *
-              Math.sin(dLng / 2) * Math.sin(dLng / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            const distance = R * c;
-            
-            return distance <= 10; // 10km de raio da localização real
-          })
-          .slice(0, 30);
-
-        const endTime = performance.now();
-        console.log(`✅ [MAPA] ${validEvents.length} eventos carregados em ${Math.round(endTime - startTime)}ms`);
+            return eventDate >= now;
+          });
         
         return validEvents;
       } catch (error) {
-        console.error("❌ [MAPA] Erro ao carregar eventos:", error);
+        console.error("❌ Erro ao carregar eventos:", error);
         return [];
       }
     },
@@ -201,24 +168,21 @@ export default function Mapa() {
     refetchOnMount: false,
     refetchOnReconnect: false,
     initialData: [],
-    enabled: !!userLocation, // CORREÇÃO: Só buscar eventos se tiver localização real
+    enabled: !!userLocation,
   });
 
-  // CORREÇÃO: Cache mais agressivo para reels
   const { data: reels = [], isLoading: isLoadingReels } = useQuery({
     queryKey: ['mapReels'],
     queryFn: async () => {
       try {
-        console.log("🎬 [MAPA] Carregando reels...");
-        const data = await base44.entities.Reel.list("-created_date", 30); // CORREÇÃO: Reduzido de 50 para 30
-        console.log("✅ [MAPA] Reels carregados:", data?.length || 0);
+        const data = await base44.entities.Reel.list("-created_date", 30);
         return data || [];
       } catch (error) {
-        console.error("❌ [MAPA] Erro ao carregar reels:", error);
+        console.error("❌ Erro ao carregar reels:", error);
         return [];
       }
     },
-    staleTime: 30 * 60 * 1000, // CORREÇÃO: 30 minutos
+    staleTime: 30 * 60 * 1000,
     cacheTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -226,21 +190,12 @@ export default function Mapa() {
     initialData: [],
   });
 
-  // CORREÇÃO: Filtro simplificado e consistente
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
-    
-    console.log("🔍 [MAPA] Filtrando eventos...", { 
-      total: events.length, 
-      filters, 
-      searchTerm,
-      activeVibe
-    });
     
     const filtered = events.filter(event => {
       if (!event || !event.location) return false;
       
-      // Filtros básicos
       const genreMatch = filters.genre === 'all' || event.genre === filters.genre;
       const typeMatch = filters.type === 'all' || event.type === filters.type;
       const searchMatch = searchTerm === '' || 
@@ -248,7 +203,6 @@ export default function Mapa() {
         event.location?.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.genre?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // CORREÇÃO: Apenas um filtro de vibe unificado
       let vibeMatch = true;
       if (activeVibe !== 'all') {
         const vibeGenres = {
@@ -270,18 +224,15 @@ export default function Mapa() {
       return genreMatch && typeMatch && searchMatch && vibeMatch;
     });
     
-    console.log(`✅ [MAPA] ${filtered.length} eventos após filtro (vibe: ${activeVibe})`);
     return filtered;
   }, [events, filters, searchTerm, activeVibe]);
 
   const handlePinClick = useCallback((eventId) => {
-    console.log("📍 Pin clicado:", eventId);
     setSelectedEventId(eventId);
     setViewMode("reels");
   }, []);
 
   const handlePinDetailsClick = useCallback((event) => {
-    console.log("ℹ️ Detalhes do evento:", event.title);
     setSelectedEventForDetails(event);
     setShowEventDetails(true);
   }, []);
@@ -296,8 +247,6 @@ export default function Mapa() {
   }, []);
   
   const handleApplyFilters = useCallback((newFilters) => {
-    console.log("🎛️ [MAPA] Aplicando filtros:", newFilters);
-    // CORREÇÃO: Não incluir vibe aqui
     setFilters(prev => ({
       genre: newFilters.genre || prev.genre,
       type: newFilters.type || prev.type
@@ -306,8 +255,7 @@ export default function Mapa() {
   }, []);
 
   const handleVibeSelect = useCallback((vibe) => {
-    console.log("💫 [MAPA] Vibe selecionada:", vibe);
-    setActiveVibe(vibe); // CORREÇÃO: Apenas setar activeVibe
+    setActiveVibe(vibe);
     setShowVibeSelector(false);
   }, []);
 
@@ -316,12 +264,11 @@ export default function Mapa() {
     queryClient.invalidateQueries(["mapReels"]);
   }, [queryClient]);
 
-  // Loading state
   if (loadingLocation) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
         <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 animate-spin text-cyan-400 mb-4" />
-        <p className="text-gray-300 text-sm sm:text-base mb-2 text-center">Obtendo sua localização real...</p>
+        <p className="text-gray-300 text-sm sm:text-base mb-2 text-center">Obtendo sua localização...</p>
         <p className="text-gray-500 text-xs sm:text-sm text-center max-w-md">
           📍 Por favor, permita o acesso à localização quando solicitado pelo navegador
         </p>
@@ -329,7 +276,6 @@ export default function Mapa() {
     );
   }
 
-  // Error state - SEM OPÇÃO DE USAR LOCALIZAÇÃO PADRÃO
   if (locationError || !userLocation) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
@@ -343,7 +289,6 @@ export default function Mapa() {
               {locationErrorMessage || "Não foi possível obter sua localização."}
             </p>
 
-            {/* Instruções para habilitar localização */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6 text-left">
               <p className="text-xs sm:text-sm font-semibold text-blue-300 mb-2">
                 💡 Como habilitar a localização:
@@ -385,7 +330,6 @@ export default function Mapa() {
     );
   }
 
-  // Loading events
   if (isLoadingEvents || isLoadingReels) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black">
@@ -395,7 +339,6 @@ export default function Mapa() {
     );
   }
 
-  // Error state
   if (eventsError) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
@@ -420,7 +363,10 @@ export default function Mapa() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }} // CORREÇÃO: Transição mais rápida
+            transition={{ 
+              duration: 0.4,
+              ease: [0.43, 0.13, 0.23, 0.96]
+            }}
             className="absolute inset-0 z-10"
           >
             <MapView 
@@ -447,7 +393,10 @@ export default function Mapa() {
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
             exit={{ y: "100%" }}
-            transition={{ duration: 0.4, ease: "easeInOut" }} // CORREÇÃO: Transição mais rápida
+            transition={{ 
+              duration: 0.5, 
+              ease: [0.32, 0.72, 0, 1]
+            }}
             className="absolute inset-0 z-20"
           >
             <ReelsView
@@ -474,7 +423,7 @@ export default function Mapa() {
           <VibeSelector
             onClose={() => setShowVibeSelector(false)}
             onVibeSelect={handleVibeSelect}
-            events={events} // Pass events to VibeSelector
+            events={events}
           />
         )}
       </AnimatePresence>
