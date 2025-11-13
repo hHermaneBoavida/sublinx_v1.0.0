@@ -1,7 +1,7 @@
 import React, { useState, useMemo, memo, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, Music2 } from 'lucide-react';
+import { Plus, Eye, Menu, Music2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import SearchResults from "../map/SearchResults";
@@ -12,7 +12,7 @@ import useCurrentUser from "../shared/useCurrentUser";
 import { clusterEvents, getClusterVisualSize, getClusterColor } from "../shared/services/clusteringAlgorithm";
 
 const EventPin = memo(({ cluster, position, onClick, theme, isPulsing }) => {
-  const { events, isCluster: isClusterGroup, density = 1 } = cluster;
+  const { events, isCluster: isClusterGroup } = cluster;
   const eventColor = getClusterColor(cluster);
   const sizes = getClusterVisualSize(cluster);
 
@@ -182,7 +182,6 @@ export default function MapView({
     return clusterEvents(validEvents, zoomLevel, 1);
   }, [validEvents, zoomLevel]);
 
-  // Eventos populares para sugestões
   const popularEvents = useMemo(() => {
     return validEvents
       .sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
@@ -223,6 +222,11 @@ export default function MapView({
   const handleZoomOut = useCallback(() => {
     setZoomLevel(prev => Math.max(10, prev - 1));
   }, []);
+
+  const handleRecenter = useCallback(() => {
+    setMapCenter(userLocation);
+    setZoomLevel(15);
+  }, [userLocation]);
 
   const handleClusterClick = useCallback((cluster) => {
     if (cluster.isCluster && cluster.events.length > 1) {
@@ -338,7 +342,7 @@ export default function MapView({
       />
 
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* User marker - COMPACTO */}
+        {/* User marker */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none"
           style={{ left: `${userPosition.x}%`, top: `${userPosition.y}%` }}
@@ -347,7 +351,6 @@ export default function MapView({
           }}
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          {/* Glow principal */}
           <motion.div
             className="absolute rounded-full"
             style={{
@@ -366,7 +369,6 @@ export default function MapView({
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
 
-          {/* Glow secundário */}
           <motion.div
             className="absolute rounded-full"
             style={{
@@ -385,7 +387,6 @@ export default function MapView({
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           />
 
-          {/* Marker */}
           <motion.div
             className="w-5 h-5 rounded-full relative"
             style={{
@@ -414,7 +415,6 @@ export default function MapView({
             />
           </motion.div>
 
-          {/* Partículas */}
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
@@ -460,7 +460,7 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* Top bar com SearchBar inteligente */}
+      {/* Top bar */}
       <div className="absolute top-3 left-3 right-3 z-30 flex flex-col gap-2">
         <div className="flex gap-2">
           <Button
@@ -483,7 +483,6 @@ export default function MapView({
           </Link>
         </div>
 
-        {/* Search Bar Inteligente */}
         <SearchBar
           value={searchTerm}
           onChange={onSearchChange}
@@ -491,6 +490,55 @@ export default function MapView({
           popularEvents={popularEvents}
           placeholder="Buscar eventos, artistas, locais..."
         />
+      </div>
+
+      {/* CONTROLES DE ZOOM - VISÍVEIS */}
+      <div className="absolute bottom-32 right-3 z-30 flex flex-col gap-2">
+        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <Button
+            onClick={handleZoomIn}
+            disabled={zoomLevel >= 18}
+            size="icon"
+            className="w-12 h-12 rounded-full bg-black/80 backdrop-blur-xl border-2 border-cyan-500/50 text-white hover:bg-cyan-600/20 disabled:opacity-30"
+            style={{
+              boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)'
+            }}
+          >
+            <ZoomIn className="w-5 h-5" />
+          </Button>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <Button
+            onClick={handleZoomOut}
+            disabled={zoomLevel <= 10}
+            size="icon"
+            className="w-12 h-12 rounded-full bg-black/80 backdrop-blur-xl border-2 border-cyan-500/50 text-white hover:bg-cyan-600/20 disabled:opacity-30"
+            style={{
+              boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)'
+            }}
+          >
+            <ZoomOut className="w-5 h-5" />
+          </Button>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <Button
+            onClick={handleRecenter}
+            size="icon"
+            className="w-12 h-12 rounded-full bg-black/80 backdrop-blur-xl border-2 border-purple-500/50 text-white hover:bg-purple-600/20"
+            style={{
+              boxShadow: '0 0 20px rgba(168, 85, 247, 0.4)'
+            }}
+          >
+            <Maximize2 className="w-5 h-5" />
+          </Button>
+        </motion.div>
+
+        {/* Indicador de Zoom */}
+        <div className="bg-black/80 backdrop-blur-xl border border-cyan-500/30 rounded-full px-3 py-1 text-xs text-white font-semibold text-center">
+          {zoomLevel}x
+        </div>
       </div>
 
       {canCreateReels && (

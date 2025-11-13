@@ -28,12 +28,11 @@ export default function Mapa() {
   const [activeVibe, setActiveVibe] = useState('all');
   const queryClient = useQueryClient();
 
-  // OTIMIZAÇÃO: Cleanup de cache ao montar
+  // Cleanup de cache ao montar
   useEffect(() => {
     try {
       const now = Date.now();
       
-      // Limpar analytics >7 dias
       const analytics = JSON.parse(localStorage.getItem('sublinx_search_analytics') || '{}');
       const cleanedAnalytics = {};
       
@@ -45,7 +44,6 @@ export default function Mapa() {
       
       localStorage.setItem('sublinx_search_analytics', JSON.stringify(cleanedAnalytics));
       
-      // Limitar histórico
       const history = JSON.parse(localStorage.getItem('sublinx_search_history') || '[]');
       localStorage.setItem('sublinx_search_history', JSON.stringify(history.slice(0, 20)));
       
@@ -54,7 +52,7 @@ export default function Mapa() {
     }
   }, []);
 
-  // Geolocalização otimizada
+  // Geolocalização
   useEffect(() => {
     let isMounted = true;
     
@@ -93,36 +91,36 @@ export default function Mapa() {
     return () => { isMounted = false; };
   }, []);
 
-  // Fetch events otimizado
+  // OTIMIZADO: Fetch events com cache agressivo
   const { data: events = [], isLoading: isLoadingEvents, error: eventsError, refetch } = useQuery({
     queryKey: ['mapEvents'],
     queryFn: async () => {
-      const data = await base44.entities.Event.list('-date', 100);
+      const data = await base44.entities.Event.list('-date', 50);
       return filterFutureEvents(data);
     },
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10min
+    cacheTime: 30 * 60 * 1000, // 30min
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     initialData: [],
     enabled: !!userLocation,
   });
 
-  // Fetch reels otimizado
+  // OTIMIZADO: Fetch reels com cache
   const { data: reels = [], isLoading: isLoadingReels } = useQuery({
     queryKey: ['mapReels'],
     queryFn: async () => {
-      const data = await base44.entities.Reel.list("-created_date", 30);
+      const data = await base44.entities.Reel.list("-created_date", 20);
       return data || [];
     },
-    staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15min
+    cacheTime: 45 * 60 * 1000, // 45min
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     initialData: [],
   });
 
-  // Filtros otimizados
+  // Filtros
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
     

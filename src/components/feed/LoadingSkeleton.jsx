@@ -1,65 +1,138 @@
 import React from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 
 export default function LoadingSkeleton() {
   return (
-    <Card className="bg-gray-900/95 border-0 text-white overflow-hidden shadow-none rounded-none">
-      <CardHeader className="p-2.5 pb-1.5">
-        <div className="flex items-center gap-2">
-          {/* Avatar Skeleton */}
-          <div className="w-8 h-8 rounded-full bg-gray-700 animate-pulse" />
-          <div className="flex-1 space-y-1">
-            {/* Name Skeleton */}
-            <div className="h-3 w-24 bg-gray-700 rounded animate-pulse" />
-            {/* Location Skeleton */}
-            <div className="h-2 w-16 bg-gray-800 rounded animate-pulse" />
+    <Card className="border-0 bg-gray-900/50 overflow-hidden">
+      <CardContent className="p-0">
+        {/* Header Skeleton */}
+        <div className="p-4 flex items-center gap-3">
+          <motion.div
+            className="w-10 h-10 rounded-full bg-gray-800"
+            animate={{
+              opacity: [0.4, 0.8, 0.4]
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <div className="flex-1 space-y-2">
+            <motion.div
+              className="h-4 bg-gray-800 rounded w-32"
+              animate={{
+                opacity: [0.4, 0.8, 0.4]
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.1
+              }}
+            />
+            <motion.div
+              className="h-3 bg-gray-800 rounded w-24"
+              animate={{
+                opacity: [0.4, 0.8, 0.4]
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.2
+              }}
+            />
           </div>
         </div>
-      </CardHeader>
 
-      {/* Image Skeleton with Shimmer */}
-      <div className="relative w-full bg-gray-800" style={{ aspectRatio: '16/9' }}>
+        {/* Image Skeleton */}
         <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-700/50 to-transparent"
+          className="relative w-full h-64 bg-gray-800"
           animate={{
-            x: ['-100%', '200%']
+            opacity: [0.3, 0.6, 0.3]
           }}
           transition={{
             duration: 1.5,
             repeat: Infinity,
-            ease: "linear"
+            ease: "easeInOut"
           }}
-        />
-      </div>
+        >
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-700/50 to-transparent"
+            animate={{
+              x: ['-100%', '200%']
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+        </motion.div>
 
-      <CardContent className="p-2.5 pt-1.5 space-y-2">
-        {/* Actions Skeleton */}
-        <div className="flex items-center gap-2">
-          <div className="w-12 h-6 bg-gray-700 rounded animate-pulse" />
-          <div className="w-12 h-6 bg-gray-700 rounded animate-pulse" />
-          <div className="w-12 h-6 bg-gray-700 rounded animate-pulse" />
-          <div className="flex-1" />
-          <div className="w-16 h-6 bg-gray-700 rounded animate-pulse" />
+        {/* Content Skeleton */}
+        <div className="p-4 space-y-3">
+          <motion.div
+            className="h-5 bg-gray-800 rounded w-3/4"
+            animate={{
+              opacity: [0.4, 0.8, 0.4]
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.3
+            }}
+          />
+          <motion.div
+            className="h-4 bg-gray-800 rounded w-full"
+            animate={{
+              opacity: [0.4, 0.8, 0.4]
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.4
+            }}
+          />
+          <motion.div
+            className="h-4 bg-gray-800 rounded w-5/6"
+            animate={{
+              opacity: [0.4, 0.8, 0.4]
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.5
+            }}
+          />
+
+          {/* Action Buttons Skeleton */}
+          <div className="flex items-center gap-6 pt-2">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="flex items-center gap-2"
+                animate={{
+                  opacity: [0.4, 0.8, 0.4]
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.6 + i * 0.1
+                }}
+              >
+                <div className="w-6 h-6 rounded-full bg-gray-800" />
+                <div className="h-3 bg-gray-800 rounded w-8" />
+              </motion.div>
+            ))}
+          </div>
         </div>
-
-        {/* Title Skeleton */}
-        <div className="h-4 w-3/4 bg-gray-700 rounded animate-pulse" />
-        
-        {/* Info Skeleton */}
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-20 bg-gray-800 rounded animate-pulse" />
-          <div className="h-3 w-24 bg-gray-800 rounded animate-pulse" />
-        </div>
-
-        {/* Badges Skeleton */}
-        <div className="flex gap-1">
-          <div className="h-4 w-16 bg-gray-700 rounded animate-pulse" />
-          <div className="h-4 w-20 bg-gray-700 rounded animate-pulse" />
-        </div>
-
-        {/* Button Skeleton */}
-        <div className="h-8 w-full bg-gray-700 rounded animate-pulse" />
       </CardContent>
     </Card>
   );
