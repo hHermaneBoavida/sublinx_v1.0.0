@@ -1,28 +1,21 @@
 /**
- * SEARCH CACHE SERVICE
- * Cache inteligente de resultados de busca
- * Evita re-processar buscas repetidas
+ * SEARCH CACHE SERVICE - OTIMIZADO
+ * Cache inteligente com cleanup automático
  */
 
 class SearchCache {
   constructor() {
     this.cache = new Map();
-    this.maxSize = 50; // Máximo de 50 buscas em cache
-    this.ttl = 5 * 60 * 1000; // 5 minutos
+    this.maxSize = 30; // REDUZIDO: 30 itens (era 50)
+    this.ttl = 3 * 60 * 1000; // REDUZIDO: 3min (era 5min)
   }
 
-  /**
-   * Gera chave normalizada da busca
-   */
   generateKey(query, filters = {}) {
     const normalizedQuery = query.toLowerCase().trim();
     const filterStr = JSON.stringify(filters);
     return `${normalizedQuery}::${filterStr}`;
   }
 
-  /**
-   * Busca no cache
-   */
   get(query, filters = {}) {
     const key = this.generateKey(query, filters);
     const cached = this.cache.get(key);
@@ -35,21 +28,16 @@ class SearchCache {
       return null;
     }
 
-    // Atualizar last access
     cached.lastAccess = Date.now();
     cached.hits++;
 
-    console.log(`✅ Cache HIT: "${query}" (${cached.hits} hits)`);
     return cached.data;
   }
 
-  /**
-   * Salva no cache
-   */
   set(query, filters = {}, data) {
     const key = this.generateKey(query, filters);
 
-    // Se cache cheio, remover menos usado
+    // Se cache cheio, limpar automaticamente
     if (this.cache.size >= this.maxSize) {
       this.evictLRU();
     }
@@ -60,13 +48,8 @@ class SearchCache {
       lastAccess: Date.now(),
       hits: 0
     });
-
-    console.log(`💾 Cache SET: "${query}" (total: ${this.cache.size})`);
   }
 
-  /**
-   * Remove item menos recentemente usado
-   */
   evictLRU() {
     let oldestKey = null;
     let oldestAccess = Infinity;
@@ -80,13 +63,9 @@ class SearchCache {
 
     if (oldestKey) {
       this.cache.delete(oldestKey);
-      console.log(`🗑️ Cache EVICT: ${oldestKey}`);
     }
   }
 
-  /**
-   * Limpa cache expirado
-   */
   cleanup() {
     const now = Date.now();
     let cleaned = 0;
@@ -98,50 +77,40 @@ class SearchCache {
       }
     });
 
-    if (cleaned > 0) {
-      console.log(`🧹 Cache CLEANUP: ${cleaned} itens removidos`);
-    }
+    return cleaned;
   }
 
-  /**
-   * Limpa todo cache
-   */
   clear() {
     this.cache.clear();
-    console.log('🗑️ Cache CLEARED');
   }
 
-  /**
-   * Estatísticas do cache
-   */
   getStats() {
     let totalHits = 0;
-    let avgAge = 0;
 
     this.cache.forEach(value => {
       totalHits += value.hits;
-      avgAge += (Date.now() - value.timestamp);
     });
 
     return {
       size: this.cache.size,
       maxSize: this.maxSize,
       totalHits,
-      avgHits: this.cache.size > 0 ? totalHits / this.cache.size : 0,
-      avgAge: this.cache.size > 0 ? avgAge / this.cache.size / 1000 : 0, // em segundos
       hitRate: totalHits > 0 ? (totalHits / (totalHits + this.cache.size)) * 100 : 0
     };
   }
 }
 
-// Singleton instance
+// Singleton
 export const searchCache = new SearchCache();
 
-// Cleanup periódico (a cada 2 minutos)
+// OTIMIZAÇÃO: Cleanup mais frequente (1min)
 if (typeof window !== 'undefined') {
   setInterval(() => {
-    searchCache.cleanup();
-  }, 2 * 60 * 1000);
+    const cleaned = searchCache.cleanup();
+    if (cleaned > 0) {
+      console.log(`🧹 Cache: ${cleaned} itens expirados removidos`);
+    }
+  }, 60 * 1000); // 1min
 }
 
 export default searchCache;

@@ -11,7 +11,6 @@ import { Loader2, MapPin, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { filterFutureEvents, matchesVibe } from "../components/shared/helpers";
-import { CACHE_CONFIG } from "../components/shared/constants";
 
 export default function Mapa() {
   const [viewMode, setViewMode] = useState("map");
@@ -30,13 +29,41 @@ export default function Mapa() {
   const [activeVibe, setActiveVibe] = useState('all');
   const queryClient = useQueryClient();
 
+  // CLEANUP: Limpar cache antigo ao montar
+  useEffect(() => {
+    try {
+      const now = Date.now();
+      const maxAge = 24 * 60 * 60 * 1000; // 24h
+      
+      // Limpar analytics antigos
+      const analytics = JSON.parse(localStorage.getItem('sublinx_search_analytics') || '{}');
+      const cleaned = {};
+      Object.entries(analytics).forEach(([key, value]) => {
+        if (typeof value === 'number') {
+          cleaned[key] = value; // Manter formato antigo
+        } else if (value.lastSearched && (now - new Date(value.lastSearched).getTime()) < maxAge) {
+          cleaned[key] = value; // Manter se < 24h
+        }
+      });
+      localStorage.setItem('sublinx_search_analytics', JSON.stringify(cleaned));
+      
+      // Limpar histórico antigo
+      const history = JSON.parse(localStorage.getItem('sublinx_search_history') || '[]');
+      localStorage.setItem('sublinx_search_history', JSON.stringify(history.slice(0, 20)));
+      
+      console.log('🧹 Cache limpo na inicialização');
+    } catch (e) {
+      console.error('Erro ao limpar cache:', e);
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
     
     if (!navigator.geolocation) {
       if (isMounted) {
         setLocationError(true);
-        setLocationErrorMessage("Seu navegador não suporta geolocalização. Use um navegador moderno.");
+        setLocationErrorMessage("Seu navegador não suporta geolocalização.");
         setLoadingLocation(false);
       }
       return;
@@ -49,7 +76,6 @@ export default function Mapa() {
           lng: position.coords.longitude,
         });
         setLocationError(false);
-        setLocationErrorMessage("");
         setLoadingLocation(false);
       }
     };
@@ -58,9 +84,9 @@ export default function Mapa() {
       if (!isMounted) return;
       
       const errorMessages = {
-        1: "Você negou o acesso à localização. Por favor, permita o acesso nas configurações do navegador.",
-        2: "Localização indisponível. Verifique se o GPS está ativado.",
-        3: "Tempo esgotado ao tentar obter sua localização. Tente novamente.",
+        1: "Você negou acesso à localização. Permita nas configurações do navegador.",
+        2: "Localização indisponível. Verifique o GPS.",
+        3: "Tempo esgotado. Tente novamente.",
       };
       
       setLocationError(true);
@@ -69,9 +95,9 @@ export default function Mapa() {
     };
 
     navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
+      enableHighAccuracy: false, // OTIMIZAÇÃO: Não precisa de alta precisão
+      timeout: 8000,
+      maximumAge: 5 * 60 * 1000 // OTIMIZAÇÃO: Cache 5min
     });
 
     return () => { isMounted = false; };
@@ -80,7 +106,6 @@ export default function Mapa() {
   const requestLocationAgain = useCallback(() => {
     setLoadingLocation(true);
     setLocationError(false);
-    setLocationErrorMessage("");
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -89,27 +114,23 @@ export default function Mapa() {
         setLoadingLocation(false);
       },
       (error) => {
-        const errorMessages = {
-          1: "Acesso negado à localização.",
-          2: "Localização indisponível.",
-          3: "Tempo esgotado.",
-        };
         setLocationError(true);
-        setLocationErrorMessage(errorMessages[error.code] || "Erro ao obter localização.");
+        setLocationErrorMessage("Erro ao obter localização.");
         setLoadingLocation(false);
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
     );
   }, []);
 
+  // OTIMIZAÇÃO: Query com cache longo e sem refetch agressivo
   const { data: events = [], isLoading: isLoadingEvents, error: eventsError, refetch: refetchEvents } = useQuery({
     queryKey: ['mapEvents'],
     queryFn: async () => {
-      if (!userLocation) return [];
       const data = await base44.entities.Event.list('-date', 100);
       return filterFutureEvents(data);
     },
-    ...CACHE_CONFIG.LONG,
+    staleTime: 5 * 60 * 1000, // 5min - OTIMIZADO
+    cacheTime: 10 * 60 * 1000, // 10min
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
@@ -117,24 +138,22 @@ export default function Mapa() {
     enabled: !!userLocation,
   });
 
+  // OTIMIZAÇÃO: Reels com cache ainda mais longo
   const { data: reels = [], isLoading: isLoadingReels } = useQuery({
     queryKey: ['mapReels'],
     queryFn: async () => {
-      try {
-        const data = await base44.entities.Reel.list("-created_date", 30);
-        return data || [];
-      } catch (error) {
-        console.error("❌ Erro ao carregar reels:", error);
-        return [];
-      }
+      const data = await base44.entities.Reel.list("-created_date", 30);
+      return data || [];
     },
-    ...CACHE_CONFIG.LONG,
+    staleTime: 10 * 60 * 1000, // 10min
+    cacheTime: 15 * 60 * 1000, // 15min
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: 1,
     initialData: [],
   });
 
+  // OTIMIZAÇÃO: useMemo com deps mínimas
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
     
@@ -143,16 +162,22 @@ export default function Mapa() {
       
       const genreMatch = filters.genre === 'all' || event.genre === filters.genre;
       const typeMatch = filters.type === 'all' || event.type === filters.type;
-      const searchMatch = searchTerm === '' || 
-        event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.location?.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.genre?.toLowerCase().includes(searchTerm.toLowerCase());
-      
       const vibeMatch = matchesVibe(event, activeVibe);
       
-      return genreMatch && typeMatch && searchMatch && vibeMatch;
+      // OTIMIZAÇÃO: Search apenas se tem termo (evitar toLowerCase desnecessário)
+      if (searchTerm) {
+        const lower = searchTerm.toLowerCase();
+        const searchMatch = 
+          event.title?.toLowerCase().includes(lower) ||
+          event.location?.venue_name?.toLowerCase().includes(lower) ||
+          event.genre?.toLowerCase().includes(lower);
+        
+        return genreMatch && typeMatch && searchMatch && vibeMatch;
+      }
+      
+      return genreMatch && typeMatch && vibeMatch;
     });
-  }, [events, filters, searchTerm, activeVibe]);
+  }, [events, filters.genre, filters.type, searchTerm, activeVibe]);
 
   const handlePinClick = useCallback((eventId) => {
     setSelectedEventId(eventId);
@@ -194,10 +219,10 @@ export default function Mapa() {
   if (loadingLocation) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
-        <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 animate-spin text-cyan-400 mb-4" />
-        <p className="text-gray-300 text-sm sm:text-base mb-2 text-center">Obtendo sua localização...</p>
-        <p className="text-gray-500 text-xs sm:text-sm text-center max-w-md">
-          📍 Por favor, permita o acesso à localização quando solicitado
+        <Loader2 className="w-16 h-16 animate-spin text-cyan-400 mb-4" />
+        <p className="text-gray-300 text-base mb-2">Obtendo localização...</p>
+        <p className="text-gray-500 text-sm text-center max-w-md">
+          📍 Permita acesso à localização
         </p>
       </div>
     );
@@ -205,46 +230,22 @@ export default function Mapa() {
 
   if (locationError || !userLocation) {
     return (
-      <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
-        <div className="max-w-md w-full bg-gray-900/80 backdrop-blur-xl border border-red-500/30 rounded-2xl p-6 sm:p-8">
+      <div className="w-full h-screen flex items-center justify-center bg-black px-4">
+        <div className="max-w-md w-full bg-gray-900/80 backdrop-blur-xl border border-red-500/30 rounded-2xl p-8">
           <div className="text-center">
-            <MapPin className="w-12 h-12 sm:w-16 sm:h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-3">
+            <MapPin className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-3">
               Localização Necessária
             </h2>
-            <p className="text-sm sm:text-base text-gray-300 mb-4">
+            <p className="text-base text-gray-300 mb-6">
               {locationErrorMessage || "Não foi possível obter sua localização."}
             </p>
 
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6 text-left">
-              <p className="text-xs sm:text-sm font-semibold text-blue-300 mb-2">
-                💡 Como habilitar:
-              </p>
-              <ul className="space-y-2 text-xs sm:text-sm text-gray-300">
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold">1.</span>
-                  <span>Clique no ícone 🔒 ao lado da URL</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold">2.</span>
-                  <span>Encontre "Permissões"</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold">3.</span>
-                  <span>Altere "Localização" para "Permitir"</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold">4.</span>
-                  <span>Clique em "Tentar Novamente"</span>
-                </li>
-              </ul>
-            </div>
-
             <Button 
               onClick={requestLocationAgain}
-              className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white rounded-lg font-semibold text-sm sm:text-base mb-3"
+              className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700"
             >
-              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              <MapPin className="w-5 h-5 mr-2" />
               Tentar Novamente
             </Button>
 
@@ -260,8 +261,8 @@ export default function Mapa() {
   if (isLoadingEvents || isLoadingReels) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black">
-        <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 animate-spin text-cyan-400 mb-4" />
-        <p className="text-gray-300 text-sm sm:text-base">Carregando eventos...</p>
+        <Loader2 className="w-16 h-16 animate-spin text-cyan-400 mb-4" />
+        <p className="text-gray-300">Carregando eventos...</p>
       </div>
     );
   }
@@ -269,11 +270,11 @@ export default function Mapa() {
   if (eventsError) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
-        <AlertCircle className="w-12 h-12 sm:w-16 sm:h-16 text-red-400 mb-4" />
-        <p className="text-red-400 mb-4 text-sm sm:text-base text-center">Erro ao carregar eventos</p>
+        <AlertCircle className="w-16 h-16 text-red-400 mb-4" />
+        <p className="text-red-400 mb-4">Erro ao carregar eventos</p>
         <Button 
           onClick={() => refetchEvents()}
-          className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 text-sm sm:text-base"
+          className="bg-cyan-600 hover:bg-cyan-700"
         >
           Tentar Novamente
         </Button>
@@ -290,7 +291,7 @@ export default function Mapa() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4, ease: [0.43, 0.13, 0.23, 0.96] }}
+            transition={{ duration: 0.3 }}
             className="absolute inset-0 z-10"
           >
             <MapView 
@@ -317,7 +318,7 @@ export default function Mapa() {
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
             exit={{ y: "100%" }}
-            transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
             className="absolute inset-0 z-20"
           >
             <ReelsView
