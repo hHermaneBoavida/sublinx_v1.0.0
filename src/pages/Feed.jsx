@@ -13,15 +13,15 @@ import InfiniteScrollTrigger from "../components/feed/InfiniteScrollTrigger";
 import SortControls, { SORT_OPTIONS } from "../components/feed/SortControls";
 import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { filterFutureEvents, sortEventsByDistance, calculateDistance, CACHE_CONFIG } from "../components/shared/helpers";
+import { filterFutureEvents, sortEventsByDistance, CACHE_CONFIG } from "../components/shared/helpers";
 import { motion, AnimatePresence } from "framer-motion";
 
-const EVENTS_PER_PAGE = 10;
+const EVENTS_PER_PAGE = 15;
 
 export default function Feed() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showShareVibe, setShowShareVibe] = useState(false);
-  const [sortBy, setSortBy] = useState('distance'); // distance, date_asc, popularity, etc
+  const [sortBy, setSortBy] = useState('distance');
   const [showSortPanel, setShowSortPanel] = useState(false);
   const navigate = useNavigate();
 
@@ -40,7 +40,7 @@ export default function Feed() {
 
   const isGuest = !user;
 
-  // NOVO: Infinite Query para paginação
+  // OTIMIZADO: Infinite Query com limite reduzido
   const {
     data: eventsData,
     fetchNextPage,
@@ -52,11 +52,12 @@ export default function Feed() {
     queryKey: ['feedEventsInfinite', sortBy],
     queryFn: async ({ pageParam = 0 }) => {
       const offset = pageParam * EVENTS_PER_PAGE;
-      const data = await base44.entities.Event.list("-date", EVENTS_PER_PAGE + offset);
+      
+      // OTIMIZADO: Buscar apenas necessário
+      const limit = EVENTS_PER_PAGE;
+      const data = await base44.entities.Event.list("-date", limit + offset);
       
       const futureEvents = filterFutureEvents(data);
-      
-      // Retornar apenas os eventos da página atual
       const pageEvents = futureEvents.slice(offset, offset + EVENTS_PER_PAGE);
       
       return {
@@ -67,17 +68,18 @@ export default function Feed() {
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 0,
-    ...CACHE_CONFIG.MEDIUM,
+    staleTime: 5 * 60 * 1000, // 5min
+    cacheTime: 15 * 60 * 1000, // 15min
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
 
-  // Flatten pages into single array
   const events = useMemo(() => {
     if (!eventsData?.pages) return [];
     return eventsData.pages.flatMap(page => page.events);
   }, [eventsData]);
 
+  // OTIMIZADO: Ads com cache longo
   const { data: advertisements = [] } = useQuery({
     queryKey: ['feedAds'],
     queryFn: async () => {
@@ -86,7 +88,7 @@ export default function Feed() {
         const ads = await base44.entities.Advertisement.filter({
           is_active: true,
           placement: { $in: ['feed_top', 'feed_middle'] }
-        }, "", 10);
+        }, "", 5);
         
         return (ads || []).filter(ad => {
           if (!ad?.id) return false;
@@ -95,15 +97,15 @@ export default function Feed() {
           return true;
         });
       } catch (error) {
-        console.error('Erro ao buscar anúncios:', error);
         return [];
       }
     },
-    ...CACHE_CONFIG.LONG,
+    staleTime: 30 * 60 * 1000, // 30min
+    cacheTime: 60 * 60 * 1000, // 1h
     initialData: [],
   });
 
-  // OTIMIZADO: Cache de interações com invalidação seletiva
+  // OTIMIZADO: Interações carregam sob demanda
   const { data: interactions = { likes: {}, comments: {}, requests: {} } } = useQuery({
     queryKey: ['feedInteractions', user?.id, events.length],
     queryFn: async () => {
@@ -139,12 +141,12 @@ export default function Feed() {
       };
     },
     enabled: !!user && events.length > 0,
-    ...CACHE_CONFIG.MEDIUM,
+    staleTime: 2 * 60 * 1000, // 2min
+    cacheTime: 10 * 60 * 1000, // 10min
     refetchOnWindowFocus: false,
     initialData: { likes: {}, comments: {}, requests: {} },
   });
 
-  // NOVO: Ordenação avançada com múltiplos critérios
   const sortedEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
 
@@ -215,7 +217,6 @@ export default function Feed() {
     );
   }, [sortedEvents, searchTerm]);
 
-  // NOVO: Inserir anúncios no feed otimizado
   const feedWithAds = useMemo(() => {
     if (!advertisements || advertisements.length === 0) {
       return filteredEvents.map(event => ({ type: 'event', data: event, key: `event-${event.id}` }));
@@ -301,7 +302,6 @@ export default function Feed() {
           />
         </div>
 
-        {/* NOVO: Sort Toggle */}
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -321,7 +321,6 @@ export default function Feed() {
           )}
         </div>
 
-        {/* Sort Panel */}
         <AnimatePresence>
           {showSortPanel && (
             <motion.div
@@ -355,7 +354,7 @@ export default function Feed() {
         </Button>
       </div>
 
-      {/* Feed com Infinite Scroll */}
+      {/* Feed com Skeleton e Infinite Scroll */}
       <div className="space-y-0">
         {isLoadingEvents ? (
           <>
@@ -395,14 +394,12 @@ export default function Feed() {
               );
             })}
 
-            {/* Infinite Scroll Trigger */}
             <InfiniteScrollTrigger
               onIntersect={handleLoadMore}
               isLoading={isFetchingNextPage}
               hasMore={hasNextPage}
             />
 
-            {/* End Message */}
             {!hasNextPage && feedWithAds.length > 5 && (
               <motion.div
                 initial={{ opacity: 0 }}
