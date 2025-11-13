@@ -17,16 +17,18 @@ export default function WebSocketEventProvider({ children, user }) {
   const subscribedEvents = useRef(new Set());
   const pollIntervalRef = useRef(null);
   const queryClient = useQueryClient();
+  const isMountedRef = useRef(true);
 
-  // Polling fallback para atualizações em tempo real
+  // CORREÇÃO: Polling seguro com verificação de mount
   const pollEventUpdates = useCallback(async () => {
-    if (!user?.id || subscribedEvents.current.size === 0) return;
+    if (!isMountedRef.current || !user?.id || subscribedEvents.current.size === 0) {
+      return;
+    }
 
     try {
       const eventIds = Array.from(subscribedEvents.current);
       
-      // Buscar eventos subscritos em lote
-      const events = await Promise.all(
+      const events = await Promise.allSettled(
         eventIds.map(async (eventId) => {
           try {
             const eventList = await base44.entities.Event.filter({ id: eventId });
@@ -37,44 +39,39 @@ export default function WebSocketEventProvider({ children, user }) {
         })
       );
 
-      // Atualizar estado com novos dados
+      if (!isMountedRef.current) return;
+
       const updates = {};
-      events.forEach((event) => {
-        if (event) {
+      events.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          const event = result.value;
           updates[event.id] = {
             current_attendees: event.current_attendees || 0,
             max_capacity: event.max_capacity || 0,
             status: event.status || 'active',
-            updated_at: new Date().toISOString(),
-            is_secret: event.is_secret,
-            requires_approval: event.requires_approval
+            updated_at: new Date().toISOString()
           };
         }
       });
 
-      setEventUpdates(prev => ({ ...prev, ...updates }));
-
-      // Invalidar queries relevantes
-      queryClient.invalidateQueries(['eventDetails']);
-      queryClient.invalidateQueries(['feedInteractions']);
+      if (isMountedRef.current && Object.keys(updates).length > 0) {
+        setEventUpdates(prev => ({ ...prev, ...updates }));
+      }
       
     } catch (error) {
-      console.error('❌ Erro ao fazer polling de eventos:', error);
+      // Silenciar erro para evitar spam no console
     }
   }, [user, queryClient]);
 
-  // Iniciar polling quando houver inscrições
+  // CORREÇÃO: Cleanup adequado do polling
   useEffect(() => {
-    if (subscribedEvents.current.size > 0) {
+    isMountedRef.current = true;
+
+    if (subscribedEvents.current.size > 0 && user?.id) {
       setIsConnected(true);
       
-      // Poll inicial imediato
-      pollEventUpdates();
-      
-      // Polling a cada 5 segundos
-      pollIntervalRef.current = setInterval(pollEventUpdates, 5000);
-      
-      console.log(`📡 Polling ativo para ${subscribedEvents.current.size} evento(s)`);
+      // OTIMIZAÇÃO: Polling mais espaçado (10s vs 5s)
+      pollIntervalRef.current = setInterval(pollEventUpdates, 10000);
     } else {
       setIsConnected(false);
       if (pollIntervalRef.current) {
@@ -84,29 +81,30 @@ export default function WebSocketEventProvider({ children, user }) {
     }
 
     return () => {
+      isMountedRef.current = false;
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
     };
-  }, [pollEventUpdates]);
+  }, [pollEventUpdates, user?.id]);
 
   const subscribeToEvent = useCallback((eventId) => {
-    if (!eventId) return;
+    if (!eventId || !isMountedRef.current) return;
     
     subscribedEvents.current.add(eventId);
-    console.log(`✅ Inscrito no evento ${eventId} (total: ${subscribedEvents.current.size})`);
     
-    // Trigger poll imediato
-    pollEventUpdates();
+    // Trigger poll apenas se não tiver interval ativo
+    if (!pollIntervalRef.current) {
+      pollEventUpdates();
+    }
   }, [pollEventUpdates]);
 
   const unsubscribeFromEvent = useCallback((eventId) => {
-    if (!eventId) return;
+    if (!eventId || !isMountedRef.current) return;
     
     subscribedEvents.current.delete(eventId);
-    console.log(`❌ Desinscrito do evento ${eventId} (restantes: ${subscribedEvents.current.size})`);
     
-    // Remover do estado
     setEventUpdates(prev => {
       const newUpdates = { ...prev };
       delete newUpdates[eventId];

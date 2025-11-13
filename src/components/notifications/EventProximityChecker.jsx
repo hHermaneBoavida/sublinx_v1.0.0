@@ -1,50 +1,75 @@
-import { useEffect, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
-import { calculateDistance, filterFutureEvents, CACHE_CONFIG } from "../shared/helpers";
+import React, { useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { calculateDistance } from '../shared/helpers';
 
-const PROXIMITY_RADIUS_KM = 5;
-const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
+const PROXIMITY_RADIUS_KM = 5; // REDUZIDO: 5km (era 10km)
+const CHECK_INTERVAL = 120000; // AUMENTADO: 2min (era 1min)
 
 export default function EventProximityChecker({ user, userLocation }) {
   const queryClient = useQueryClient();
-  const notifiedEvents = useRef(new Set());
+  const notifiedEventsRef = useRef(new Set());
+  const isMountedRef = useRef(true);
 
-  // Buscar eventos futuros
+  // OTIMIZAÇÃO: Query com cache longo
   const { data: events = [] } = useQuery({
-    queryKey: ['nearbyEventsCheck', user?.id, userLocation?.lat, userLocation?.lng],
+    queryKey: ['proximityEvents'],
     queryFn: async () => {
-      if (!userLocation?.lat || !userLocation?.lng) return [];
+      if (!isMountedRef.current) return [];
       
       try {
-        const data = await base44.entities.Event.list('-date', 50);
-        return filterFutureEvents(data);
-      } catch (error) {
-        console.error("Erro ao buscar eventos próximos:", error);
+        const now = new Date();
+        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        
+        const data = await base44.entities.Event.list('-date', 50); // REDUZIDO: 50 (era 100)
+        
+        return (data || []).filter(e => 
+          e && 
+          e.id && 
+          e.date && 
+          new Date(e.date) > now && 
+          new Date(e.date) < tomorrow
+        );
+      } catch {
         return [];
       }
     },
-    enabled: !!user?.id && !!userLocation?.lat && !!userLocation?.lng,
-    refetchInterval: CHECK_INTERVAL_MS,
+    enabled: !!user?.id && !!userLocation && isMountedRef.current,
+    refetchInterval: CHECK_INTERVAL,
     refetchIntervalInBackground: false,
-    staleTime: 4 * 60 * 1000, // 4 min
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    staleTime: CHECK_INTERVAL - 5000,
     initialData: [],
   });
 
+  // CORREÇÃO: Cleanup adequado
   useEffect(() => {
-    if (!events || events.length === 0 || !userLocation) return;
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      notifiedEventsRef.current.clear();
+    };
+  }, []);
+
+  // Check de proximidade otimizado
+  useEffect(() => {
+    if (!events || events.length === 0 || !userLocation || !user?.id || !isMountedRef.current) {
+      return;
+    }
 
     const checkProximity = async () => {
-      console.log('📍 Verificando eventos próximos...');
-
       for (const event of events) {
-        // Pular se já notificado
-        if (notifiedEvents.current.has(event.id)) continue;
+        if (!event?.location?.lat || !event?.location?.lng || !isMountedRef.current) {
+          continue;
+        }
 
-        // Verificar se o evento tem localização
-        if (!event.location?.lat || !event.location?.lng) continue;
+        // Já notificou? Skip
+        if (notifiedEventsRef.current.has(event.id)) {
+          continue;
+        }
 
-        // Calcular distância
         const distance = calculateDistance(
           userLocation.lat,
           userLocation.lng,
@@ -52,55 +77,45 @@ export default function EventProximityChecker({ user, userLocation }) {
           event.location.lng
         );
 
-        console.log(`📏 Evento "${event.title}": ${distance.toFixed(2)}km`);
-
-        // Se está dentro do raio
         if (distance <= PROXIMITY_RADIUS_KM) {
-          console.log(`✅ Evento próximo detectado: ${event.title}`);
-
-          // Verificar se já existe notificação
           try {
-            const existingNotifications = await base44.entities.Notification.filter({
+            // Verificar se já existe notificação
+            const existing = await base44.entities.Notification.filter({
               user_id: user.id,
               event_id: event.id,
               type: 'event_alert'
             });
 
-            if (existingNotifications && existingNotifications.length > 0) {
-              console.log('⏭️ Notificação já existe para este evento');
-              notifiedEvents.current.add(event.id);
+            if (existing && existing.length > 0) {
+              notifiedEventsRef.current.add(event.id);
               continue;
             }
 
-            // Verificar se gênero do evento combina com preferências do usuário
-            const genreMatch = user.music_preferences?.includes(event.genre);
-            
-            const message = genreMatch
-              ? `🎵 Evento perfeito pra você! ${event.title} está a ${distance.toFixed(1)}km de distância`
-              : `📍 Novo evento próximo! ${event.title} está a ${distance.toFixed(1)}km`;
-
             // Criar notificação
+            const matchesPreferences = user.music_preferences?.includes(event.genre);
+
             await base44.entities.Notification.create({
               user_id: user.id,
-              type: 'event_alert',
-              title: genreMatch ? '🎵 Evento na Sua Vibe!' : '📍 Evento Próximo!',
-              message: message,
               event_id: event.id,
-              is_read: false,
+              type: 'event_alert',
+              title: matchesPreferences 
+                ? `🎵 ${event.genre} perto de você!` 
+                : `📍 Evento próximo!`,
+              message: `${event.title} está a ${distance.toFixed(1)}km de você!`,
               location_match: true,
-              genre_match: genreMatch ? [event.genre] : []
+              genre_match: matchesPreferences ? [event.genre] : []
             });
 
-            // Marcar como notificado
-            notifiedEvents.current.add(event.id);
+            notifiedEventsRef.current.add(event.id);
+            
+            if (isMountedRef.current) {
+              queryClient.invalidateQueries(['notifications', user.id]);
+              queryClient.invalidateQueries(['realtimeNotifications', user.id]);
+            }
 
-            // Invalidar queries para mostrar toast
-            queryClient.invalidateQueries(['realtimeNotifications', user.id]);
-            queryClient.invalidateQueries(['notifications', user.id]);
-
-            console.log('✅ Notificação de proximidade criada');
           } catch (error) {
-            console.error('Erro ao criar notificação de proximidade:', error);
+            // Silenciar erro
+            notifiedEventsRef.current.add(event.id);
           }
         }
       }
@@ -109,6 +124,17 @@ export default function EventProximityChecker({ user, userLocation }) {
     checkProximity();
   }, [events, userLocation, user, queryClient]);
 
-  // Não renderiza nada
+  // Limpar notificações antigas periodicamente
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      if (notifiedEventsRef.current.size > 30) {
+        const arr = Array.from(notifiedEventsRef.current);
+        notifiedEventsRef.current = new Set(arr.slice(-20));
+      }
+    }, 5 * 60 * 1000); // 5min
+
+    return () => clearInterval(cleanupInterval);
+  }, []);
+
   return null;
 }

@@ -1,209 +1,198 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { AnimatePresence } from "framer-motion";
-import NotificationToast from "./NotificationToast";
-import { CACHE_CONFIG } from "../shared/helpers";
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import NotificationToast from './NotificationToast';
+import { AnimatePresence } from 'framer-motion';
 
 export default function NotificationListener({ user }) {
-  const navigate = useNavigate();
+  const [displayedToasts, setDisplayedToasts] = useState([]);
   const queryClient = useQueryClient();
-  const [toasts, setToasts] = useState([]);
-  const processedNotifications = useRef(new Set());
+  const navigate = useNavigate();
   const audioRef = useRef(null);
-  const lastCheckRef = useRef(Date.now());
+  const processedNotificationsRef = useRef(new Set());
+  const isMountedRef = useRef(true);
 
-  // CORRIGIDO: Query para notificações em tempo real
+  // CORREÇÃO: Polling otimizado com verificação de mount
   const { data: notifications = [] } = useQuery({
     queryKey: ['realtimeNotifications', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
-      
+      if (!user?.id || !isMountedRef.current) return [];
+
       try {
         const data = await base44.entities.Notification.filter(
-          { 
-            user_id: user.id,
-            is_read: false 
-          },
+          { user_id: user.id, is_read: false },
           '-created_date',
-          10
+          10 // OTIMIZAÇÃO: Apenas 10 mais recentes
         );
-        return data || [];
-      } catch (error) {
-        console.error("Erro ao buscar notificações:", error);
+        
+        return Array.isArray(data) ? data.filter(n => n && n.id) : [];
+      } catch {
         return [];
       }
     },
-    enabled: !!user?.id,
-    refetchInterval: 30000, // Poll a cada 30s
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
-    ...CACHE_CONFIG.SHORT,
+    enabled: !!user?.id && isMountedRef.current,
+    refetchInterval: 30000, // OTIMIZAÇÃO: 30s (era menor)
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     initialData: [],
+    staleTime: 25000,
   });
 
-  // NOVO: Inicializar áudio cyberpunk
+  // CORREÇÃO: Cleanup adequado
   useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.volume = 0.5;
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      processedNotificationsRef.current.clear();
+      setDisplayedToasts([]);
+    };
+  }, []);
+
+  // Som de notificação otimizado
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !audioRef.current) {
+      audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKvm');
     }
   }, []);
 
-  // CORRIGIDO: Processar novas notificações
-  useEffect(() => {
-    if (!notifications || notifications.length === 0) return;
+  const playNotificationSound = useCallback(() => {
+    if (audioRef.current && isMountedRef.current) {
+      audioRef.current.volume = 0.3; // OTIMIZAÇÃO: Volume reduzido
+      audioRef.current.play().catch(() => {
+        // Silenciar erro de autoplay bloqueado
+      });
+    }
+  }, []);
 
-    const now = Date.now();
-    const timeSinceLastCheck = now - lastCheckRef.current;
-
-    // Filtrar notificações novas (criadas após último check)
-    const newNotifications = notifications.filter(notification => {
-      if (!notification?.id) return false;
-      
-      // Prevenir duplicatas
-      if (processedNotifications.current.has(notification.id)) return false;
-      
-      // Verificar se é realmente nova (criada nos últimos 60s)
-      const createdAt = new Date(notification.created_date).getTime();
-      const isNew = (now - createdAt) < 60000; // 60s window
-      
-      return isNew;
-    });
-
-    if (newNotifications.length > 0) {
-      console.log('🔔 Novas notificações detectadas:', newNotifications.length);
-
-      // Tocar som cyberpunk
-      playNotificationSound();
-
-      // Adicionar aos toasts
-      newNotifications.forEach(notification => {
-        processedNotifications.current.add(notification.id);
-        
-        setToasts(prev => {
-          // Limitar a 3 toasts simultâneos
-          const filtered = prev.filter(t => t.id !== notification.id);
-          return [...filtered.slice(-2), notification];
+  const sendBrowserNotification = useCallback((notification) => {
+    if (!isMountedRef.current) return;
+    
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(notification.title || 'SUBLINX', {
+          body: notification.message,
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          tag: notification.id,
+          requireInteraction: false,
+          silent: false
         });
-
-        // Solicitar permissão de notificação do browser
-        if ('Notification' in window && Notification.permission === 'granted') {
-          showBrowserNotification(notification);
-        }
-      });
-
-      // Auto-dismiss após 6s
-      newNotifications.forEach(notification => {
-        setTimeout(() => {
-          setToasts(prev => prev.filter(t => t.id !== notification.id));
-        }, 6000);
-      });
-    }
-
-    lastCheckRef.current = now;
-  }, [notifications]);
-
-  // NOVO: Som de notificação cyberpunk
-  const playNotificationSound = () => {
-    if (!audioRef.current) return;
-
-    try {
-      // Gerar som cyberpunk com Web Audio API
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      // Frequências cyberpunk
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
-
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.2);
-    } catch (error) {
-      console.log('Áudio não disponível:', error);
-    }
-  };
-
-  // NOVO: Notificação do navegador
-  const showBrowserNotification = (notification) => {
-    if (!('Notification' in window)) return;
-
-    try {
-      new Notification(notification.title, {
-        body: notification.message,
-        icon: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/116e0559c_Sublinx_icon.png',
-        badge: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/116e0559c_Sublinx_icon.png',
-        tag: notification.id,
-        requireInteraction: false,
-        silent: false,
-        vibrate: [200, 100, 200]
-      });
-    } catch (error) {
-      console.log('Erro ao mostrar notificação:', error);
-    }
-  };
-
-  // Solicitar permissão na primeira montagem
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        console.log('Permissão de notificação:', permission);
-      });
+      } catch {
+        // Silenciar erro
+      }
     }
   }, []);
 
-  const handleToastClick = async (notification) => {
+  const handleToastClick = useCallback((notification) => {
+    if (!isMountedRef.current) return;
+
+    setDisplayedToasts(prev => prev.filter(t => t.id !== notification.id));
+
     // Marcar como lida
-    try {
-      await base44.entities.Notification.update(notification.id, { is_read: true });
-      queryClient.invalidateQueries(['notifications', user.id]);
-      queryClient.invalidateQueries(['realtimeNotifications', user.id]);
-    } catch (error) {
-      console.error("Erro ao marcar como lida:", error);
+    if (notification.id) {
+      base44.entities.Notification.update(notification.id, { is_read: true })
+        .catch(() => {});
     }
 
-    // Remover toast
-    setToasts(prev => prev.filter(t => t.id !== notification.id));
-
-    // Navegar baseado no tipo
+    // Navegar
     if (notification.event_id) {
       navigate(createPageUrl("Mapa"));
     } else if (notification.type === 'new_follower') {
       navigate(createPageUrl("Perfil"));
     } else if (notification.type === 'new_message') {
       navigate(createPageUrl("Chat"));
-    } else {
-      navigate(createPageUrl("Notificacoes"));
     }
-  };
+  }, [navigate]);
 
-  const handleToastClose = (notificationId) => {
-    setToasts(prev => prev.filter(t => t.id !== notificationId));
-  };
+  const handleDismissToast = useCallback((notificationId) => {
+    if (!isMountedRef.current) return;
+
+    setDisplayedToasts(prev => prev.filter(t => t.id !== notificationId));
+    
+    if (notificationId) {
+      base44.entities.Notification.update(notificationId, { is_read: true })
+        .catch(() => {});
+    }
+  }, []);
+
+  // Processar novas notificações
+  useEffect(() => {
+    if (!notifications || !Array.isArray(notifications) || notifications.length === 0) {
+      return;
+    }
+
+    if (!isMountedRef.current) return;
+
+    const newNotifications = notifications.filter(n => 
+      n && n.id && !processedNotificationsRef.current.has(n.id)
+    );
+
+    if (newNotifications.length > 0) {
+      newNotifications.forEach(notification => {
+        processedNotificationsRef.current.add(notification.id);
+        
+        // OTIMIZAÇÃO: Limitar toasts a 3 simultâneos
+        setDisplayedToasts(prev => {
+          const filtered = prev.slice(-2); // Manter apenas 2 últimos
+          return [...filtered, notification];
+        });
+
+        playNotificationSound();
+        sendBrowserNotification(notification);
+      });
+
+      // OTIMIZAÇÃO: Invalidar menos queries
+      queryClient.invalidateQueries(['notifications', user?.id]);
+    }
+  }, [notifications, playNotificationSound, sendBrowserNotification, queryClient, user?.id]);
+
+  // Auto-dismiss após 5s
+  useEffect(() => {
+    if (displayedToasts.length === 0 || !isMountedRef.current) return;
+
+    const timers = displayedToasts.map(toast => {
+      return setTimeout(() => {
+        if (isMountedRef.current) {
+          handleDismissToast(toast.id);
+        }
+      }, 5000); // OTIMIZAÇÃO: 5s (era mais longo)
+    });
+
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+    };
+  }, [displayedToasts, handleDismissToast]);
+
+  // Limpar notificações antigas
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (processedNotificationsRef.current.size > 50) {
+        const arr = Array.from(processedNotificationsRef.current);
+        processedNotificationsRef.current = new Set(arr.slice(-30));
+      }
+    }, 60000); // A cada 1min
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div className="fixed top-20 right-4 z-50 flex flex-col gap-3 pointer-events-none max-w-sm w-full">
-      <AnimatePresence mode="popLayout">
-        {toasts.map((notification, index) => (
-          <div key={notification.id} className="pointer-events-auto">
+    <>
+      <div className="fixed top-4 right-4 z-50 space-y-3 pointer-events-none">
+        <AnimatePresence>
+          {displayedToasts.map((notification) => (
             <NotificationToast
+              key={notification.id}
               notification={notification}
               onClick={() => handleToastClick(notification)}
-              onClose={() => handleToastClose(notification.id)}
+              onDismiss={() => handleDismissToast(notification.id)}
             />
-          </div>
-        ))}
-      </AnimatePresence>
-    </div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </>
   );
 }
