@@ -1,22 +1,26 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Zap, Star, MessageSquare, Settings, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Bell, Settings, Loader2, CheckCircle2, Trash2, Volume2, VolumeX, MapPin, Heart, MessageCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { motion, AnimatePresence } from "framer-motion";
 import NotificationCard from "../components/notifications/NotificationCard";
 import NotificationSettings from "../components/notifications/NotificationSettings";
+import { CACHE_CONFIG } from "../components/shared/helpers";
 
 export default function Notificacoes() {
-  const [showSettings, setShowSettings] = useState(false);
-  const [filter, setFilter] = useState("all");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showSettings, setShowSettings] = useState(false);
+  const [filterType, setFilterType] = useState('all');
 
-  // CORREÇÃO: Usar base44.auth.me() ao invés de import User
-  const { data: user, isLoading: loadingUser } = useQuery({
+  const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
       try {
@@ -27,76 +31,113 @@ export default function Notificacoes() {
       }
     },
     retry: false,
-    staleTime: Infinity,
+    ...CACHE_CONFIG.STATIC,
   });
 
-  // CORREÇÃO: Usar base44.entities ao invés de import Notification
-  const { data: notifications = [], isLoading: loadingNotifications, refetch } = useQuery({
+  const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      return await base44.entities.Notification.filter(
+      const data = await base44.entities.Notification.filter(
         { user_id: user.id },
-        "-created_date",
+        '-created_date',
         50
       );
+      return data || [];
     },
     enabled: !!user?.id,
-    staleTime: 30000,
+    initialData: [],
+    ...CACHE_CONFIG.SHORT,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 
-  const markAsRead = async (notificationId) => {
-    try {
+  const markAsReadMutation = useMutation({
+    mutationFn: async (notificationId) => {
       await base44.entities.Notification.update(notificationId, { is_read: true });
-      queryClient.invalidateQueries(['notifications']);
-    } catch (error) {
-      console.error("Erro ao marcar como lida:", error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notifications', user?.id]);
+      queryClient.invalidateQueries(['realtimeNotifications', user?.id]);
     }
-  };
+  });
 
-  const markAllAsRead = async () => {
-    const unreadNotifications = notifications.filter(n => !n.is_read);
-    if (unreadNotifications.length === 0) return;
-    
-    try {
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      const unreadNotifications = notifications.filter(n => !n.is_read);
       await Promise.all(
         unreadNotifications.map(n => 
           base44.entities.Notification.update(n.id, { is_read: true })
         )
       );
-      queryClient.invalidateQueries(['notifications']);
-    } catch (error) {
-      console.error("Erro ao marcar todas como lidas:", error);
-      alert("Ocorreu um erro. Tente novamente.");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notifications', user?.id]);
+      queryClient.invalidateQueries(['realtimeNotifications', user?.id]);
+      alert('✅ Todas as notificações marcadas como lidas');
+    }
+  });
+
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (notificationId) => {
+      await base44.entities.Notification.delete(notificationId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notifications', user?.id]);
+      queryClient.invalidateQueries(['realtimeNotifications', user?.id]);
+    }
+  });
+
+  const handleNotificationClick = async (notification) => {
+    if (!notification.is_read) {
+      markAsReadMutation.mutate(notification.id);
+    }
+
+    if (notification.event_id) {
+      navigate(createPageUrl("Mapa"));
+    } else if (notification.type === 'new_follower') {
+      navigate(createPageUrl("Perfil"));
+    } else if (notification.type === 'new_message') {
+      navigate(createPageUrl("Chat"));
     }
   };
 
-  const filteredNotifications = notifications.filter(notification => {
-    if (filter === "all") return true;
-    if (filter === "unread") return !notification.is_read;
-    return notification.type === filter;
+  const filteredNotifications = notifications.filter(n => {
+    if (filterType === 'all') return true;
+    if (filterType === 'unread') return !n.is_read;
+    if (filterType === 'read') return n.is_read;
+    return n.type === filterType;
   });
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  if (loadingUser || loadingNotifications) {
+  if (isLoading) {
     return (
       <div className="w-full h-[calc(100vh-80px)] flex items-center justify-center">
-        <Loader2 className="w-16 h-16 animate-spin text-cyan-500" />
+        <Loader2 className="w-12 h-12 animate-spin text-cyan-400" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Bell className="w-8 h-8 text-cyan-400" />
+          <motion.div
+            animate={unreadCount > 0 ? {
+              rotate: [0, -15, 15, -10, 10, 0]
+            } : {}}
+            transition={{
+              duration: 0.5,
+              repeat: unreadCount > 0 ? Infinity : 0,
+              repeatDelay: 3
+            }}
+          >
+            <Bell className="w-7 h-7 text-cyan-400" />
+          </motion.div>
           <div>
-            <h1 className="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
-              Notificações
-            </h1>
+            <h1 className="text-2xl font-bold text-white">Notificações</h1>
             {unreadCount > 0 && (
               <p className="text-sm text-gray-400">
                 {unreadCount} não lida{unreadCount > 1 ? 's' : ''}
@@ -105,89 +146,125 @@ export default function Notificacoes() {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowSettings(!showSettings)}
-            className="border-gray-600 text-gray-300 hover:bg-gray-800"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Configurar
-          </Button>
+        <div className="flex items-center gap-2">
           {unreadCount > 0 && (
-            <Button
-              onClick={markAllAsRead}
-              className="bg-cyan-600 hover:bg-cyan-700"
-            >
-              Marcar todas como lidas
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={() => markAllAsReadMutation.mutate()}
+                disabled={markAllAsReadMutation.isPending}
+                size="sm"
+                variant="outline"
+                className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+              >
+                {markAllAsReadMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                    <span className="hidden sm:inline">Marcar todas</span>
+                  </>
+                )}
+              </Button>
+            </motion.div>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSettings(!showSettings)}
+            className="h-9 w-9"
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
         </div>
       </div>
 
       {/* Settings Panel */}
-      {showSettings && (
-        <NotificationSettings 
-          user={user}
-          onClose={() => setShowSettings(false)}
-          onUpdate={refetch}
-        />
-      )}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6"
+          >
+            <NotificationSettings user={user} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto">
-        {[
-          { value: "all", label: "Todas", icon: Bell },
-          { value: "unread", label: "Não Lidas", icon: Zap },
-          { value: "event_alert", label: "Eventos", icon: Bell },
-          { value: "surprise_event", label: "Surpresas", icon: Star },
-          { value: "new_message", label: "Mensagens", icon: MessageSquare }
-        ].map(tab => (
-          <Button
-            key={tab.value}
-            variant={filter === tab.value ? "default" : "outline"}
-            onClick={() => setFilter(tab.value)}
-            className={`flex items-center gap-2 whitespace-nowrap ${
-              filter === tab.value 
-                ? "bg-gradient-to-r from-cyan-600 to-purple-600 text-white"
-                : "border-gray-600 text-gray-300 hover:bg-gray-800"
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
-            {tab.value === "unread" && unreadCount > 0 && (
-              <Badge variant="secondary" className="bg-red-600 text-white ml-1">
+      <Tabs value={filterType} onValueChange={setFilterType} className="mb-6">
+        <TabsList className="grid w-full grid-cols-5 bg-gray-900/50 border border-gray-800">
+          <TabsTrigger value="all" className="text-xs sm:text-sm">
+            Todas
+            {notifications.length > 0 && (
+              <Badge className="ml-1 bg-cyan-600 text-white text-[10px] px-1">
+                {notifications.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="unread" className="text-xs sm:text-sm">
+            Não lidas
+            {unreadCount > 0 && (
+              <Badge className="ml-1 bg-red-600 text-white text-[10px] px-1">
                 {unreadCount}
               </Badge>
             )}
-          </Button>
-        ))}
-      </div>
+          </TabsTrigger>
+          <TabsTrigger value="event_alert" className="text-xs sm:text-sm">
+            <Bell className="w-3 h-3 sm:mr-1" />
+            <span className="hidden sm:inline">Eventos</span>
+          </TabsTrigger>
+          <TabsTrigger value="new_message" className="text-xs sm:text-sm">
+            <MessageCircle className="w-3 h-3 sm:mr-1" />
+            <span className="hidden sm:inline">Msgs</span>
+          </TabsTrigger>
+          <TabsTrigger value="new_follower" className="text-xs sm:text-sm">
+            <Heart className="w-3 h-3 sm:mr-1" />
+            <span className="hidden sm:inline">Social</span>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Notifications List */}
-      <div className="space-y-4">
-        {filteredNotifications.length > 0 ? (
-          filteredNotifications.map(notification => (
-            <NotificationCard
-              key={notification.id}
-              notification={notification}
-              onMarkAsRead={markAsRead}
-            />
-          ))
-        ) : (
-          <div className="text-center py-12 bg-gray-900/50 rounded-lg border border-gray-700">
-            <Bell className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-400 mb-2">
-              Nenhuma notificação encontrada
-            </h3>
-            <p className="text-gray-500">
-              {filter === "all" 
-                ? "Você não tem notificações ainda." 
-                : `Nenhuma notificação do tipo "${filter}" encontrada.`
-              }
-            </p>
-          </div>
-        )}
+      <div className="space-y-3">
+        <AnimatePresence mode="popLayout">
+          {filteredNotifications.length > 0 ? (
+            filteredNotifications.map((notification, index) => (
+              <motion.div
+                key={notification.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ delay: index * 0.05 }}
+                layout
+              >
+                <NotificationCard
+                  notification={notification}
+                  onClick={() => handleNotificationClick(notification)}
+                  onDelete={() => deleteNotificationMutation.mutate(notification.id)}
+                  isDeleting={deleteNotificationMutation.isPending}
+                />
+              </motion.div>
+            ))
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-16 bg-gray-900/50 rounded-2xl border border-gray-800"
+            >
+              <Bell className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-400 mb-2">
+                {filterType === 'all' ? 'Nenhuma notificação' : 'Nenhuma notificação deste tipo'}
+              </h3>
+              <p className="text-sm text-gray-500">
+                {filterType === 'unread' 
+                  ? 'Você está em dia! 🎉' 
+                  : 'Quando algo acontecer, você será notificado aqui'}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

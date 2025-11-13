@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -10,6 +11,7 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NotificationListener from "@/components/notifications/NotificationListener";
 import EventProximityChecker from "@/components/notifications/EventProximityChecker";
 import { motion } from "framer-motion";
+import { CACHE_CONFIG } from "@/components/shared/helpers";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -26,17 +28,28 @@ export default function Layout({ children, currentPageName }) {
       }
     },
     retry: false,
-    staleTime: Infinity,
+    ...CACHE_CONFIG.STATIC,
   });
 
   const isGuest = !user;
 
+  // OTIMIZADO: Cache para contagem de notificações não lidas
   const { data: unreadCount } = useQuery({
     queryKey: ['notifications', user?.id],
-    queryFn: () => base44.entities.Notification.filter({ user_id: user.id, is_read: false }),
-    select: (data) => data.length,
+    queryFn: async () => {
+      if (!user?.id) return 0;
+      const notifications = await base44.entities.Notification.filter({ 
+        user_id: user.id, 
+        is_read: false 
+      });
+      return notifications?.length || 0;
+    },
+    select: (data) => data?.length || 0,
     enabled: !!user,
     initialData: 0,
+    refetchInterval: 30000, // Atualiza a cada 30s
+    refetchIntervalInBackground: false,
+    ...CACHE_CONFIG.SHORT,
   });
 
   // Obter localização do usuário para notificações de proximidade
@@ -166,7 +179,7 @@ export default function Layout({ children, currentPageName }) {
         `}</style>
         {children}
         
-        {/* Notificações em tempo real mesmo nas páginas sem layout */}
+        {/* Notificações em TODAS as páginas */}
         {!isGuest && <NotificationListener user={user} />}
         {!isGuest && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
       </>
@@ -237,7 +250,7 @@ export default function Layout({ children, currentPageName }) {
         }}
       />
 
-      {/* Header - Redesenhado com Glass Neon */}
+      {/* Header - OTIMIZADO */}
       <header className="relative z-10 p-3 sm:p-4 md:p-6 backdrop-blur-xl border-b-2" style={{
         background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(17,24,39,0.5))',
         borderColor: 'rgba(6, 182, 212, 0.2)',
@@ -342,6 +355,7 @@ export default function Layout({ children, currentPageName }) {
               </Link>
             )}
 
+            {/* MELHORADO: Indicador de Notificações com Animações */}
             {!isGuest && (
               <motion.div
                 whileHover={{ scale: 1.1 }}
@@ -349,28 +363,81 @@ export default function Layout({ children, currentPageName }) {
               >
                 <Link
                   to={createPageUrl("Notificacoes")}
-                  className="relative p-2 rounded-lg hover:bg-gray-800/50 transition-all duration-300"
+                  className="relative p-2 rounded-lg hover:bg-gray-800/50 transition-all duration-300 group"
                 >
-                  <Bell className="w-5 h-5 text-gray-300 hover:text-white" />
+                  {/* Bell Icon */}
+                  <motion.div
+                    animate={unreadCount > 0 ? {
+                      rotate: [0, -15, 15, -10, 10, 0],
+                    } : {}}
+                    transition={{
+                      duration: 0.5,
+                      repeat: unreadCount > 0 ? Infinity : 0,
+                      repeatDelay: 3
+                    }}
+                  >
+                    <Bell className="w-5 h-5 text-gray-300 group-hover:text-white" />
+                  </motion.div>
+
+                  {/* Unread Badge - MELHORADO */}
                   {unreadCount > 0 && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 p-0 text-white text-[10px] sm:text-xs flex items-center justify-center rounded-full"
+                      className="absolute -top-1 -right-1 min-w-[18px] h-[18px] sm:min-w-[20px] sm:h-5 px-1 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center rounded-full"
                       style={{
                         background: 'linear-gradient(135deg, rgba(239, 68, 68, 1), rgba(220, 38, 38, 1))',
-                        boxShadow: '0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.5)'
+                        boxShadow: '0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.5), inset 0 1px 0 rgba(255,255,255,0.3)'
                       }}
                     >
+                      {/* Pulse Ring */}
+                      <motion.div
+                        className="absolute inset-0 rounded-full"
+                        style={{
+                          border: '2px solid rgba(239, 68, 68, 0.6)',
+                        }}
+                        animate={{
+                          scale: [1, 1.8, 1],
+                          opacity: [0.8, 0, 0.8]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+
+                      {/* Top Gloss */}
+                      <div
+                        className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
+                        style={{
+                          background: 'linear-gradient(to bottom, rgba(255,255,255,0.4), transparent)'
+                        }}
+                      />
+
+                      {/* Count */}
                       <motion.span
                         animate={{
                           scale: [1, 1.1, 1]
                         }}
                         transition={{ duration: 2, repeat: Infinity }}
+                        className="relative z-10"
                       >
-                        {unreadCount > 9 ? "9+" : unreadCount}
+                        {unreadCount > 99 ? "99+" : unreadCount}
                       </motion.span>
                     </motion.div>
+                  )}
+
+                  {/* Dot Indicator (when 0 but system is active) */}
+                  {unreadCount === 0 && (
+                    <motion.div
+                      className="absolute top-1 right-1 w-2 h-2 rounded-full"
+                      style={{
+                        background: 'rgba(6, 182, 212, 0.6)',
+                        boxShadow: '0 0 8px rgba(6, 182, 212, 0.8)'
+                      }}
+                      animate={{
+                        opacity: [0.4, 1, 0.4],
+                        scale: [0.8, 1.2, 0.8]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
                   )}
                 </Link>
               </motion.div>
@@ -566,7 +633,7 @@ export default function Layout({ children, currentPageName }) {
 
       <PWAInstallPrompt />
 
-      {/* NOVO: Sistema de Notificações em Tempo Real */}
+      {/* Sistema de Notificações em Tempo Real - SEMPRE ATIVO */}
       {!isGuest && <NotificationListener user={user} />}
       {!isGuest && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
 

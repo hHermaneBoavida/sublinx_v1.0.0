@@ -1,26 +1,28 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, Calendar, Heart, TrendingUp, Bell, CheckCircle, XCircle, MessageCircle, UserPlus } from "lucide-react";
+import { motion } from "framer-motion";
+import { X, Bell, Heart, MessageCircle, UserPlus, CheckCircle, Calendar, MapPin, Music2, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const NOTIFICATION_ICONS = {
-  event_alert: Calendar,
+  event_alert: Bell,
   surprise_event: Zap,
-  level_up: TrendingUp,
+  level_up: CheckCircle,
   request_approved: CheckCircle,
-  request_denied: XCircle,
+  request_denied: X,
   new_message: MessageCircle,
   new_follower: UserPlus,
+  new_like: Heart,
 };
 
 const NOTIFICATION_COLORS = {
-  event_alert: { bg: 'from-cyan-600 to-blue-600', icon: 'text-cyan-400' },
-  surprise_event: { bg: 'from-purple-600 to-pink-600', icon: 'text-purple-400' },
-  level_up: { bg: 'from-yellow-600 to-orange-600', icon: 'text-yellow-400' },
-  request_approved: { bg: 'from-green-600 to-emerald-600', icon: 'text-green-400' },
-  request_denied: { bg: 'from-red-600 to-rose-600', icon: 'text-red-400' },
-  new_message: { bg: 'from-indigo-600 to-purple-600', icon: 'text-indigo-400' },
-  new_follower: { bg: 'from-pink-600 to-rose-600', icon: 'text-pink-400' },
+  event_alert: { primary: 'rgba(6, 182, 212, 0.9)', secondary: 'rgba(139, 92, 246, 0.7)', bg: 'from-cyan-900/90 to-purple-900/80' },
+  surprise_event: { primary: 'rgba(251, 191, 36, 0.9)', secondary: 'rgba(245, 158, 11, 0.7)', bg: 'from-yellow-900/90 to-orange-900/80' },
+  level_up: { primary: 'rgba(16, 185, 129, 0.9)', secondary: 'rgba(5, 150, 105, 0.7)', bg: 'from-green-900/90 to-emerald-900/80' },
+  request_approved: { primary: 'rgba(16, 185, 129, 0.9)', secondary: 'rgba(5, 150, 105, 0.7)', bg: 'from-green-900/90 to-emerald-900/80' },
+  request_denied: { primary: 'rgba(239, 68, 68, 0.9)', secondary: 'rgba(220, 38, 38, 0.7)', bg: 'from-red-900/90 to-rose-900/80' },
+  new_message: { primary: 'rgba(168, 85, 247, 0.9)', secondary: 'rgba(236, 72, 153, 0.7)', bg: 'from-purple-900/90 to-pink-900/80' },
+  new_follower: { primary: 'rgba(236, 72, 153, 0.9)', secondary: 'rgba(168, 85, 247, 0.7)', bg: 'from-pink-900/90 to-purple-900/80' },
+  new_like: { primary: 'rgba(239, 68, 68, 0.9)', secondary: 'rgba(220, 38, 38, 0.7)', bg: 'from-red-900/90 to-rose-900/80' },
 };
 
 export default function NotificationToast({ notification, onClose, onClick }) {
@@ -29,120 +31,172 @@ export default function NotificationToast({ notification, onClose, onClick }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 300, scale: 0.9 }}
+      initial={{ opacity: 0, x: 300, scale: 0.8 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 300, scale: 0.9 }}
+      exit={{ opacity: 0, x: 300, scale: 0.8 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className="relative cursor-pointer"
+      className="relative w-full max-w-sm cursor-pointer group"
       onClick={onClick}
     >
       {/* Glow Effect */}
       <motion.div
-        className="absolute inset-0 rounded-2xl blur-xl"
+        className="absolute inset-0 rounded-2xl pointer-events-none"
         style={{
-          background: `linear-gradient(135deg, ${colors.bg.split(' ')[1].replace('to-', 'rgba(')}50, ${colors.bg.split(' ')[2].replace('to-', 'rgba(')}30)`,
+          background: `radial-gradient(circle at center, ${colors.primary}40 0%, transparent 70%)`,
+          filter: 'blur(20px)',
         }}
         animate={{
-          opacity: [0.5, 0.8, 0.5],
-          scale: [1, 1.05, 1]
+          scale: [1, 1.2, 1],
+          opacity: [0.5, 0.8, 0.5]
         }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
+        transition={{ duration: 2, repeat: Infinity }}
       />
 
-      {/* Card */}
-      <div 
-        className={`relative bg-gradient-to-r ${colors.bg} p-4 rounded-2xl shadow-2xl border-2 border-white/20 backdrop-blur-xl max-w-sm`}
+      {/* Main Card */}
+      <div
+        className={`relative bg-gradient-to-r ${colors.bg} backdrop-blur-xl rounded-2xl border-2 p-4 shadow-2xl overflow-hidden`}
         style={{
-          boxShadow: '0 0 30px rgba(6, 182, 212, 0.4), 0 10px 40px rgba(0, 0, 0, 0.6)'
+          borderColor: colors.primary,
+          boxShadow: `0 0 30px ${colors.primary}60, 0 0 60px ${colors.secondary}40`
         }}
       >
-        {/* Close Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
+        {/* Top Gloss */}
+        <div
+          className="absolute top-0 left-0 right-0 h-1/2 rounded-t-2xl pointer-events-none"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(255,255,255,0.15), transparent)'
           }}
-          className="absolute top-2 right-2 p-1 rounded-full bg-black/30 hover:bg-black/50 transition-colors"
-        >
-          <X className="w-4 h-4 text-white" />
-        </button>
+        />
 
-        {/* Content */}
-        <div className="flex items-start gap-3 pr-6">
+        {/* Animated Scan Line */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `linear-gradient(to bottom, transparent 0%, ${colors.primary}30 48%, ${colors.primary}50 50%, ${colors.primary}30 52%, transparent 100%)`,
+            height: '100%',
+          }}
+          animate={{ y: ['-100%', '200%'] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        />
+
+        <div className="relative z-10 flex items-start gap-3">
           {/* Icon */}
           <motion.div
-            className={`flex-shrink-0 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm`}
-            animate={notification.is_surprise ? {
-              rotate: [0, 10, -10, 0],
-              scale: [1, 1.1, 1]
-            } : {}}
-            transition={{
-              duration: 0.5,
-              repeat: notification.is_surprise ? Infinity : 0,
-              repeatDelay: 2
+            className="flex-shrink-0 rounded-full p-2 relative overflow-hidden"
+            style={{
+              background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+              boxShadow: `0 0 20px ${colors.primary}80`
             }}
+            animate={{
+              boxShadow: [
+                `0 0 20px ${colors.primary}80`,
+                `0 0 30px ${colors.primary}`,
+                `0 0 20px ${colors.primary}80`
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
           >
-            <Icon className={`w-6 h-6 ${colors.icon}`} />
+            <motion.div
+              className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
+              style={{
+                background: 'linear-gradient(to bottom, rgba(255,255,255,0.4), transparent)'
+              }}
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+            <Icon className="w-5 h-5 text-white relative z-10" />
           </motion.div>
 
-          {/* Text */}
+          {/* Content */}
           <div className="flex-1 min-w-0">
             <h4 className="font-bold text-white text-sm mb-1 line-clamp-1">
               {notification.title}
             </h4>
-            <p className="text-white/90 text-xs line-clamp-2 mb-2">
+            <p className="text-xs text-gray-200 line-clamp-2 mb-2">
               {notification.message}
             </p>
 
             {/* Tags */}
             <div className="flex flex-wrap gap-1">
               {notification.location_match && (
-                <Badge className="bg-white/20 text-white border-0 text-[9px] px-1.5 py-0.5">
-                  📍 Perto de você
+                <Badge 
+                  className="text-[9px] px-1.5 py-0 h-4 border-0"
+                  style={{
+                    background: 'rgba(6, 182, 212, 0.3)',
+                    color: '#06B6D4'
+                  }}
+                >
+                  <MapPin className="w-2.5 h-2.5 mr-0.5" />
+                  Próximo
                 </Badge>
               )}
-              {notification.genre_match && notification.genre_match.length > 0 && (
-                <Badge className="bg-white/20 text-white border-0 text-[9px] px-1.5 py-0.5">
-                  🎵 {notification.genre_match[0]}
+              {notification.genre_match?.length > 0 && (
+                <Badge 
+                  className="text-[9px] px-1.5 py-0 h-4 border-0"
+                  style={{
+                    background: 'rgba(168, 85, 247, 0.3)',
+                    color: '#A855F7'
+                  }}
+                >
+                  <Music2 className="w-2.5 h-2.5 mr-0.5" />
+                  {notification.genre_match[0]}
                 </Badge>
               )}
             </div>
           </div>
+
+          {/* Close Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="flex-shrink-0 p-1 rounded-full hover:bg-white/20 transition-colors"
+          >
+            <X className="w-4 h-4 text-white/80" />
+          </button>
         </div>
 
-        {/* Reflexo superior */}
-        <div 
-          className="absolute top-0 left-0 right-0 h-1/2 rounded-t-2xl pointer-events-none"
-          style={{
-            background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent)'
-          }}
-        />
+        {/* Surprise Event Particles */}
+        {notification.is_surprise && (
+          <>
+            {[...Array(5)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-1 rounded-full pointer-events-none"
+                style={{
+                  background: i % 2 === 0 ? colors.primary : colors.secondary,
+                  left: `${20 + i * 15}%`,
+                  top: `${30 + Math.random() * 40}%`,
+                  boxShadow: `0 0 10px ${i % 2 === 0 ? colors.primary : colors.secondary}`
+                }}
+                animate={{
+                  y: [0, -30, 0],
+                  opacity: [0, 1, 0],
+                  scale: [0.5, 1.5, 0.5]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  delay: i * 0.3,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
+          </>
+        )}
 
-        {/* Partículas */}
-        {notification.is_surprise && [...Array(3)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-white"
-            style={{
-              left: `${30 + i * 20}%`,
-              top: `${40 + i * 10}%`,
-            }}
-            animate={{
-              y: [0, -20, 0],
-              opacity: [0, 1, 0],
-              scale: [0, 1.5, 0]
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              delay: i * 0.3
-            }}
-          />
-        ))}
+        {/* Progress Bar Auto-dismiss */}
+        <motion.div
+          className="absolute bottom-0 left-0 h-1 rounded-b-2xl"
+          style={{
+            background: `linear-gradient(to right, ${colors.primary}, ${colors.secondary})`,
+            boxShadow: `0 0 15px ${colors.primary}80`
+          }}
+          initial={{ width: '100%' }}
+          animate={{ width: '0%' }}
+          transition={{ duration: 6, ease: "linear" }}
+        />
       </div>
     </motion.div>
   );
