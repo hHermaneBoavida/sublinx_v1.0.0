@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -539,7 +540,7 @@ export default function MapView({
                 ${vibeTheme.glowColor} 0px,
                 ${vibeTheme.glowColor} 1px,
                 transparent 1px,
-                transparent 50px
+                transparent 60px
               ),
               repeating-linear-gradient(
                 -45deg,
