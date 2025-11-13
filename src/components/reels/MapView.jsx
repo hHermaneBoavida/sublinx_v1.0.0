@@ -6,123 +6,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Eye, Menu, Search, MapPin, Navigation, Music2, Filter, Calendar, X } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import SearchResults from "../map/SearchResults"; // NEW IMPORT
-import { intelligentSearch } from "@/functions/intelligentSearch"; // NEW IMPORT
-
-// Clustering inteligente AVANÇADO com densidade dinâmica
-const clusterEvents = (events, zoomLevel = 1, screenDensity = 1) => {
-  if (!events || events.length === 0) return [];
-
-  const baseRadius = 0.015;
-  const zoomFactor = Math.pow(2, (15 - zoomLevel) * 0.8);
-  const densityFactor = 1 / screenDensity;
-
-  const CLUSTER_RADIUS = baseRadius * zoomFactor * densityFactor;
-
-  const clusters = [];
-  const processed = new Set();
-
-  events.forEach((event, index) => {
-    if (processed.has(index)) return;
-
-    const cluster = {
-      events: [event],
-      center: { lat: event.location.lat, lng: event.location.lng },
-      isCluster: false,
-      density: 1,
-      dominantGenre: event.genre,
-      dominantType: event.type
-    };
-
-    events.forEach((other, otherIndex) => {
-      if (index === otherIndex || processed.has(otherIndex)) return;
-
-      const distance = Math.sqrt(
-        Math.pow(event.location.lat - other.location.lat, 2) +
-        Math.pow(event.location.lng - other.location.lng, 2)
-      );
-
-      if (distance < CLUSTER_RADIUS) {
-        cluster.events.push(other);
-        processed.add(otherIndex);
-      }
-    });
-
-    if (cluster.events.length > 1) {
-      cluster.isCluster = true;
-
-      cluster.center = {
-        lat: cluster.events.reduce((sum, e) => sum + e.location.lat, 0) / cluster.events.length,
-        lng: cluster.events.reduce((sum, e) => sum + e.location.lng, 0) / cluster.events.length
-      };
-
-      const area = Math.PI * Math.pow(CLUSTER_RADIUS * 111, 2);
-      cluster.density = cluster.events.length / area;
-
-      const genreCounts = {};
-      const typeCounts = {};
-
-      cluster.events.forEach(e => {
-        genreCounts[e.genre] = (genreCounts[e.genre] || 0) + 1;
-        typeCounts[e.type] = (typeCounts[e.type] || 0) + 1;
-      });
-
-      cluster.dominantGenre = Object.keys(genreCounts).reduce((a, b) =>
-        genreCounts[a] > genreCounts[b] ? a : b
-      );
-      cluster.dominantType = Object.keys(typeCounts).reduce((a, b) =>
-        typeCounts[a] > typeCounts[b] ? a : b
-      );
-    }
-
-    processed.add(index);
-    clusters.push(cluster);
-  });
-
-  return clusters;
-};
-
-const getEventColor = (event) => {
-  const colorMap = {
-    'rave': 'rgba(236, 72, 153, 0.9)',
-    'warehouse': 'rgba(168, 85, 247, 0.9)',
-    'rooftop': 'rgba(6, 182, 212, 0.9)',
-    'underground': 'rgba(139, 92, 246, 0.9)',
-    'club': 'rgba(20, 184, 166, 0.9)',
-    'secret': 'rgba(251, 191, 36, 0.9)',
-  };
-  return colorMap[event.type] || 'rgba(6, 182, 212, 0.9)';
-};
+import SearchResults from "../map/SearchResults";
+import { intelligentSearch } from "@/functions/intelligentSearch";
+import useCurrentUser from "../shared/useCurrentUser";
+import { CACHE_CONFIG, EVENT_TYPE_COLORS } from "../shared/constants";
+import { clusterEvents, getClusterVisualSize, getClusterColor } from "../shared/services/clusteringAlgorithm";
 
 const EventPin = memo(({ cluster, position, onClick, theme }) => {
   const { events, isCluster: isClusterGroup, density = 1 } = cluster;
   const mainEvent = events[0];
-  const eventColor = getEventColor(mainEvent);
-
-  const getDensitySize = () => {
-    if (!isClusterGroup) return { pin: 'w-10 h-10', glow: '60px', secondGlow: '80px' };
-
-    if (density > 10) return { pin: 'w-20 h-20', glow: '100px', secondGlow: '130px' };
-    if (density > 5) return { pin: 'w-16 h-16', glow: '85px', secondGlow: '110px' };
-    return { pin: 'w-14 h-14', glow: '75px', secondGlow: '95px' };
-  };
-
-  const sizes = getDensitySize();
+  const eventColor = getClusterColor(cluster);
+  const sizes = getClusterVisualSize(cluster);
   const glowIntensity = Math.min(0.9, 0.3 + (density / 15));
 
   return (
     <motion.div
       className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group pointer-events-auto z-10"
-      style={{
-        left: `${position.x}%`,
-        top: `${position.y}%`,
-      }}
+      style={{ left: `${position.x}%`, top: `${position.y}%` }}
       whileHover={{ scale: 1.15, zIndex: 20 }}
       onClick={() => onClick(cluster)}
       initial={{ opacity: 0, scale: 0 }}
@@ -130,6 +34,7 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
       exit={{ opacity: 0, scale: 0 }}
       transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
     >
+      {/* Tooltip */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         whileHover={{ opacity: 1, y: 0 }}
@@ -142,32 +47,30 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
         {isClusterGroup ? (
           <>
             <div className="font-bold mb-1 flex items-center gap-1" style={{ color: eventColor }}>
-              ⚡ {events.length} eventos próximos
-              {density > 10 && <span className="text-[9px] bg-white/20 px-1 rounded">HOT</span>}
+              ⚡ {events.length} eventos
+              {sizes.isHotspot && <span className="text-[9px] bg-white/20 px-1 rounded">🔥 HOT</span>}
             </div>
             <div className="text-[9px] text-gray-400">
-              Dominante: {cluster.dominantGenre} • {cluster.dominantType}
+              {cluster.dominantGenre} • {cluster.dominantType}
             </div>
             <div className="text-[9px] text-cyan-400 mt-1">
-              Clique para explorar com filtros
+              Clique para expandir
             </div>
           </>
         ) : (
           <>
-            <div className="font-bold mb-1 flex items-center gap-1" style={{ color: eventColor }}>
-              <Music2 className="w-3 h-3" />
+            <div className="font-bold mb-1" style={{ color: eventColor }}>
               {mainEvent.title}
             </div>
             <div className="flex items-center gap-2 text-[10px]">
               <MapPin className="w-3 h-3 text-purple-400" />
-              <span className="text-gray-300 truncate max-w-[120px]">
-                {mainEvent.location.venue_name}
-              </span>
+              <span className="truncate max-w-[120px]">{mainEvent.location.venue_name}</span>
             </div>
           </>
         )}
       </motion.div>
 
+      {/* Glows */}
       <motion.div
         className="absolute inset-0 rounded-full pointer-events-none"
         style={{
@@ -183,11 +86,7 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
           scale: [1, 1.4, 1],
           opacity: [0.4 * glowIntensity, 0.8 * glowIntensity, 0.4 * glowIntensity]
         }}
-        transition={{
-          duration: 2.5,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
       />
 
       <motion.div
@@ -205,84 +104,64 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
           scale: [1, 1.6, 1],
           opacity: [0.2 * glowIntensity, 0.5 * glowIntensity, 0.2 * glowIntensity]
         }}
-        transition={{
-          duration: 3.5,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 0.5
-        }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
       />
 
+      {/* Pin Principal */}
       <motion.div
         className="relative"
         animate={{
           boxShadow: [
             `0 0 20px ${eventColor}, 0 0 40px ${eventColor}70`,
-            `0 0 ${density > 10 ? '45px' : '35px'} ${eventColor}, 0 0 ${density > 10 ? '70px' : '60px'} ${eventColor}90`,
+            `0 0 ${sizes.isHotspot ? '45px' : '35px'} ${eventColor}, 0 0 ${sizes.isHotspot ? '70px' : '60px'} ${eventColor}90`,
             `0 0 20px ${eventColor}, 0 0 40px ${eventColor}70`
           ]
         }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          filter: `drop-shadow(0 0 ${isClusterGroup ? (density > 10 ? '20px' : '15px') : '10px'} ${eventColor})`
-        }}
+        style={{ filter: `drop-shadow(0 0 ${isClusterGroup ? (sizes.isHotspot ? '20px' : '15px') : '10px'} ${eventColor})` }}
       >
         <div
-          className={`${sizes.pin} rounded-full border-3 border-white/90 bg-gradient-to-br flex items-center justify-center relative overflow-hidden`}
+          className={`${sizes.pin} rounded-full border-3 border-white/90 flex items-center justify-center relative overflow-hidden`}
           style={{
             background: `linear-gradient(135deg, ${eventColor}, ${eventColor}CC)`,
             boxShadow: `0 0 20px ${eventColor}, inset 0 0 15px rgba(255,255,255,0.3)`
           }}
         >
+          {/* Inner glow */}
           <motion.div
             className="absolute inset-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 60%)',
             }}
-            animate={{
-              opacity: [0.3, 0.6, 0.3],
-              scale: [1, 1.1, 1]
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
+            animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           />
 
           {isClusterGroup ? (
             <div className="text-center z-10">
-              <div className="text-white font-bold text-base">
+              <div className={`text-white font-bold ${sizes.fontSize}`}>
                 {events.length}
               </div>
-              {density > 10 && (
-                <div className="text-[8px] text-yellow-300 font-bold leading-none">
-                  🔥
-                </div>
+              {sizes.isHotspot && (
+                <div className="text-[8px] text-yellow-300 font-bold leading-none">🔥</div>
               )}
             </div>
           ) : (
             <motion.div
               className="w-4 h-4 rounded-full bg-white z-10"
-              animate={{
-                scale: [1, 1.4, 1],
-                opacity: [1, 0.6, 1]
-              }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
+              animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
             />
           )}
         </div>
 
+        {/* Pulse ring */}
         <motion.div
           className="absolute inset-0 rounded-full border-2 pointer-events-none"
           style={{
             borderColor: eventColor,
-            width: isClusterGroup ? (density > 10 ? '90px' : '70px') : '50px',
-            height: isClusterGroup ? (density > 10 ? '90px' : '70px') : '50px',
+            width: sizes.isHotspot ? '90px' : '70px',
+            height: sizes.isHotspot ? '90px' : '70px',
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
@@ -292,11 +171,7 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
             opacity: [0.6, 0, 0.6],
             rotate: [0, 180, 360]
           }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "linear"
-          }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
         />
       </motion.div>
     </motion.div>
@@ -306,7 +181,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
     prev.cluster.events.length === next.cluster.events.length &&
     prev.position.x === next.position.x &&
     prev.position.y === next.position.y &&
-    prev.theme?.glowColor === next.theme?.glowColor &&
     prev.cluster.density === next.cluster.density
   );
 });
@@ -329,63 +203,22 @@ export default function MapView({
   const [expandedCluster, setExpandedCluster] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(15);
   const [clusterFilter, setClusterFilter] = useState({ genre: 'all', type: 'all', sortBy: 'date' });
-  // NEW STATE VARIABLES
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
 
-
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      try {
-        return await base44.auth.me();
-      } catch {
-        return null;
-      }
-    },
-    retry: false,
-    staleTime: Infinity,
-  });
-
+  const { data: user } = useCurrentUser();
   const canCreateReels = user && (user.is_pro_member || user.is_organizer);
 
-  const screenDensity = useMemo(() => {
-    return window.devicePixelRatio || 1;
-  }, []);
+  const screenDensity = useMemo(() => window.devicePixelRatio || 1, []);
 
   const vibeTheme = useMemo(() => {
     const themes = {
-      'all': {
-        glowColor: 'rgba(6, 182, 212, 0.9)',
-        secondaryGlow: 'rgba(139, 92, 246, 0.7)',
-        overlayGradient: 'from-blue-900/15 via-black to-purple-900/15',
-        accentColor: '#06B6D4'
-      },
-      'dançar': {
-        glowColor: 'rgba(236, 72, 153, 0.9)',
-        secondaryGlow: 'rgba(168, 85, 247, 0.7)',
-        overlayGradient: 'from-pink-900/20 via-black to-purple-900/20',
-        accentColor: '#EC4899'
-      },
-      'relaxar': {
-        glowColor: 'rgba(59, 130, 246, 0.9)',
-        secondaryGlow: 'rgba(99, 102, 241, 0.7)',
-        overlayGradient: 'from-blue-900/20 via-black to-indigo-900/20',
-        accentColor: '#3B82F6'
-      },
-      'socializar': {
-        glowColor: 'rgba(168, 85, 247, 0.9)',
-        secondaryGlow: 'rgba(236, 72, 153, 0.7)',
-        overlayGradient: 'from-purple-900/20 via-black to-pink-900/20',
-        accentColor: '#A855F7'
-      },
-      'adrenalina': {
-        glowColor: 'rgba(249, 115, 22, 0.9)',
-        secondaryGlow: 'rgba(239, 68, 68, 0.7)',
-        overlayGradient: 'from-orange-900/20 via-black to-red-900/20',
-        accentColor: '#F97316'
-      }
+      'all': { glowColor: 'rgba(6, 182, 212, 0.9)', secondaryGlow: 'rgba(139, 92, 246, 0.7)', accentColor: '#06B6D4' },
+      'dançar': { glowColor: 'rgba(236, 72, 153, 0.9)', secondaryGlow: 'rgba(168, 85, 247, 0.7)', accentColor: '#EC4899' },
+      'relaxar': { glowColor: 'rgba(59, 130, 246, 0.9)', secondaryGlow: 'rgba(99, 102, 241, 0.7)', accentColor: '#3B82F6' },
+      'socializar': { glowColor: 'rgba(168, 85, 247, 0.9)', secondaryGlow: 'rgba(236, 72, 153, 0.7)', accentColor: '#A855F7' },
+      'adrenalina': { glowColor: 'rgba(249, 115, 22, 0.9)', secondaryGlow: 'rgba(239, 68, 68, 0.7)', accentColor: '#F97316' }
     };
     return themes[activeVibe] || themes['all'];
   }, [activeVibe]);
@@ -395,6 +228,7 @@ export default function MapView({
     return events.filter(e => e?.id && e?.title && e?.location?.lat && e?.location?.lng);
   }, [events]);
 
+  // NOVO: Clustering otimizado
   const eventClusters = useMemo(() => {
     return clusterEvents(validEvents, zoomLevel, screenDensity);
   }, [validEvents, zoomLevel, screenDensity]);
@@ -424,9 +258,7 @@ export default function MapView({
     return { x, y };
   }, [mapBounds]);
 
-  const userPosition = useMemo(() => {
-    return coordToPosition(userLocation.lat, userLocation.lng);
-  }, [userLocation, coordToPosition]);
+  const userPosition = useMemo(() => coordToPosition(userLocation.lat, userLocation.lng), [userLocation, coordToPosition]);
 
   const handleClusterClick = useCallback((cluster) => {
     if (cluster.isCluster) {
@@ -470,7 +302,6 @@ export default function MapView({
     return { genres, types };
   }, [expandedCluster]);
 
-  // NEW: Intelligent search function
   const handleIntelligentSearch = useCallback(async () => {
     if (!searchTerm || searchTerm.trim().length === 0) {
       setShowSearchResults(false);
@@ -479,7 +310,7 @@ export default function MapView({
 
     setIsSearching(true);
     setShowSearchResults(true);
-    setSearchResults(null); // Clear previous results
+    setSearchResults(null);
 
     try {
       const { data } = await intelligentSearch({
@@ -487,7 +318,6 @@ export default function MapView({
         userLocation: userLocation
       });
 
-      console.log('🔍 Resultado da busca:', data);
       setSearchResults(data);
     } catch (error) {
       console.error('❌ Erro na busca:', error);
@@ -502,7 +332,6 @@ export default function MapView({
     }
   }, [searchTerm, userLocation]);
 
-  // Trigger search on Enter
   const handleSearchKeyPress = useCallback((e) => {
     if (e.key === 'Enter') {
       handleIntelligentSearch();
@@ -575,7 +404,8 @@ export default function MapView({
         {/* Hotspots com intensidade baseada em densidade */}
         {eventClusters.filter(c => c.isCluster || c.events.length >= 2).map((cluster, idx) => {
           const pos = coordToPosition(cluster.center.lat, cluster.center.lng);
-          const color = getEventColor(cluster.events[0]);
+          const color = getClusterColor(cluster);
+          const sizes = getClusterVisualSize(cluster); // NEW - to get isHotspot
           const intensity = Math.min(1, 0.2 + (cluster.density / 20));
 
           return (
@@ -585,8 +415,8 @@ export default function MapView({
               style={{
                 left: `${pos.x}%`,
                 top: `${pos.y}%`,
-                width: cluster.density > 10 ? '200px' : '150px',
-                height: cluster.density > 10 ? '200px' : '150px',
+                width: sizes.isHotspot ? '200px' : '150px',
+                height: sizes.isHotspot ? '200px' : '150px',
                 transform: 'translate(-50%, -50%)',
                 background: `radial-gradient(circle, ${color}${Math.floor(intensity * 40)} 0%, ${color}${Math.floor(intensity * 20)} 40%, transparent 70%)`,
                 filter: 'blur(30px)',
@@ -761,7 +591,7 @@ export default function MapView({
             const position = coordToPosition(cluster.center.lat, cluster.center.lng);
             return (
               <EventPin
-                key={`cluster-${index}-${cluster.events.map(e => e.id).join('-')}`}
+                key={`cluster-${index}-${cluster.events[0].id}`}
                 cluster={cluster}
                 position={position}
                 onClick={handleClusterClick}
@@ -805,14 +635,14 @@ export default function MapView({
           </Link>
         </div>
 
-        <div className="relative flex gap-2"> {/* Modified for search button */}
+        <div className="relative flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 z-10" style={{ color: vibeTheme.accentColor }} />
             <Input
-              placeholder="Buscar eventos, artistas, locais..." // Modified placeholder
+              placeholder="Buscar eventos, artistas, locais..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              onKeyPress={handleSearchKeyPress} // NEW: Trigger search on Enter
+              onKeyPress={handleSearchKeyPress}
               className="pl-9 pr-3 py-2 backdrop-blur-xl border-2 text-white placeholder:text-gray-500 text-sm h-9 rounded-xl"
               style={{
                 background: 'rgba(0, 0, 0, 0.6)',
@@ -822,7 +652,7 @@ export default function MapView({
             />
           </div>
           <Button
-            onClick={handleIntelligentSearch} // NEW: Search button
+            onClick={handleIntelligentSearch}
             disabled={isSearching || !searchTerm || searchTerm.trim().length === 0}
             className="h-9 px-4 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700"
           >
@@ -973,6 +803,7 @@ export default function MapView({
               }
             }}
             isLoading={isSearching}
+            userLocation={userLocation}
           />
         )}
       </AnimatePresence>
@@ -1006,7 +837,7 @@ export default function MapView({
                 <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                   <MapPin className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: vibeTheme.accentColor }} />
                   {expandedCluster.events.length} Eventos
-                  {expandedCluster.density > 10 && (
+                  {getClusterVisualSize(expandedCluster).isHotspot && (
                     <Badge className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 text-[10px]">
                       🔥 HOT ZONE
                     </Badge>
@@ -1096,7 +927,7 @@ export default function MapView({
               <div className="flex-1 overflow-y-auto space-y-2 pr-2">
                 {filteredClusterEvents.length > 0 ? (
                   filteredClusterEvents.map((event, idx) => {
-                    const eventColor = getEventColor(event);
+                    const eventColor = EVENT_TYPE_COLORS[event.type] || EVENT_TYPE_COLORS['default'];
 
                     return (
                       <motion.div
