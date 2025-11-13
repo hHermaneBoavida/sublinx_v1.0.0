@@ -142,6 +142,24 @@ export default function EventFeedCard({
           user_id: user.id,
           event_id: event.id
         });
+
+        // NOVO: Notificar organizador sobre nova curtida
+        if (event.organizer_id && event.organizer_id !== user.id) {
+          try {
+            await base44.entities.Notification.create({
+              user_id: event.organizer_id,
+              type: 'event_alert',
+              title: '❤️ Nova curtida no seu evento!',
+              message: `${user.full_name || user.email} curtiu "${event.title}"`,
+              event_id: event.id,
+              is_read: false,
+              location_match: [],
+              genre_match: []
+            });
+          } catch (notifError) {
+            console.log("Erro ao notificar organizador:", notifError);
+          }
+        }
       }
     },
     onMutate: () => {
@@ -159,12 +177,32 @@ export default function EventFeedCard({
 
   const commentMutation = useMutation({
     mutationFn: async (commentText) => {
-      return await base44.entities.Comment.create({
+      const newCommentData = await base44.entities.Comment.create({
         user_id: user.id,
         event_id: event.id,
         content: commentText,
         user_name: user.full_name || user.email?.split('@')[0]
       });
+
+      // NOVO: Notificar organizador sobre novo comentário
+      if (event.organizer_id && event.organizer_id !== user.id) {
+        try {
+          await base44.entities.Notification.create({
+            user_id: event.organizer_id,
+            type: 'new_message',
+            title: '💬 Novo comentário no seu evento!',
+            message: `${user.full_name || user.email} comentou em "${event.title}"`,
+            event_id: event.id,
+            is_read: false,
+            location_match: [],
+            genre_match: []
+          });
+        } catch (notifError) {
+          console.log("Erro ao notificar organizador:", notifError);
+        }
+      }
+
+      return newCommentData;
     },
     onSuccess: (newCommentData) => {
       setComments(prev => [...prev, newCommentData]);
