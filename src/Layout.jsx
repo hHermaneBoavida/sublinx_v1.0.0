@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -8,10 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
-import { motion } from "framer-motion"; // NEW: Import motion from framer-motion
+import NotificationListener from "@/components/notifications/NotificationListener";
+import EventProximityChecker from "@/components/notifications/EventProximityChecker";
+import { motion } from "framer-motion";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+  const [userLocation, setUserLocation] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -20,10 +22,10 @@ export default function Layout({ children, currentPageName }) {
         const userData = await base44.auth.me();
         return userData;
       } catch (error) {
-        return null; // Modo guest permitido
+        return null;
       }
     },
-    retry: false, // CORREÇÃO: Não redirecionar automaticamente
+    retry: false,
     staleTime: Infinity,
   });
 
@@ -36,6 +38,26 @@ export default function Layout({ children, currentPageName }) {
     enabled: !!user,
     initialData: 0,
   });
+
+  // Obter localização do usuário para notificações de proximidade
+  useEffect(() => {
+    if (!user || isGuest) return;
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.log("Localização não disponível para notificações:", error);
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+      );
+    }
+  }, [user, isGuest]);
 
   const getNavigationItems = (currentUser, guest) => {
     const baseItems = [
@@ -106,7 +128,6 @@ export default function Layout({ children, currentPageName }) {
           .then((registration) => {
             console.log('✅ Service Worker registrado:', registration.scope);
             
-            // Verificar atualizações
             registration.addEventListener('updatefound', () => {
               const newWorker = registration.installing;
               console.log('🔄 Nova versão do Service Worker encontrada');
@@ -114,7 +135,6 @@ export default function Layout({ children, currentPageName }) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   console.log('✨ Nova versão disponível! Recarregue para atualizar.');
-                  // Você pode mostrar uma notificação aqui
                 }
               });
             });
@@ -145,6 +165,10 @@ export default function Layout({ children, currentPageName }) {
           }
         `}</style>
         {children}
+        
+        {/* Notificações em tempo real mesmo nas páginas sem layout */}
+        {!isGuest && <NotificationListener user={user} />}
+        {!isGuest && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
       </>
     );
   }
@@ -163,7 +187,6 @@ export default function Layout({ children, currentPageName }) {
         }
       `}</style>
       
-      {/* NOVO: Background Cyberpunk Melhorado */}
       <div 
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -171,7 +194,6 @@ export default function Layout({ children, currentPageName }) {
         }}
       />
 
-      {/* NOVO: Grid Neon Pulsante */}
       <div
         className="fixed inset-0 pointer-events-none opacity-[0.08]"
         style={{
@@ -184,7 +206,6 @@ export default function Layout({ children, currentPageName }) {
         }}
       />
 
-      {/* Spots de Luz - Cyan e Violeta */}
       <div 
         className="fixed top-0 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none opacity-15"
         style={{
@@ -200,7 +221,6 @@ export default function Layout({ children, currentPageName }) {
         }}
       />
 
-      {/* NOVO: Linhas Diagonais Urbanas */}
       <div
         className="fixed inset-0 pointer-events-none opacity-[0.04]"
         style={{
@@ -273,7 +293,6 @@ export default function Layout({ children, currentPageName }) {
                       : 'none'
                   }}
                 >
-                  {/* Reflexo superior quando ativo */}
                   {location.pathname === item.url && (
                     <div 
                       className="absolute top-0 left-0 right-0 h-1/2 rounded-t-lg"
@@ -406,7 +425,6 @@ export default function Layout({ children, currentPageName }) {
           whileHover={{ scale: 1.15, rotate: 10 }}
           whileTap={{ scale: 0.9, rotate: -10 }}
         >
-          {/* Glow Pulsante */}
           <motion.div
             className="absolute inset-0 rounded-full"
             style={{
@@ -438,7 +456,6 @@ export default function Layout({ children, currentPageName }) {
                 boxShadow: '0 0 30px rgba(6, 182, 212, 0.7), 0 0 60px rgba(168, 85, 247, 0.5)'
               }}
             >
-              {/* Reflexo dinâmico */}
               <motion.div
                 className="absolute inset-0"
                 style={{
@@ -455,7 +472,6 @@ export default function Layout({ children, currentPageName }) {
             </Button>
           </Link>
 
-          {/* Tooltip Neon */}
           <motion.div 
             className="absolute bottom-full right-0 mb-2 sm:mb-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap backdrop-blur-xl border-2"
             style={{
@@ -550,7 +566,10 @@ export default function Layout({ children, currentPageName }) {
 
       <PWAInstallPrompt />
 
-      {/* NOVO: CSS Animations Cyberpunk */}
+      {/* NOVO: Sistema de Notificações em Tempo Real */}
+      {!isGuest && <NotificationListener user={user} />}
+      {!isGuest && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
+
       <style jsx>{`
         @keyframes grid-glow {
           0%, 100% {
