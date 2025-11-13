@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  X, MapPin, Calendar, Users, DollarSign, Clock,
-  Navigation, Share2, Heart, MessageCircle, Zap,
-  Music, TrendingUp, ExternalLink
+  X, MapPin, Calendar, Users, DollarSign,
+  Navigation, Share2, Zap, CalendarPlus, MessageSquare,
+  Music2, ExternalLink, User, Instagram, Twitter
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,15 +17,19 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import useCurrentUser from "../shared/useCurrentUser";
 
-/**
- * MODAL DE DETALHES DO EVENTO - MELHORADO
- * Visual imersivo com todas as informações
- */
 export default function EventDetailsModal({ event, onClose }) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [shareComment, setShareComment] = useState("");
+  const [showShareComment, setShowShareComment] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
+
+  // Mock DJs/Artists (em produção, viria do evento)
+  const artists = event.artists || [
+    { name: "DJ Shadow", role: "Headliner", instagram: "@djshadow", avatar: "https://i.pravatar.cc/80?img=1" },
+    { name: "MC Flow", role: "MC", twitter: "@mcflow", avatar: "https://i.pravatar.cc/80?img=2" }
+  ];
 
   const likeMutation = useMutation({
     mutationFn: async () => {
@@ -50,24 +54,60 @@ export default function EventDetailsModal({ event, onClose }) {
     }
   });
 
+  // Integração Google Maps
   const handleGetDirections = () => {
     if (!event.location?.lat || !event.location?.lng) return;
     
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${event.location.lat},${event.location.lng}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${event.location.lat},${event.location.lng}&travelmode=driving`;
     window.open(url, '_blank');
   };
 
+  // Visualizar no Waze
+  const handleOpenWaze = () => {
+    if (!event.location?.lat || !event.location?.lng) return;
+    
+    const url = `https://waze.com/ul?ll=${event.location.lat},${event.location.lng}&navigate=yes`;
+    window.open(url, '_blank');
+  };
+
+  // Adicionar ao Google Calendar
+  const handleAddToCalendar = () => {
+    const startDate = new Date(event.date);
+    const endDate = new Date(startDate.getTime() + (event.duration_hours || 4) * 60 * 60 * 1000);
+    
+    const formatGoogleDate = (date) => {
+      return date.toISOString().replace(/-|:|\.\d+/g, '');
+    };
+
+    const details = `${event.description || ''}\n\nLocal: ${event.location?.venue_name || 'A definir'}\nOrganizador: ${event.organizer}`;
+    
+    const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(event.location?.address || event.location?.venue_name || '')}&sf=true&output=xml`;
+    
+    window.open(googleCalendarUrl, '_blank');
+  };
+
+  // Compartilhamento avançado
   const handleShare = async () => {
+    const shareText = shareComment 
+      ? `${shareComment}\n\n${event.title}` 
+      : `Confira esse evento: ${event.title}`;
+    
     if (navigator.share) {
       try {
         await navigator.share({
           title: event.title,
-          text: `Confira esse evento: ${event.title}`,
+          text: shareText,
           url: window.location.href
         });
+        setShowShareComment(false);
+        setShareComment("");
       } catch (err) {
         console.log('Share cancelled');
       }
+    } else {
+      // Fallback: copiar link
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copiado!');
     }
   };
 
@@ -110,7 +150,6 @@ export default function EventDetailsModal({ event, onClose }) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
               
-              {/* Close button */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -120,7 +159,6 @@ export default function EventDetailsModal({ event, onClose }) {
                 <X className="w-5 h-5" />
               </Button>
 
-              {/* Title overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-6">
                 <h1 className="text-3xl font-bold text-white mb-3 drop-shadow-lg">
                   {event.title}
@@ -177,6 +215,53 @@ export default function EventDetailsModal({ event, onClose }) {
                 </div>
               </div>
 
+              {/* Artists/DJs */}
+              {artists && artists.length > 0 && (
+                <div className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                    <Music2 className="w-4 h-4 text-purple-400" />
+                    Line-up Confirmado
+                  </h3>
+                  <div className="space-y-3">
+                    {artists.map((artist, index) => (
+                      <div key={index} className="flex items-center gap-3 bg-black/30 rounded-lg p-3">
+                        <img
+                          src={artist.avatar}
+                          alt={artist.name}
+                          className="w-10 h-10 rounded-full border-2 border-purple-500/50"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-white text-sm">{artist.name}</div>
+                          <div className="text-xs text-gray-400">{artist.role}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          {artist.instagram && (
+                            <a 
+                              href={`https://instagram.com/${artist.instagram.replace('@', '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-pink-400 hover:text-pink-300"
+                            >
+                              <Instagram className="w-4 h-4" />
+                            </a>
+                          )}
+                          {artist.twitter && (
+                            <a 
+                              href={`https://twitter.com/${artist.twitter.replace('@', '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300"
+                            >
+                              <Twitter className="w-4 h-4" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Attendance */}
               <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                 <div className="flex items-center justify-between mb-3">
@@ -189,7 +274,6 @@ export default function EventDetailsModal({ event, onClose }) {
                   </span>
                 </div>
                 
-                {/* Progress bar */}
                 <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
@@ -270,12 +354,13 @@ export default function EventDetailsModal({ event, onClose }) {
                   size="sm"
                   variant="outline"
                   className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/10"
+                  onClick={() => navigate(createPageUrl("PerfilUsuario") + `?id=${event.organizer_id}`)}
                 >
                   Ver Perfil
                 </Button>
               </div>
 
-              {/* Action Buttons */}
+              {/* Navigation Actions */}
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   onClick={handleGetDirections}
@@ -283,18 +368,76 @@ export default function EventDetailsModal({ event, onClose }) {
                   className="border-green-500/30 text-green-400 hover:bg-green-600/10"
                 >
                   <Navigation className="w-4 h-4 mr-2" />
-                  Rota
+                  Google Maps
                 </Button>
 
                 <Button
-                  onClick={handleShare}
+                  onClick={handleOpenWaze}
+                  variant="outline"
+                  className="border-blue-500/30 text-blue-400 hover:bg-blue-600/10"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Waze
+                </Button>
+              </div>
+
+              {/* Calendar & Share */}
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={handleAddToCalendar}
                   variant="outline"
                   className="border-purple-500/30 text-purple-400 hover:bg-purple-600/10"
                 >
-                  <Share2 className="w-4 h-4 mr-2" />
+                  <CalendarPlus className="w-4 h-4 mr-2" />
+                  Adicionar
+                </Button>
+
+                <Button
+                  onClick={() => setShowShareComment(!showShareComment)}
+                  variant="outline"
+                  className="border-pink-500/30 text-pink-400 hover:bg-pink-600/10"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
                   Compartilhar
                 </Button>
               </div>
+
+              {/* Share Comment Box */}
+              {showShareComment && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-gray-800/50 rounded-xl p-4 border border-pink-500/30"
+                >
+                  <textarea
+                    placeholder="Adicione um comentário pessoal (opcional)..."
+                    value={shareComment}
+                    onChange={(e) => setShareComment(e.target.value)}
+                    className="w-full bg-gray-900 text-white rounded-lg p-3 text-sm border border-gray-700 focus:border-pink-500/50 focus:outline-none resize-none"
+                    rows={3}
+                  />
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      onClick={handleShare}
+                      className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Compartilhar
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowShareComment(false);
+                        setShareComment("");
+                      }}
+                      variant="outline"
+                      className="border-gray-600 text-gray-400"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Main CTA */}
               <Button

@@ -221,7 +221,6 @@ export default function MapView({
     if (cluster.isCluster && cluster.events.length > 1) {
       setExpandedCluster(cluster);
       
-      // Zoom para o cluster
       setMapCenter({ lat: cluster.center.lat, lng: cluster.center.lng });
       if (zoomLevel < 16) {
         setZoomLevel(16);
@@ -260,7 +259,6 @@ export default function MapView({
     }
   }, [searchTerm, mapCenter]);
 
-  // Pan com teclado
   useEffect(() => {
     const handleKeyDown = (e) => {
       const panAmount = 0.01;
@@ -301,10 +299,8 @@ export default function MapView({
 
   return (
     <div className="w-full h-full relative overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0 z-0 bg-gradient-to-br from-gray-900 via-black to-gray-900" />
 
-      {/* Mapa OpenStreetMap */}
       <div className="absolute inset-0 z-1">
         <iframe
           key={`map-${bbox}-${zoomLevel}`}
@@ -324,7 +320,6 @@ export default function MapView({
         />
       </div>
 
-      {/* Grid overlay */}
       <div
         className="absolute inset-0 z-2 pointer-events-none opacity-10"
         style={{
@@ -336,119 +331,117 @@ export default function MapView({
         }}
       />
 
-      {/* Events overlay */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* User marker - IMERSIVO */}
+        {/* User marker - COMPACTO E PROPORCIONAL */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none"
           style={{ left: `${userPosition.x}%`, top: `${userPosition.y}%` }}
           animate={{
-            scale: [1, 1.08, 1]
+            scale: [1, 1.05, 1]
           }}
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          {/* Glow principal - mais intenso */}
+          {/* Glow principal - reduzido */}
           <motion.div
             className="absolute rounded-full"
             style={{
-              width: '80px',
-              height: '80px',
+              width: '40px',
+              height: '40px',
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              background: `radial-gradient(circle, ${vibeTheme.color}60 0%, ${vibeTheme.color}30 40%, transparent 70%)`,
-              filter: 'blur(20px)',
+              background: `radial-gradient(circle, ${vibeTheme.color}50 0%, transparent 70%)`,
+              filter: 'blur(10px)',
             }}
             animate={{
-              scale: [1, 1.4, 1],
-              opacity: [0.6, 1, 0.6]
+              scale: [1, 1.3, 1],
+              opacity: [0.5, 0.8, 0.5]
             }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
 
-          {/* Glow secundário - mais suave */}
+          {/* Glow secundário - mais sutil */}
           <motion.div
             className="absolute rounded-full"
             style={{
-              width: '120px',
-              height: '120px',
+              width: '60px',
+              height: '60px',
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
               background: `radial-gradient(circle, ${vibeTheme.color}20 0%, transparent 60%)`,
-              filter: 'blur(30px)',
+              filter: 'blur(15px)',
             }}
             animate={{
-              scale: [1, 1.5, 1],
-              opacity: [0.3, 0.6, 0.3]
+              scale: [1, 1.4, 1],
+              opacity: [0.3, 0.5, 0.3]
             }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           />
 
-          {/* Marker principal - com brilho interno */}
+          {/* Marker principal - TAMANHO REDUZIDO */}
           <motion.div
-            className="w-9 h-9 rounded-full relative"
+            className="w-5 h-5 rounded-full relative"
             style={{
               background: `linear-gradient(135deg, ${vibeTheme.color}, ${vibeTheme.color}DD)`,
-              border: `3px solid white`,
-              boxShadow: `0 0 25px ${vibeTheme.color}, 0 0 40px ${vibeTheme.color}80, 0 4px 15px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.4)`
+              border: `2px solid white`,
+              boxShadow: `0 0 15px ${vibeTheme.color}, 0 0 25px ${vibeTheme.color}60, 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 4px rgba(255,255,255,0.4)`
             }}
             animate={{
               boxShadow: [
-                `0 0 25px ${vibeTheme.color}, 0 0 40px ${vibeTheme.color}80, 0 4px 15px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.4)`,
-                `0 0 35px ${vibeTheme.color}, 0 0 60px ${vibeTheme.color}90, 0 4px 15px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.6)`,
-                `0 0 25px ${vibeTheme.color}, 0 0 40px ${vibeTheme.color}80, 0 4px 15px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.4)`
+                `0 0 15px ${vibeTheme.color}, 0 0 25px ${vibeTheme.color}60, 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 4px rgba(255,255,255,0.4)`,
+                `0 0 20px ${vibeTheme.color}, 0 0 35px ${vibeTheme.color}70, 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 4px rgba(255,255,255,0.5)`,
+                `0 0 15px ${vibeTheme.color}, 0 0 25px ${vibeTheme.color}60, 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 4px rgba(255,255,255,0.4)`
               ]
             }}
             transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            {/* Shine effect interno */}
+            {/* Shine interno */}
             <motion.div
               className="absolute inset-0 rounded-full"
               style={{
-                background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.6), transparent 60%)',
+                background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5), transparent 60%)',
               }}
               animate={{
-                opacity: [0.6, 0.9, 0.6]
+                opacity: [0.5, 0.8, 0.5]
               }}
               transition={{ duration: 2, repeat: Infinity }}
             />
 
-            {/* Ícone de navegação */}
+            {/* Ícone menor */}
             <Navigation 
-              className="w-5 h-5 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-lg" 
+              className="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-md" 
               strokeWidth={3}
             />
           </motion.div>
 
-          {/* Partículas flutuantes ao redor */}
-          {[0, 1, 2, 3].map((i) => (
+          {/* Partículas menores */}
+          {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="absolute w-1.5 h-1.5 rounded-full"
+              className="absolute w-1 h-1 rounded-full"
               style={{
                 background: vibeTheme.color,
-                boxShadow: `0 0 8px ${vibeTheme.color}`,
+                boxShadow: `0 0 6px ${vibeTheme.color}`,
                 left: '50%',
                 top: '50%',
               }}
               animate={{
-                x: [0, Math.cos(i * Math.PI / 2) * 30, 0],
-                y: [0, Math.sin(i * Math.PI / 2) * 30, 0],
-                opacity: [0, 0.8, 0],
+                x: [0, Math.cos(i * (Math.PI * 2) / 3) * 20, 0],
+                y: [0, Math.sin(i * (Math.PI * 2) / 3) * 20, 0],
+                opacity: [0, 0.7, 0],
                 scale: [0, 1, 0]
               }}
               transition={{
                 duration: 3,
                 repeat: Infinity,
-                delay: i * 0.75,
+                delay: i * 1,
                 ease: "easeInOut"
               }}
             />
           ))}
         </motion.div>
 
-        {/* Event pins */}
         <AnimatePresence>
           {eventClusters.map((cluster, index) => {
             const position = coordToPosition(cluster.center.lat, cluster.center.lng);
@@ -468,7 +461,6 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* Top bar */}
       <div className="absolute top-3 left-3 right-3 z-30 flex flex-col gap-2">
         <div className="flex gap-2">
           <Button
@@ -491,7 +483,6 @@ export default function MapView({
           </Link>
         </div>
 
-        {/* Search bar */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 z-10" />
@@ -517,7 +508,6 @@ export default function MapView({
         </div>
       </div>
 
-      {/* FAB Upload */}
       {canCreateReels && (
         <motion.div
           className="absolute bottom-20 right-3 z-30"
@@ -549,7 +539,6 @@ export default function MapView({
         </motion.div>
       )}
 
-      {/* Swipe up area */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-20 pb-3 px-4"
         drag="y"
@@ -608,7 +597,6 @@ export default function MapView({
         </div>
       </motion.div>
 
-      {/* Search Results */}
       <AnimatePresence>
         {showSearchResults && (
           <SearchResults
@@ -622,8 +610,6 @@ export default function MapView({
               if (event) {
                 onPinDetailsClick(event);
                 setShowSearchResults(false);
-                
-                // Centralizar no evento
                 setMapCenter({ lat: event.location.lat, lng: event.location.lng });
                 setZoomLevel(17);
               }
@@ -634,7 +620,6 @@ export default function MapView({
         )}
       </AnimatePresence>
 
-      {/* Cluster Expansion */}
       <AnimatePresence>
         {expandedCluster && (
           <ClusterExpansion
