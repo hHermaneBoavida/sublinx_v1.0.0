@@ -11,18 +11,7 @@ import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import ShareVibeModal from "../components/feed/ShareVibeModal";
 import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-const getDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+import { filterFutureEvents, sortEventsByDistance, CACHE_CONFIG } from "../components/shared/helpers";
 
 export default function Feed() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,35 +28,23 @@ export default function Feed() {
       }
     },
     retry: false,
-    staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   const isGuest = !user;
 
-  // CORREÇÃO: Cache de 10 minutos para eventos FUTUROS apenas
   const { data: events = [], isLoading: isLoadingEvents, refetch } = useQuery({
     queryKey: ['feedEvents'],
     queryFn: async () => {
-      const now = new Date();
       const data = await base44.entities.Event.list("-date", 50);
-      
-      // FILTRAR: Apenas eventos FUTUROS (data >= agora)
-      return (data || []).filter(e => {
-        if (!e?.id || !e?.title || !e?.location?.lat || !e?.location?.lng) return false;
-        
-        const eventDate = new Date(e.date);
-        return eventDate >= now; // Apenas eventos futuros
-      });
+      return filterFutureEvents(data);
     },
-    staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    ...CACHE_CONFIG.MEDIUM,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     initialData: [],
   });
 
-  // CORREÇÃO: Cache de 10 minutos para anúncios ATIVOS
   const { data: advertisements = [] } = useQuery({
     queryKey: ['feedAds'],
     queryFn: async () => {
@@ -78,21 +55,10 @@ export default function Feed() {
           placement: { $in: ['feed_top', 'feed_middle'] }
         }, "", 10);
         
-        // FILTRAR: Apenas anúncios dentro do período de vigência
         return (ads || []).filter(ad => {
-          if (!ad || !ad.id) return false;
-          
-          // Verificar datas de início e fim
-          if (ad.start_date) {
-            const startDate = new Date(ad.start_date);
-            if (now < startDate) return false;
-          }
-          
-          if (ad.end_date) {
-            const endDate = new Date(ad.end_date);
-            if (now > endDate) return false;
-          }
-          
+          if (!ad?.id) return false;
+          if (ad.start_date && now < new Date(ad.start_date)) return false;
+          if (ad.end_date && now > new Date(ad.end_date)) return false;
           return true;
         });
       } catch (error) {
@@ -100,8 +66,7 @@ export default function Feed() {
         return [];
       }
     },
-    staleTime: 10 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    ...CACHE_CONFIG.MEDIUM,
     initialData: [],
   });
 
@@ -140,24 +105,13 @@ export default function Feed() {
       };
     },
     enabled: !!user && events.length > 0,
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    ...CACHE_CONFIG.MEDIUM,
     refetchOnWindowFocus: false,
     initialData: { likes: {}, comments: {}, requests: {} },
   });
 
   const sortedEvents = useMemo(() => {
-    if (!events || events.length === 0) return [];
-    
-    if (!user?.location?.lat) {
-      return [...events].sort((a, b) => new Date(a.date) - new Date(b.date)); // PRÓXIMOS PRIMEIRO
-    }
-
-    return [...events].sort((a, b) => {
-      const distA = getDistance(user.location.lat, user.location.lng, a.location.lat, a.location.lng);
-      const distB = getDistance(user.location.lat, user.location.lng, b.location.lat, b.location.lng);
-      return distA - distB;
-    });
+    return sortEventsByDistance(events, user?.location);
   }, [events, user?.location]);
 
   const filteredEvents = useMemo(() => {
@@ -173,7 +127,6 @@ export default function Feed() {
     );
   }, [sortedEvents, searchTerm]);
 
-  // NOVO: Inserir anúncios PATROCINADOS em DESTAQUE no feed
   const feedWithAds = useMemo(() => {
     if (!advertisements || advertisements.length === 0) {
       return filteredEvents.map(event => ({ type: 'event', data: event, key: `event-${event.id}` }));
@@ -183,20 +136,17 @@ export default function Feed() {
     const topAds = advertisements.filter(ad => ad?.placement === 'feed_top');
     const middleAds = advertisements.filter(ad => ad?.placement === 'feed_middle');
 
-    // DESTAQUE: Anúncios no topo SEMPRE
     topAds.forEach(ad => {
       if (ad?.id) {
         result.push({ type: 'ad', data: ad, key: `ad-top-${ad.id}`, featured: true });
       }
     });
 
-    // Inserir eventos e anúncios no meio (A cada 3 eventos)
     filteredEvents.forEach((event, index) => {
       if (event?.id) {
         result.push({ type: 'event', data: event, key: `event-${event.id}` });
       }
       
-      // A cada 3 eventos, inserir um anúncio DESTACADO
       if ((index + 1) % 3 === 0 && middleAds.length > 0) {
         const adIndex = Math.floor(index / 3) % middleAds.length;
         const ad = middleAds[adIndex];
@@ -211,7 +161,6 @@ export default function Feed() {
 
   return (
     <div className="max-w-xl mx-auto px-0 py-0">
-      {/* Header - MAIS COMPACTO */}
       <div className="sticky top-0 z-10 bg-black/95 backdrop-blur-lg border-b border-gray-800/50 px-3 sm:px-4 py-2.5 sm:py-3">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
@@ -241,7 +190,6 @@ export default function Feed() {
           </div>
         </div>
 
-        {/* Search - MAIS COMPACTO */}
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -253,7 +201,6 @@ export default function Feed() {
         </div>
       </div>
 
-      {/* Share Vibe Button - MAIS COMPACTO */}
       <div className="px-3 sm:px-4 py-2.5 border-b border-gray-800/30">
         <Button
           className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 h-10 text-sm font-semibold shadow-lg"
@@ -265,7 +212,6 @@ export default function Feed() {
         </Button>
       </div>
 
-      {/* FEED IMERSIVO - SEM ESPAÇAMENTOS */}
       <div className="space-y-0">
         {isLoadingEvents ? (
           <>
@@ -277,7 +223,7 @@ export default function Feed() {
           </>
         ) : feedWithAds.length > 0 ? (
           feedWithAds.map((item, index) => {
-            if (!item || !item.data || !item.key) return null;
+            if (!item?.data?.key) return null;
             
             return (
               <React.Fragment key={item.key}>
@@ -294,7 +240,6 @@ export default function Feed() {
                   />
                 )}
                 
-                {/* Separador Minimalista */}
                 {index < feedWithAds.length - 1 && (
                   <div className="relative h-[1px] bg-gradient-to-r from-transparent via-gray-800/50 to-transparent">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent blur-[2px]" />
@@ -310,9 +255,7 @@ export default function Feed() {
               Nenhum evento encontrado
             </h3>
             <p className="text-sm sm:text-base text-gray-500 px-4 mb-4">
-              {searchTerm 
-                ? "Tente ajustar sua busca" 
-                : "Ainda não há eventos futuros. Volte em breve!"}
+              {searchTerm ? "Tente ajustar sua busca" : "Ainda não há eventos futuros. Volte em breve!"}
             </p>
             {searchTerm && (
               <Button 
@@ -337,12 +280,8 @@ export default function Feed() {
   );
 }
 
-// NOVO: Componente de Anúncio Patrocinado EM DESTAQUE
 function SponsoredAdCard({ ad, featured = false }) {
-  if (!ad || !ad.id) {
-    console.warn('SponsoredAdCard: Anúncio inválido recebido');
-    return null;
-  }
+  if (!ad?.id) return null;
 
   const handleAdClick = async () => {
     try {
@@ -368,7 +307,6 @@ function SponsoredAdCard({ ad, featured = false }) {
       }`}
       onClick={handleAdClick}
     >
-      {/* Badge PATROCINADO em DESTAQUE */}
       <div className="absolute top-2 left-2 z-10">
         <Badge className={`backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold flex items-center gap-1 shadow-lg ${
           featured 
@@ -389,7 +327,6 @@ function SponsoredAdCard({ ad, featured = false }) {
         </Badge>
       </div>
 
-      {/* NOVO: Badge de Impressões */}
       {ad.impressions > 0 && (
         <div className="absolute top-2 right-2 z-10">
           <Badge className="bg-black/60 backdrop-blur-sm text-white text-[9px] px-1.5 py-0.5">
@@ -399,7 +336,6 @@ function SponsoredAdCard({ ad, featured = false }) {
         </div>
       )}
 
-      {/* Imagem DESTACADA */}
       {ad.image_url && (
         <div className={`relative w-full overflow-hidden ${featured ? 'h-64' : 'h-48'}`}>
           <img
@@ -413,7 +349,6 @@ function SponsoredAdCard({ ad, featured = false }) {
               : 'bg-gradient-to-t from-black/60 via-transparent to-transparent'
           }`} />
           
-          {/* NOVO: Indicador de DESTAQUE */}
           {featured && (
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
               <div className="relative">
@@ -435,7 +370,6 @@ function SponsoredAdCard({ ad, featured = false }) {
               {ad.description || ''}
             </p>
             
-            {/* NOVO: Target Audience */}
             {ad.target_audience && (ad.target_audience.genres?.length > 0 || ad.target_audience.cities?.length > 0) && (
               <div className="flex flex-wrap gap-1 mb-3">
                 {ad.target_audience.genres?.slice(0, 3).map(genre => (

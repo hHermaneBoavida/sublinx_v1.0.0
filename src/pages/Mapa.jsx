@@ -10,6 +10,7 @@ import EventDetailsModal from "../components/map/EventDetailsModal";
 import { Loader2, MapPin, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
+import { filterFutureEvents, matchesVibe, CACHE_CONFIG } from "../components/shared/helpers";
 
 export default function Mapa() {
   const [viewMode, setViewMode] = useState("map");
@@ -34,136 +35,80 @@ export default function Mapa() {
     if (!navigator.geolocation) {
       if (isMounted) {
         setLocationError(true);
-        setLocationErrorMessage("Seu navegador não suporta geolocalização. Use um navegador moderno (Chrome, Firefox, Safari).");
+        setLocationErrorMessage("Seu navegador não suporta geolocalização. Use um navegador moderno.");
         setLoadingLocation(false);
       }
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (isMounted) {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          setUserLocation(location);
-          setLocationError(false);
-          setLocationErrorMessage("");
-          setLoadingLocation(false);
-        }
-      },
-      (error) => {
-        if (isMounted) {
-          let errorMsg = "";
-          
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMsg = "Você negou o acesso à localização. Por favor, permita o acesso nas configurações do navegador.";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMsg = "Localização indisponível. Verifique se o GPS está ativado ou se você está em um local com sinal.";
-              break;
-            case error.TIMEOUT:
-              errorMsg = "Tempo esgotado ao tentar obter sua localização. Tente novamente.";
-              break;
-            default:
-              errorMsg = "Erro desconhecido ao obter localização. Tente novamente.";
-          }
-          
-          setLocationError(true);
-          setLocationErrorMessage(errorMsg);
-          setLoadingLocation(false);
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+    const handleSuccess = (position) => {
+      if (isMounted) {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setLocationError(false);
+        setLocationErrorMessage("");
+        setLoadingLocation(false);
       }
-    );
-
-    return () => {
-      isMounted = false;
     };
+
+    const handleError = (error) => {
+      if (!isMounted) return;
+      
+      const errorMessages = {
+        1: "Você negou o acesso à localização. Por favor, permita o acesso nas configurações do navegador.",
+        2: "Localização indisponível. Verifique se o GPS está ativado.",
+        3: "Tempo esgotado ao tentar obter sua localização. Tente novamente.",
+      };
+      
+      setLocationError(true);
+      setLocationErrorMessage(errorMessages[error.code] || "Erro ao obter localização.");
+      setLoadingLocation(false);
+    };
+
+    navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    });
+
+    return () => { isMounted = false; };
   }, []);
 
-  const requestLocationAgain = () => {
+  const requestLocationAgain = useCallback(() => {
     setLoadingLocation(true);
     setLocationError(false);
     setLocationErrorMessage("");
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        setUserLocation(location);
+        setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
         setLocationError(false);
-        setLocationErrorMessage("");
         setLoadingLocation(false);
       },
       (error) => {
-        let errorMsg = "";
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMsg = "Você negou o acesso à localização. Por favor, permita o acesso nas configurações do navegador.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMsg = "Localização indisponível. Verifique se o GPS está ativado ou se você está em um local com sinal.";
-            break;
-          case error.TIMEOUT:
-            errorMsg = "Tempo esgotado ao tentar obter sua localização. Tente novamente.";
-            break;
-          default:
-            errorMsg = "Erro desconhecido ao obter localização. Tente novamente.";
-        }
-        
+        const errorMessages = {
+          1: "Acesso negado à localização.",
+          2: "Localização indisponível.",
+          3: "Tempo esgotado.",
+        };
         setLocationError(true);
-        setLocationErrorMessage(errorMsg);
+        setLocationErrorMessage(errorMessages[error.code] || "Erro ao obter localização.");
         setLoadingLocation(false);
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
-      }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
-  };
+  }, []);
 
-  // Carregar TODOS os eventos (sem limite de distância)
   const { data: events = [], isLoading: isLoadingEvents, error: eventsError, refetch: refetchEvents } = useQuery({
     queryKey: ['mapEvents'],
     queryFn: async () => {
-      if (!userLocation) {
-        return [];
-      }
-
-      try {
-        const now = new Date();
-        const internalEvents = await base44.entities.Event.list('-date', 100);
-        
-        // Apenas validar campos e data futura
-        const validEvents = (internalEvents || [])
-          .filter(e => {
-            if (!e?.id || !e?.title || !e?.location?.lat || !e?.location?.lng) {
-              return false;
-            }
-            
-            const eventDate = new Date(e.date);
-            return eventDate >= now;
-          });
-        
-        return validEvents;
-      } catch (error) {
-        console.error("❌ Erro ao carregar eventos:", error);
-        return [];
-      }
+      if (!userLocation) return [];
+      const data = await base44.entities.Event.list('-date', 100);
+      return filterFutureEvents(data);
     },
-    staleTime: 30 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000,
+    ...CACHE_CONFIG.LONG,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
@@ -182,8 +127,7 @@ export default function Mapa() {
         return [];
       }
     },
-    staleTime: 30 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000,
+    ...CACHE_CONFIG.LONG,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: 1,
@@ -193,8 +137,8 @@ export default function Mapa() {
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
     
-    const filtered = events.filter(event => {
-      if (!event || !event.location) return false;
+    return events.filter(event => {
+      if (!event?.location) return false;
       
       const genreMatch = filters.genre === 'all' || event.genre === filters.genre;
       const typeMatch = filters.type === 'all' || event.type === filters.type;
@@ -203,28 +147,10 @@ export default function Mapa() {
         event.location?.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.genre?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      let vibeMatch = true;
-      if (activeVibe !== 'all') {
-        const vibeGenres = {
-          'dançar': ['techno', 'house', 'trance', 'drum_bass', 'dubstep', 'funk', 'trap', 'eletrônico'],
-          'relaxar': ['ambient', 'experimental', 'minimal', 'jazz', 'blues', 'chill'],
-          'socializar': ['samba', 'pagode', 'kizomba', 'kuduro', 'reggae', 'pop', 'rock', 'hiphop', 'sertanejo', 'forró'],
-          'adrenalina': ['hardcore', 'acid', 'experimental', 'metal', 'punk']
-        };
-        
-        const eventGenre = event.genre?.toLowerCase();
-        const eventVibeTags = event.vibe_tags?.map(tag => tag.toLowerCase()) || [];
-
-        const genreMatchVibe = vibeGenres[activeVibe]?.includes(eventGenre);
-        const vibeTagMatch = eventVibeTags.includes(activeVibe.toLowerCase());
-        
-        vibeMatch = genreMatchVibe || vibeTagMatch;
-      }
+      const vibeMatch = matchesVibe(event, activeVibe);
       
       return genreMatch && typeMatch && searchMatch && vibeMatch;
     });
-    
-    return filtered;
   }, [events, filters, searchTerm, activeVibe]);
 
   const handlePinClick = useCallback((eventId) => {
@@ -270,7 +196,7 @@ export default function Mapa() {
         <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 animate-spin text-cyan-400 mb-4" />
         <p className="text-gray-300 text-sm sm:text-base mb-2 text-center">Obtendo sua localização...</p>
         <p className="text-gray-500 text-xs sm:text-sm text-center max-w-md">
-          📍 Por favor, permita o acesso à localização quando solicitado pelo navegador
+          📍 Por favor, permita o acesso à localização quando solicitado
         </p>
       </div>
     );
@@ -291,24 +217,24 @@ export default function Mapa() {
 
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6 text-left">
               <p className="text-xs sm:text-sm font-semibold text-blue-300 mb-2">
-                💡 Como habilitar a localização:
+                💡 Como habilitar:
               </p>
               <ul className="space-y-2 text-xs sm:text-sm text-gray-300">
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold flex-shrink-0">1.</span>
-                  <span>Clique no ícone 🔒 ou ⓘ ao lado da URL no navegador</span>
+                  <span className="text-cyan-400 font-bold">1.</span>
+                  <span>Clique no ícone 🔒 ao lado da URL</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold flex-shrink-0">2.</span>
-                  <span>Encontre "Permissões" ou "Configurações do site"</span>
+                  <span className="text-cyan-400 font-bold">2.</span>
+                  <span>Encontre "Permissões"</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold flex-shrink-0">3.</span>
+                  <span className="text-cyan-400 font-bold">3.</span>
                   <span>Altere "Localização" para "Permitir"</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold flex-shrink-0">4.</span>
-                  <span>Clique em "Tentar Novamente" abaixo</span>
+                  <span className="text-cyan-400 font-bold">4.</span>
+                  <span>Clique em "Tentar Novamente"</span>
                 </li>
               </ul>
             </div>
@@ -322,7 +248,7 @@ export default function Mapa() {
             </Button>
 
             <p className="text-xs text-gray-500 mt-4">
-              🔒 Sua localização é usada apenas para mostrar eventos próximos e nunca é compartilhada
+              🔒 Sua localização nunca é compartilhada
             </p>
           </div>
         </div>
@@ -344,12 +270,12 @@ export default function Mapa() {
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
         <AlertCircle className="w-12 h-12 sm:w-16 sm:h-16 text-red-400 mb-4" />
         <p className="text-red-400 mb-4 text-sm sm:text-base text-center">Erro ao carregar eventos</p>
-        <button 
+        <Button 
           onClick={() => refetchEvents()}
           className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 text-sm sm:text-base"
         >
           Tentar Novamente
-        </button>
+        </Button>
       </div>
     );
   }
@@ -363,10 +289,7 @@ export default function Mapa() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ 
-              duration: 0.4,
-              ease: [0.43, 0.13, 0.23, 0.96]
-            }}
+            transition={{ duration: 0.4, ease: [0.43, 0.13, 0.23, 0.96] }}
             className="absolute inset-0 z-10"
           >
             <MapView 
@@ -393,10 +316,7 @@ export default function Mapa() {
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
             exit={{ y: "100%" }}
-            transition={{ 
-              duration: 0.5, 
-              ease: [0.32, 0.72, 0, 1]
-            }}
+            transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
             className="absolute inset-0 z-20"
           >
             <ReelsView
