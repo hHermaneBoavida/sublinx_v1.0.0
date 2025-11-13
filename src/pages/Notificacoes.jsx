@@ -5,13 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Bell, Settings, Loader2, CheckCircle2, Trash2 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bell, Settings, Loader2, CheckCircle2, MessageCircle, Heart } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationCard from "../components/notifications/NotificationCard";
 import NotificationSettings from "../components/notifications/NotificationSettings";
-import { CACHE_CONFIG } from "../components/shared/helpers";
 
 export default function Notificacoes() {
   const navigate = useNavigate();
@@ -19,7 +17,6 @@ export default function Notificacoes() {
   const [showSettings, setShowSettings] = useState(false);
   const [filterType, setFilterType] = useState('all');
 
-  // CORRIGIDO: Query do usuário
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
@@ -33,10 +30,9 @@ export default function Notificacoes() {
       }
     },
     retry: false,
-    ...CACHE_CONFIG.STATIC,
+    staleTime: Infinity,
   });
 
-  // CORRIGIDO: Query de notificações com error handling
   const { data: notifications = [], isLoading: isLoadingNotifications } = useQuery({
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
@@ -55,13 +51,11 @@ export default function Notificacoes() {
         
         console.log('✅ Notificações recebidas:', data?.length || 0);
         
-        // Garantir que data é um array
         if (!Array.isArray(data)) {
           console.warn('⚠️ Dados recebidos não são array:', data);
           return [];
         }
         
-        // Filtrar notificações válidas
         const validNotifications = data.filter(n => 
           n && 
           typeof n === 'object' && 
@@ -79,12 +73,11 @@ export default function Notificacoes() {
     },
     enabled: !!user?.id,
     initialData: [],
-    ...CACHE_CONFIG.SHORT,
+    staleTime: 30000,
     refetchInterval: 30000,
     refetchIntervalInBackground: false,
   });
 
-  // CORRIGIDO: Mutations com error handling
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId) => {
       if (!notificationId) throw new Error('ID da notificação inválido');
@@ -96,7 +89,6 @@ export default function Notificacoes() {
     },
     onError: (error) => {
       console.error('❌ Erro ao marcar como lida:', error);
-      alert('Erro ao marcar notificação. Tente novamente.');
     }
   });
 
@@ -127,7 +119,6 @@ export default function Notificacoes() {
     },
     onError: (error) => {
       console.error('❌ Erro ao marcar todas:', error);
-      alert('Erro ao marcar notificações. Tente novamente.');
     }
   });
 
@@ -142,19 +133,16 @@ export default function Notificacoes() {
     },
     onError: (error) => {
       console.error('❌ Erro ao deletar:', error);
-      alert('Erro ao deletar notificação. Tente novamente.');
     }
   });
 
   const handleNotificationClick = async (notification) => {
     if (!notification) return;
 
-    // Marcar como lida
     if (!notification.is_read) {
       markAsReadMutation.mutate(notification.id);
     }
 
-    // Navegar baseado no tipo
     if (notification.event_id) {
       navigate(createPageUrl("Mapa"));
     } else if (notification.type === 'new_follower') {
@@ -164,7 +152,6 @@ export default function Notificacoes() {
     }
   };
 
-  // CORRIGIDO: Filtrar com validação
   const filteredNotifications = Array.isArray(notifications) 
     ? notifications.filter(n => {
         if (!n || !n.id) return false;
@@ -183,7 +170,7 @@ export default function Notificacoes() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-[calc(100vh-80px)] flex items-center justify-center bg-black">
+      <div className="w-full min-h-screen flex items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-4">
           <motion.div
             animate={{ rotate: 360 }}
@@ -199,7 +186,7 @@ export default function Notificacoes() {
 
   if (!user) {
     return (
-      <div className="w-full h-[calc(100vh-80px)] flex items-center justify-center bg-black">
+      <div className="w-full min-h-screen flex items-center justify-center bg-black">
         <div className="text-center">
           <Bell className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <p className="text-gray-400">Faça login para ver notificações</p>
@@ -215,7 +202,7 @@ export default function Notificacoes() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-6 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -311,18 +298,18 @@ export default function Notificacoes() {
             <span className="hidden sm:inline">Eventos</span>
           </TabsTrigger>
           <TabsTrigger value="new_message" className="text-xs sm:text-sm">
-            <Bell className="w-3 h-3 sm:mr-1" />
+            <MessageCircle className="w-3 h-3 sm:mr-1" />
             <span className="hidden sm:inline">Msgs</span>
           </TabsTrigger>
           <TabsTrigger value="new_follower" className="text-xs sm:text-sm">
-            <Bell className="w-3 h-3 sm:mr-1" />
+            <Heart className="w-3 h-3 sm:mr-1" />
             <span className="hidden sm:inline">Social</span>
           </TabsTrigger>
         </TabsList>
       </Tabs>
 
       {/* Notifications List */}
-      <div className="space-y-3">
+      <div className="space-y-3 pb-8">
         <AnimatePresence mode="popLayout">
           {filteredNotifications.length > 0 ? (
             filteredNotifications.map((notification, index) => (
@@ -372,24 +359,13 @@ export default function Notificacoes() {
                   size="sm"
                   className="mt-4 border-gray-600 text-gray-300"
                 >
-                  Ver Todas as Notificações
+                  Ver Todas
                 </Button>
               )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      {/* Debug Info (pode remover em produção) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mt-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-          <p className="text-xs text-gray-500 mb-2">🔍 Debug Info:</p>
-          <p className="text-xs text-gray-400">Total: {notifications.length}</p>
-          <p className="text-xs text-gray-400">Não lidas: {unreadCount}</p>
-          <p className="text-xs text-gray-400">Filtradas: {filteredNotifications.length}</p>
-          <p className="text-xs text-gray-400">User ID: {user?.id || 'N/A'}</p>
-        </div>
-      )}
     </div>
   );
 }
