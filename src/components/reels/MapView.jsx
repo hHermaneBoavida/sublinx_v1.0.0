@@ -338,66 +338,114 @@ export default function MapView({
 
       {/* Events overlay */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* User marker com pulse */}
+        {/* User marker - IMERSIVO */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none"
           style={{ left: `${userPosition.x}%`, top: `${userPosition.y}%` }}
           animate={{
-            scale: [1, 1.05, 1]
+            scale: [1, 1.08, 1]
           }}
-          transition={{ duration: 2, repeat: Infinity }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          {/* Glow */}
+          {/* Glow principal - mais intenso */}
           <motion.div
             className="absolute rounded-full"
             style={{
-              width: '60px',
-              height: '60px',
+              width: '80px',
+              height: '80px',
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              background: `radial-gradient(circle, ${vibeTheme.color}30 0%, transparent 70%)`,
-              filter: 'blur(12px)',
+              background: `radial-gradient(circle, ${vibeTheme.color}60 0%, ${vibeTheme.color}30 40%, transparent 70%)`,
+              filter: 'blur(20px)',
             }}
             animate={{
-              scale: [1, 1.3, 1],
-              opacity: [0.5, 0.9, 0.5]
+              scale: [1, 1.4, 1],
+              opacity: [0.6, 1, 0.6]
             }}
-            transition={{ duration: 3, repeat: Infinity }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
 
-          {/* Marker */}
-          <div
-            className="w-7 h-7 rounded-full relative"
+          {/* Glow secundário - mais suave */}
+          <motion.div
+            className="absolute rounded-full"
             style={{
-              background: `radial-gradient(circle, ${vibeTheme.color}, ${vibeTheme.color}DD)`,
-              border: `3px solid white`,
-              boxShadow: `0 0 20px ${vibeTheme.color}, 0 4px 10px rgba(0,0,0,0.5)`
+              width: '120px',
+              height: '120px',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: `radial-gradient(circle, ${vibeTheme.color}20 0%, transparent 60%)`,
+              filter: 'blur(30px)',
             }}
+            animate={{
+              scale: [1, 1.5, 1],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          />
+
+          {/* Marker principal - com brilho interno */}
+          <motion.div
+            className="w-9 h-9 rounded-full relative"
+            style={{
+              background: `linear-gradient(135deg, ${vibeTheme.color}, ${vibeTheme.color}DD)`,
+              border: `3px solid white`,
+              boxShadow: `0 0 25px ${vibeTheme.color}, 0 0 40px ${vibeTheme.color}80, 0 4px 15px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.4)`
+            }}
+            animate={{
+              boxShadow: [
+                `0 0 25px ${vibeTheme.color}, 0 0 40px ${vibeTheme.color}80, 0 4px 15px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.4)`,
+                `0 0 35px ${vibeTheme.color}, 0 0 60px ${vibeTheme.color}90, 0 4px 15px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.6)`,
+                `0 0 25px ${vibeTheme.color}, 0 0 40px ${vibeTheme.color}80, 0 4px 15px rgba(0,0,0,0.6), inset 0 2px 10px rgba(255,255,255,0.4)`
+              ]
+            }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           >
+            {/* Shine effect interno */}
+            <motion.div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.6), transparent 60%)',
+              }}
+              animate={{
+                opacity: [0.6, 0.9, 0.6]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+
+            {/* Ícone de navegação */}
             <Navigation 
-              className="w-4 h-4 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" 
+              className="w-5 h-5 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-lg" 
               strokeWidth={3}
             />
-          </div>
+          </motion.div>
 
-          {/* Pulse ring */}
-          <motion.div
-            className="absolute rounded-full border-2"
-            style={{
-              borderColor: vibeTheme.color,
-              width: '50px',
-              height: '50px',
-              left: '50%',
-              top: '50%',
-              transform: 'translate(-50%, -50%)',
-            }}
-            animate={{
-              scale: [1, 2, 1],
-              opacity: [0.8, 0, 0.8]
-            }}
-            transition={{ duration: 3, repeat: Infinity }}
-          />
+          {/* Partículas flutuantes ao redor */}
+          {[0, 1, 2, 3].map((i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1.5 h-1.5 rounded-full"
+              style={{
+                background: vibeTheme.color,
+                boxShadow: `0 0 8px ${vibeTheme.color}`,
+                left: '50%',
+                top: '50%',
+              }}
+              animate={{
+                x: [0, Math.cos(i * Math.PI / 2) * 30, 0],
+                y: [0, Math.sin(i * Math.PI / 2) * 30, 0],
+                opacity: [0, 0.8, 0],
+                scale: [0, 1, 0]
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                delay: i * 0.75,
+                ease: "easeInOut"
+              }}
+            />
+          ))}
         </motion.div>
 
         {/* Event pins */}
