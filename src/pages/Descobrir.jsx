@@ -1,69 +1,43 @@
-import React, { useState, useMemo } from 'react';
-import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsContent, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Search, 
-  SlidersHorizontal, 
-  MapPin, 
-  Calendar, 
-  DollarSign, 
-  TrendingUp,
-  Heart,
-  Star,
-  Sparkles,
-  Filter,
-  X,
-  Clock,
-  Accessibility,
-  Music,
+import React, { useState, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  ExternalLink,
+  MapPin,
+  Calendar,
+  DollarSign,
   Users,
-  Zap
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import { format, isAfter, isBefore, startOfDay, endOfDay, addDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+  Download,
+  CheckCircle,
+  Loader2,
+  Sparkles,
+  Globe,
+  Music2
+} from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { GenreBadge } from "../components/shared/EventBadge";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
-const getDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+const SOURCES = [
+  { id: 'all', name: 'Todas', icon: Globe, color: '#06B6D4' },
+  { id: 'sympla', name: 'Sympla', icon: Music2, color: '#FF6B35' },
+  { id: 'eventbrite', name: 'Eventbrite', icon: Music2, color: '#F05537' },
+  { id: 'facebook', name: 'Facebook', icon: Music2, color: '#1877F2' }
+];
 
 export default function Descobrir() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSource, setSelectedSource] = useState('all');
+  const [importedEvents, setImportedEvents] = useState(new Set());
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    dateRange: 'all', // all, today, week, month, custom
-    customStartDate: '',
-    customEndDate: '',
-    priceRange: 'all', // all, free, cheap, moderate, premium
-    minPrice: 0,
-    maxPrice: 1000,
-    distance: 50, // km
-    genres: [],
-    types: [],
-    accessibility: {
-      wheelchair: false,
-      parking: false,
-      publicTransport: false,
-      signLanguage: false
-    },
-    minCapacity: 0,
-    onlyApprovalRequired: false
-  });
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -77,682 +51,409 @@ export default function Descobrir() {
     retry: false,
   });
 
-  const { data: events = [], isLoading } = useQuery({
-    queryKey: ['discoverEvents'],
-    queryFn: async () => {
-      const data = await base44.entities.Event.list('-date', 100);
-      return (data || []).filter(e => e?.id && e?.location?.lat && e?.location?.lng);
+  const isOrganizer = user?.is_organizer;
+
+  const { data: userLocation } = useQuery({
+    queryKey: ['userLocation'],
+    queryFn: () => {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          resolve({ lat: -23.5505, lng: -46.6333, city: 'São Paulo' });
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              city: 'São Paulo'
+            });
+          },
+          () => {
+            resolve({ lat: -23.5505, lng: -46.6333, city: 'São Paulo' });
+          }
+        );
+      });
     },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const { data: externalEvents = [], isLoading, refetch } = useQuery({
+    queryKey: ['externalEvents', searchQuery, selectedSource, userLocation],
+    queryFn: async () => {
+      if (!searchQuery || searchQuery.length < 3) return [];
+
+      const { data } = await base44.functions.invoke('importExternalEvents', {
+        source: selectedSource,
+        query: searchQuery,
+        location: userLocation
+      });
+
+      return data?.events || [];
+    },
+    enabled: searchQuery.length >= 3 && !!userLocation,
     staleTime: 5 * 60 * 1000,
-    initialData: [],
   });
 
-  const { data: userInteractions = { likes: [], comments: [], attended: [] } } = useQuery({
-    queryKey: ['userInteractions', user?.id],
-    queryFn: async () => {
-      if (!user) return { likes: [], comments: [], attended: [] };
-      
-      try {
-        const [likes, comments, tickets] = await Promise.all([
-          base44.entities.Like.filter({ user_id: user.id }),
-          base44.entities.Comment.filter({ user_id: user.id }),
-          base44.entities.Ticket.filter({ user_id: user.id, status: 'valid' })
-        ]);
-
-        return {
-          likes: likes || [],
-          comments: comments || [],
-          attended: tickets || []
-        };
-      } catch {
-        return { likes: [], comments: [], attended: [] };
-      }
+  const saveEventMutation = useMutation({
+    mutationFn: async (externalEvent) => {
+      const { data } = await base44.functions.invoke('saveExternalEvent', {
+        externalEvent
+      });
+      return data;
     },
-    enabled: !!user,
-    initialData: { likes: [], comments: [], attended: [] },
+    onSuccess: (data, variables) => {
+      if (data.success) {
+        setImportedEvents(prev => new Set([...prev, variables.id]));
+      }
+    }
   });
 
-  // Algoritmo de recomendação personalizada
-  const getRecommendationScore = (event) => {
-    let score = 0;
-
-    if (!user) return score;
-
-    // 1. Preferências musicais (peso 3)
-    if (user.music_preferences?.includes(event.genre)) {
-      score += 30;
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.length >= 3) {
+      refetch();
     }
-
-    // 2. Eventos similares curtidos (peso 2)
-    const likedGenres = userInteractions.likes
-      .map(like => events.find(e => e.id === like.event_id)?.genre)
-      .filter(Boolean);
-    
-    if (likedGenres.includes(event.genre)) {
-      score += 20;
-    }
-
-    // 3. Mesma cidade (peso 2)
-    if (user.location?.city && event.location?.city === user.location.city) {
-      score += 20;
-    }
-
-    // 4. Distância próxima (peso 1)
-    if (user.location?.lat && event.location?.lat) {
-      const distance = getDistance(
-        user.location.lat,
-        user.location.lng,
-        event.location.lat,
-        event.location.lng
-      );
-      if (distance < 10) score += 15;
-      else if (distance < 25) score += 10;
-      else if (distance < 50) score += 5;
-    }
-
-    // 5. Nível apropriado (peso 1)
-    if (user.underground_level >= event.minimum_level) {
-      score += 10;
-    }
-
-    // 6. Vibe atual do usuário (peso 2)
-    if (user.current_vibe && event.vibe_tags?.includes(user.current_vibe)) {
-      score += 20;
-    }
-
-    // 7. Histórico de participação (peso 1)
-    const attendedEventTypes = userInteractions.attended
-      .map(ticket => events.find(e => e.id === ticket.event_id)?.type)
-      .filter(Boolean);
-    
-    if (attendedEventTypes.includes(event.type)) {
-      score += 10;
-    }
-
-    // 8. Popularidade (peso 0.5)
-    if (event.current_attendees > 50) score += 5;
-
-    return score;
   };
 
-  // Filtros avançados
-  const filteredEvents = useMemo(() => {
-    let result = events;
-
-    // Busca por texto
-    if (searchTerm) {
-      const lower = searchTerm.toLowerCase();
-      result = result.filter(e =>
-        e.title?.toLowerCase().includes(lower) ||
-        e.genre?.toLowerCase().includes(lower) ||
-        e.location?.city?.toLowerCase().includes(lower) ||
-        e.location?.venue_name?.toLowerCase().includes(lower)
-      );
+  const handleImportEvent = async (event) => {
+    if (!isOrganizer) {
+      alert('Apenas organizadores podem importar eventos');
+      return;
     }
 
-    // Filtro de data
-    const now = new Date();
-    if (filters.dateRange !== 'all') {
-      result = result.filter(e => {
-        const eventDate = new Date(e.date);
-        
-        switch (filters.dateRange) {
-          case 'today':
-            return eventDate >= startOfDay(now) && eventDate <= endOfDay(now);
-          case 'week':
-            return eventDate >= now && eventDate <= addDays(now, 7);
-          case 'month':
-            return eventDate >= now && eventDate <= addDays(now, 30);
-          case 'custom':
-            if (filters.customStartDate && filters.customEndDate) {
-              const start = new Date(filters.customStartDate);
-              const end = new Date(filters.customEndDate);
-              return eventDate >= start && eventDate <= end;
-            }
-            return true;
-          default:
-            return true;
-        }
-      });
-    }
-
-    // Filtro de preço
-    if (filters.priceRange !== 'all') {
-      result = result.filter(e => {
-        const price = e.price || 0;
-        
-        switch (filters.priceRange) {
-          case 'free':
-            return price === 0;
-          case 'cheap':
-            return price > 0 && price <= 50;
-          case 'moderate':
-            return price > 50 && price <= 150;
-          case 'premium':
-            return price > 150;
-          case 'custom':
-            return price >= filters.minPrice && price <= filters.maxPrice;
-          default:
-            return true;
-        }
-      });
-    }
-
-    // Filtro de distância
-    if (user?.location?.lat && filters.distance < 50) {
-      result = result.filter(e => {
-        if (!e.location?.lat) return false;
-        const distance = getDistance(
-          user.location.lat,
-          user.location.lng,
-          e.location.lat,
-          e.location.lng
-        );
-        return distance <= filters.distance;
-      });
-    }
-
-    // Filtro de gêneros
-    if (filters.genres.length > 0) {
-      result = result.filter(e => filters.genres.includes(e.genre));
-    }
-
-    // Filtro de tipos
-    if (filters.types.length > 0) {
-      result = result.filter(e => filters.types.includes(e.type));
-    }
-
-    // Filtro de acessibilidade
-    if (Object.values(filters.accessibility).some(v => v)) {
-      result = result.filter(e => {
-        if (!e.accessibility) return false;
-        
-        return (
-          (!filters.accessibility.wheelchair || e.accessibility.wheelchair) &&
-          (!filters.accessibility.parking || e.accessibility.parking) &&
-          (!filters.accessibility.publicTransport || e.accessibility.publicTransport) &&
-          (!filters.accessibility.signLanguage || e.accessibility.signLanguage)
-        );
-      });
-    }
-
-    // Filtro de capacidade mínima
-    if (filters.minCapacity > 0) {
-      result = result.filter(e => (e.max_capacity || 0) >= filters.minCapacity);
-    }
-
-    // Filtro de aprovação
-    if (filters.onlyApprovalRequired) {
-      result = result.filter(e => e.requires_approval);
-    }
-
-    return result;
-  }, [events, searchTerm, filters, user]);
-
-  // Eventos recomendados (ordenados por score)
-  const recommendedEvents = useMemo(() => {
-    return filteredEvents
-      .map(event => ({
-        ...event,
-        score: getRecommendationScore(event)
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-  }, [filteredEvents, user, userInteractions]);
-
-  // Eventos próximos
-  const nearbyEvents = useMemo(() => {
-    if (!user?.location?.lat) return [];
-    
-    return filteredEvents
-      .map(event => ({
-        ...event,
-        distance: getDistance(
-          user.location.lat,
-          user.location.lng,
-          event.location.lat,
-          event.location.lng
-        )
-      }))
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 10);
-  }, [filteredEvents, user]);
-
-  // Eventos populares
-  const popularEvents = useMemo(() => {
-    return filteredEvents
-      .sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
-      .slice(0, 10);
-  }, [filteredEvents]);
-
-  // Eventos em alta (próximos + populares)
-  const trendingEvents = useMemo(() => {
-    const now = new Date();
-    return filteredEvents
-      .filter(e => {
-        const eventDate = new Date(e.date);
-        const daysUntil = (eventDate - now) / (1000 * 60 * 60 * 24);
-        return daysUntil >= 0 && daysUntil <= 14; // Próximos 14 dias
-      })
-      .sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
-      .slice(0, 10);
-  }, [filteredEvents]);
-
-  const handleGenreToggle = (genre) => {
-    setFilters(prev => ({
-      ...prev,
-      genres: prev.genres.includes(genre)
-        ? prev.genres.filter(g => g !== genre)
-        : [...prev.genres, genre]
-    }));
+    await saveEventMutation.mutateAsync(event);
   };
 
-  const handleTypeToggle = (type) => {
-    setFilters(prev => ({
-      ...prev,
-      types: prev.types.includes(type)
-        ? prev.types.filter(t => t !== type)
-        : [...prev.types, type]
-    }));
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      dateRange: 'all',
-      customStartDate: '',
-      customEndDate: '',
-      priceRange: 'all',
-      minPrice: 0,
-      maxPrice: 1000,
-      distance: 50,
-      genres: [],
-      types: [],
-      accessibility: {
-        wheelchair: false,
-        parking: false,
-        publicTransport: false,
-        signLanguage: false
-      },
-      minCapacity: 0,
-      onlyApprovalRequired: false
-    });
-  };
-
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (filters.dateRange !== 'all') count++;
-    if (filters.priceRange !== 'all') count++;
-    if (filters.distance < 50) count++;
-    if (filters.genres.length > 0) count += filters.genres.length;
-    if (filters.types.length > 0) count += filters.types.length;
-    if (Object.values(filters.accessibility).some(v => v)) count++;
-    if (filters.minCapacity > 0) count++;
-    if (filters.onlyApprovalRequired) count++;
-    return count;
-  }, [filters]);
-
-  const allGenres = ['techno', 'house', 'trance', 'drum_bass', 'dubstep', 'ambient', 'experimental', 'funk', 'trap'];
-  const allTypes = ['rave', 'warehouse', 'rooftop', 'underground', 'club', 'secret'];
-
-  return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text mb-2">
-          Descobrir Eventos
-        </h1>
-        <p className="text-gray-400">
-          {user ? 'Eventos personalizados para você' : 'Encontre os melhores eventos underground'}
-        </p>
-      </div>
-
-      {/* Search + Filters */}
-      <div className="flex gap-2 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            placeholder="Buscar por evento, gênero, local..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-gray-900/80 border-gray-700 pl-10 text-white"
-          />
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-          className={`border-gray-700 ${activeFiltersCount > 0 ? 'border-cyan-500 text-cyan-400' : 'text-gray-400'}`}
-        >
-          <SlidersHorizontal className="w-5 h-5 mr-2" />
-          Filtros
-          {activeFiltersCount > 0 && (
-            <Badge className="ml-2 bg-cyan-600">{activeFiltersCount}</Badge>
-          )}
-        </Button>
-      </div>
-
-      {/* Advanced Filters Panel */}
-      {showFilters && (
-        <Card className="bg-gray-900/50 border-gray-700 mb-6">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-white flex items-center gap-2">
-              <Filter className="w-5 h-5" />
-              Filtros Avançados
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="w-4 h-4 mr-1" />
-                Limpar
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Date Range */}
-            <div>
-              <label className="text-sm font-semibold text-gray-300 mb-2 block flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Data do Evento
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-                {[
-                  { value: 'all', label: 'Todas' },
-                  { value: 'today', label: 'Hoje' },
-                  { value: 'week', label: 'Esta Semana' },
-                  { value: 'month', label: 'Este Mês' }
-                ].map(option => (
-                  <Button
-                    key={option.value}
-                    variant={filters.dateRange === option.value ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFilters(prev => ({ ...prev, dateRange: option.value }))}
-                    className={filters.dateRange === option.value ? 'bg-cyan-600' : 'border-gray-700'}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-              {filters.dateRange === 'custom' && (
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <Input
-                    type="date"
-                    value={filters.customStartDate}
-                    onChange={(e) => setFilters(prev => ({ ...prev, customStartDate: e.target.value }))}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                  <Input
-                    type="date"
-                    value={filters.customEndDate}
-                    onChange={(e) => setFilters(prev => ({ ...prev, customEndDate: e.target.value }))}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Price Range */}
-            <div>
-              <label className="text-sm font-semibold text-gray-300 mb-2 block flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                Faixa de Preço
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {[
-                  { value: 'all', label: 'Todos' },
-                  { value: 'free', label: 'Grátis' },
-                  { value: 'cheap', label: 'Até R$50' },
-                  { value: 'moderate', label: 'R$50-150' },
-                  { value: 'premium', label: 'R$150+' }
-                ].map(option => (
-                  <Button
-                    key={option.value}
-                    variant={filters.priceRange === option.value ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFilters(prev => ({ ...prev, priceRange: option.value }))}
-                    className={filters.priceRange === option.value ? 'bg-purple-600' : 'border-gray-700'}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Distance */}
-            {user?.location?.lat && (
-              <div>
-                <label className="text-sm font-semibold text-gray-300 mb-2 block flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Distância Máxima: {filters.distance}km
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="50"
-                  value={filters.distance}
-                  onChange={(e) => setFilters(prev => ({ ...prev, distance: Number(e.target.value) }))}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
-            )}
-
-            {/* Genres */}
-            <div>
-              <label className="text-sm font-semibold text-gray-300 mb-2 block flex items-center gap-2">
-                <Music className="w-4 h-4" />
-                Gêneros Musicais
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {allGenres.map(genre => (
-                  <Badge
-                    key={genre}
-                    onClick={() => handleGenreToggle(genre)}
-                    className={`cursor-pointer transition-all ${
-                      filters.genres.includes(genre)
-                        ? 'bg-cyan-600 hover:bg-cyan-700'
-                        : 'bg-gray-800 hover:bg-gray-700 border-gray-600'
-                    }`}
-                  >
-                    {genre}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Types */}
-            <div>
-              <label className="text-sm font-semibold text-gray-300 mb-2 block flex items-center gap-2">
-                <Zap className="w-4 h-4" />
-                Tipos de Evento
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {allTypes.map(type => (
-                  <Badge
-                    key={type}
-                    onClick={() => handleTypeToggle(type)}
-                    className={`cursor-pointer transition-all ${
-                      filters.types.includes(type)
-                        ? 'bg-purple-600 hover:bg-purple-700'
-                        : 'bg-gray-800 hover:bg-gray-700 border-gray-600'
-                    }`}
-                  >
-                    {type}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Accessibility */}
-            <div>
-              <label className="text-sm font-semibold text-gray-300 mb-2 block flex items-center gap-2">
-                <Accessibility className="w-4 h-4" />
-                Recursos de Acessibilidade
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { key: 'wheelchair', label: '♿ Cadeira de Rodas' },
-                  { key: 'parking', label: '🅿️ Estacionamento' },
-                  { key: 'publicTransport', label: '🚇 Transporte Público' },
-                  { key: 'signLanguage', label: '🤟 Libras' }
-                ].map(option => (
-                  <Button
-                    key={option.key}
-                    variant={filters.accessibility[option.key] ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFilters(prev => ({
-                      ...prev,
-                      accessibility: {
-                        ...prev.accessibility,
-                        [option.key]: !prev.accessibility[option.key]
-                      }
-                    }))}
-                    className={filters.accessibility[option.key] ? 'bg-green-600' : 'border-gray-700 text-sm'}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Tabs */}
-      <Tabs defaultValue={user ? "recommended" : "trending"} className="w-full">
-        <TabsList className="bg-gray-900/50 border-gray-700 grid grid-cols-2 sm:grid-cols-4">
-          {user && (
-            <TabsTrigger value="recommended" className="data-[state=active]:bg-cyan-600">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Para Você
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="trending" className="data-[state=active]:bg-purple-600">
-            <TrendingUp className="w-4 h-4 mr-2" />
-            Em Alta
-          </TabsTrigger>
-          {user?.location?.lat && (
-            <TabsTrigger value="nearby" className="data-[state=active]:bg-pink-600">
-              <MapPin className="w-4 h-4 mr-2" />
-              Perto de Você
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="popular" className="data-[state=active]:bg-orange-600">
-            <Star className="w-4 h-4 mr-2" />
-              Populares
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Recommended Tab */}
-        {user && (
-          <TabsContent value="recommended" className="mt-6">
-            <EventGrid events={recommendedEvents} user={user} showScore={true} />
-          </TabsContent>
-        )}
-
-        {/* Trending Tab */}
-        <TabsContent value="trending" className="mt-6">
-          <EventGrid events={trendingEvents} user={user} />
-        </TabsContent>
-
-        {/* Nearby Tab */}
-        {user?.location?.lat && (
-          <TabsContent value="nearby" className="mt-6">
-            <EventGrid events={nearbyEvents} user={user} showDistance={true} />
-          </TabsContent>
-        )}
-
-        {/* Popular Tab */}
-        <TabsContent value="popular" className="mt-6">
-          <EventGrid events={popularEvents} user={user} showAttendees={true} />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
-
-// Event Grid Component
-function EventGrid({ events, user, showScore, showDistance, showAttendees }) {
-  const navigate = useNavigate();
-
-  if (events.length === 0) {
+  if (!user) {
     return (
-      <div className="text-center py-16 bg-gray-900/50 rounded-lg">
-        <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-        <p className="text-gray-400">Nenhum evento encontrado</p>
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="max-w-md bg-gray-900/80 backdrop-blur-xl border border-cyan-500/30 rounded-2xl p-8 text-center">
+          <Globe className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-3">
+            Entre para Descobrir
+          </h2>
+          <p className="text-gray-300 mb-6">
+            Faça login para descobrir eventos de outras plataformas
+          </p>
+          <Button
+            onClick={() => navigate(createPageUrl("BemVindo"))}
+            className="w-full bg-gradient-to-r from-cyan-600 to-purple-600"
+          >
+            Fazer Login
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {events.map(event => (
-        <Card
-          key={event.id}
-          className="bg-gray-900/50 border-gray-700 overflow-hidden hover:border-cyan-500/50 transition-all cursor-pointer group"
-          onClick={() => navigate(createPageUrl("Feed"))}
+    <div className="min-h-screen bg-black text-white p-4 pb-24 md:pb-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
         >
-          <div className="relative h-48 overflow-hidden">
-            <img
-              src={event.image_url || `https://picsum.photos/400/300?random=${event.id}`}
-              alt={event.title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-            
-            {/* Badges */}
-            <div className="absolute top-2 left-2 flex flex-wrap gap-1">
-              <Badge className="bg-cyan-600/90 text-white text-xs">
-                {event.genre}
-              </Badge>
-              {showScore && event.score > 50 && (
-                <Badge className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white text-xs">
-                  <Star className="w-3 h-3 mr-1" />
-                  {Math.round(event.score)}% Match
-                </Badge>
-              )}
-            </div>
+          <div className="flex items-center gap-3 mb-2">
+            <motion.div
+              animate={{
+                rotate: [0, 360]
+              }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            >
+              <Globe className="w-8 h-8 text-cyan-400" />
+            </motion.div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Descobrir Eventos
+            </h1>
+          </div>
+          <p className="text-gray-400">
+            Encontre eventos de múltiplas plataformas em um só lugar
+          </p>
+        </motion.div>
 
-            {/* Info overlays */}
-            <div className="absolute bottom-2 left-2 right-2">
-              <h3 className="text-white font-bold text-lg mb-1 line-clamp-1">
-                {event.title}
-              </h3>
-              <div className="flex items-center gap-2 text-white text-xs">
-                <Clock className="w-3 h-3" />
-                <span>{format(new Date(event.date), 'dd/MM HH:mm', { locale: ptBR })}</span>
-              </div>
-            </div>
+        {/* Search Form */}
+        <motion.form
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          onSubmit={handleSearch}
+          className="mb-6"
+        >
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input
+              placeholder="Buscar eventos (mín. 3 caracteres)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 h-12 bg-gray-900/80 border-gray-700 text-white placeholder:text-gray-500 focus:border-cyan-500 rounded-xl"
+            />
           </div>
 
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
-              <MapPin className="w-4 h-4" />
-              <span className="truncate">{event.location?.venue_name || event.location?.city}</span>
-            </div>
-
-            {showDistance && event.distance !== undefined && (
-              <div className="flex items-center gap-2 text-sm text-cyan-400 mb-2">
-                <MapPin className="w-4 h-4" />
-                <span>{event.distance.toFixed(1)}km de você</span>
-              </div>
-            )}
-
-            {showAttendees && (
-              <div className="flex items-center gap-2 text-sm text-purple-400 mb-2">
-                <Users className="w-4 h-4" />
-                <span>{event.current_attendees || 0} participantes</span>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between mt-3">
-              <Badge variant="outline" className="text-green-400 border-green-500/30">
-                {event.price === 0 ? 'Grátis' : `R$ ${event.price}`}
-              </Badge>
-              
-              <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700">
-                Ver Mais
+          {/* Source Filter */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {SOURCES.map(source => (
+              <Button
+                key={source.id}
+                type="button"
+                onClick={() => setSelectedSource(source.id)}
+                variant={selectedSource === source.id ? 'default' : 'outline'}
+                className={`h-12 ${
+                  selectedSource === source.id
+                    ? 'bg-gradient-to-r from-cyan-600 to-purple-600 border-0'
+                    : 'bg-gray-900/50 border-gray-700 hover:bg-gray-800'
+                }`}
+              >
+                <source.icon className="w-4 h-4 mr-2" />
+                {source.name}
               </Button>
+            ))}
+          </div>
+        </motion.form>
+
+        {/* Organizer Notice */}
+        {!isOrganizer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mb-6 bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4"
+          >
+            <div className="flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-yellow-400 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-yellow-300 mb-1">
+                  Torne-se Organizador
+                </h3>
+                <p className="text-sm text-yellow-200/80">
+                  Apenas organizadores podem importar eventos externos para a plataforma.
+                </p>
+                <Button
+                  onClick={() => navigate(createPageUrl("Planos"))}
+                  size="sm"
+                  className="mt-3 bg-yellow-600 hover:bg-yellow-700"
+                >
+                  Ver Planos
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      ))}
+          </motion.div>
+        )}
+
+        {/* Loading */}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="w-12 h-12 animate-spin text-cyan-400 mb-4" />
+            <p className="text-gray-400">Buscando eventos...</p>
+          </div>
+        )}
+
+        {/* Results */}
+        <AnimatePresence mode="popLayout">
+          {!isLoading && externalEvents.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-white">
+                  {externalEvents.length} eventos encontrados
+                </h2>
+                <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300">
+                  {selectedSource === 'all' ? 'Todas as fontes' : SOURCES.find(s => s.id === selectedSource)?.name}
+                </Badge>
+              </div>
+
+              {externalEvents.map((event, index) => (
+                <ExternalEventCard
+                  key={event.id}
+                  event={event}
+                  index={index}
+                  isImported={importedEvents.has(event.id)}
+                  isImporting={saveEventMutation.isPending}
+                  onImport={() => handleImportEvent(event)}
+                  canImport={isOrganizer}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Empty State */}
+        {!isLoading && searchQuery.length >= 3 && externalEvents.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12"
+          >
+            <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-400 mb-2">
+              Nenhum evento encontrado
+            </h3>
+            <p className="text-gray-500 mb-4">
+              Tente ajustar sua busca ou escolher outra fonte
+            </p>
+          </motion.div>
+        )}
+
+        {/* Initial State */}
+        {!isLoading && searchQuery.length < 3 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12"
+          >
+            <Globe className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">
+              Descubra Eventos Externos
+            </h3>
+            <p className="text-gray-400 mb-6">
+              Busque eventos do Sympla, Eventbrite, Facebook e mais
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto text-left">
+              <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-700">
+                <Search className="w-6 h-6 text-cyan-400 mb-2" />
+                <h4 className="font-semibold text-white mb-1">Buscar</h4>
+                <p className="text-sm text-gray-400">
+                  Digite o que procura (mín. 3 caracteres)
+                </p>
+              </div>
+              <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-700">
+                <Download className="w-6 h-6 text-purple-400 mb-2" />
+                <h4 className="font-semibold text-white mb-1">Importar</h4>
+                <p className="text-sm text-gray-400">
+                  Organizadores podem importar eventos
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
     </div>
+  );
+}
+
+function ExternalEventCard({ event, index, isImported, isImporting, onImport, canImport }) {
+  const sourceColors = {
+    sympla: 'from-orange-500 to-red-500',
+    eventbrite: 'from-red-500 to-pink-500',
+    facebook: 'from-blue-500 to-indigo-500',
+    external: 'from-cyan-500 to-purple-500'
+  };
+
+  const sourceColor = sourceColors[event.source] || sourceColors.external;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+    >
+      <Card className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 overflow-hidden hover:border-cyan-500/50 transition-all">
+        {/* Source Badge */}
+        <div className="absolute top-3 left-3 z-10">
+          <Badge className={`bg-gradient-to-r ${sourceColor} text-white border-0 shadow-lg`}>
+            <ExternalLink className="w-3 h-3 mr-1" />
+            {event.source?.toUpperCase()}
+          </Badge>
+        </div>
+
+        {/* Image */}
+        {event.image_url && (
+          <div className="relative h-48 overflow-hidden">
+            <img
+              src={event.image_url}
+              alt={event.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          </div>
+        )}
+
+        <CardContent className="p-4">
+          {/* Title */}
+          <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">
+            {event.title}
+          </h3>
+
+          {/* Description */}
+          {event.description && (
+            <p className="text-sm text-gray-400 mb-3 line-clamp-2">
+              {event.description}
+            </p>
+          )}
+
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            <GenreBadge genre={event.genre} />
+            <Badge className="bg-purple-600/20 border-purple-500/30 text-purple-300 text-xs">
+              {event.type}
+            </Badge>
+          </div>
+
+          {/* Info */}
+          <div className="space-y-2 mb-4">
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <Calendar className="w-4 h-4 text-cyan-400" />
+              {format(new Date(event.date), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <MapPin className="w-4 h-4 text-purple-400" />
+              {event.location?.venue_name || 'Local a definir'}
+            </div>
+
+            {event.price !== undefined && (
+              <div className="flex items-center gap-2 text-sm text-gray-300">
+                <DollarSign className="w-4 h-4 text-yellow-400" />
+                {event.price === 0 ? 'Gratuito' : `R$ ${event.price.toFixed(2)}`}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-600 hover:bg-gray-800"
+              onClick={() => window.open(event.external_url, '_blank')}
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Ver Original
+            </Button>
+
+            {canImport && (
+              <Button
+                onClick={onImport}
+                disabled={isImported || isImporting}
+                className={`flex-1 ${
+                  isImported
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700'
+                }`}
+              >
+                {isImporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : isImported ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Importado
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Importar
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
