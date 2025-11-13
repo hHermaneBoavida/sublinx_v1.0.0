@@ -5,8 +5,8 @@ import { AnimatePresence } from "framer-motion";
 import NotificationToast from "./NotificationToast";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { CACHE_CONFIG } from "../shared/helpers";
 
-// Som de notificação (usando Web Audio API)
 const playNotificationSound = () => {
   try {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -16,7 +16,6 @@ const playNotificationSound = () => {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
-    // Som cyberpunk: two tones
     oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
     oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
     
@@ -26,7 +25,7 @@ const playNotificationSound = () => {
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.3);
   } catch (error) {
-    console.log("Som de notificação não disponível:", error);
+    console.log("Som não disponível:", error);
   }
 };
 
@@ -37,7 +36,6 @@ export default function NotificationListener({ user }) {
   const navigate = useNavigate();
   const soundEnabledRef = useRef(true);
 
-  // Polling para novas notificações a cada 30 segundos
   const { data: notifications = [] } = useQuery({
     queryKey: ['realtimeNotifications', user?.id],
     queryFn: async () => {
@@ -52,41 +50,33 @@ export default function NotificationListener({ user }) {
       return allNotifications || [];
     },
     enabled: !!user?.id,
-    refetchInterval: 30000, // Polling a cada 30 segundos
+    refetchInterval: 30000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
-    staleTime: 25000,
+    ...CACHE_CONFIG.SHORT,
     initialData: [],
   });
 
-  // Detectar novas notificações
   useEffect(() => {
     if (!notifications || notifications.length === 0) return;
 
     const newestNotification = notifications[0];
     
-    // Se é uma notificação nova (não vista antes)
     if (lastCheckedId !== newestNotification.id) {
-      // Verificar se já está sendo exibida
       const alreadyVisible = visibleNotifications.some(n => n.id === newestNotification.id);
       
       if (!alreadyVisible) {
-        // Tocar som
         if (soundEnabledRef.current) {
           playNotificationSound();
         }
 
-        // Adicionar à lista de visíveis
         setVisibleNotifications(prev => [...prev, newestNotification]);
 
-        // Auto-remover após 6 segundos
         setTimeout(() => {
           setVisibleNotifications(prev => prev.filter(n => n.id !== newestNotification.id));
         }, 6000);
 
-        // Invalidar queries para atualizar contadores
         queryClient.invalidateQueries(['notifications', user.id]);
-        queryClient.invalidateQueries(['currentUser']);
       }
 
       setLastCheckedId(newestNotification.id);
@@ -95,17 +85,12 @@ export default function NotificationListener({ user }) {
 
   const handleNotificationClick = async (notification) => {
     try {
-      // Marcar como lida
       await base44.entities.Notification.update(notification.id, { is_read: true });
-      
-      // Remover da visualização
       setVisibleNotifications(prev => prev.filter(n => n.id !== notification.id));
       
-      // Invalidar queries
       queryClient.invalidateQueries(['notifications', user.id]);
       queryClient.invalidateQueries(['realtimeNotifications', user.id]);
 
-      // Navegar baseado no tipo
       if (notification.event_id) {
         navigate(createPageUrl("Mapa"));
       } else if (notification.type === 'new_follower') {
@@ -122,13 +107,8 @@ export default function NotificationListener({ user }) {
 
   const handleClose = async (notification) => {
     try {
-      // Marcar como lida ao fechar
       await base44.entities.Notification.update(notification.id, { is_read: true });
-      
-      // Remover da visualização
       setVisibleNotifications(prev => prev.filter(n => n.id !== notification.id));
-      
-      // Invalidar queries
       queryClient.invalidateQueries(['notifications', user.id]);
       queryClient.invalidateQueries(['realtimeNotifications', user.id]);
     } catch (error) {

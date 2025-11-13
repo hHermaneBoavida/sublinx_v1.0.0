@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
@@ -8,16 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { X, UploadCloud, Loader2, PartyPopper, CheckCircle2, MapPin, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const getDistance = (lat1, lon1, lat2, lon2) => {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+import { calculateDistance, filterFutureEvents, CACHE_CONFIG } from '../shared/helpers';
 
 export default function UploadReelModal({ onClose, onUploadComplete, events, userLocation }) {
   const [file, setFile] = useState(null);
@@ -34,32 +25,19 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
       } catch {
         return null;
       }
-    }
+    },
+    ...CACHE_CONFIG.STATIC
   });
 
   const { data: availableEvents, isLoading: loadingEvents } = useQuery({
     queryKey: ['uploadReelEvents'],
     queryFn: async () => {
       const data = await base44.entities.Event.list("-date", 100);
-      
-      if (!data || data.length === 0) return [];
-
-      const now = new Date();
-      const validEvents = data.filter(e => 
-        e && 
-        e.id && 
-        e.title && 
-        e.location &&
-        typeof e.location.lat === 'number' &&
-        typeof e.location.lng === 'number' &&
-        new Date(e.date) > now
-      );
-
-      return validEvents;
+      return filterFutureEvents(data);
     },
     enabled: !events || events.length === 0,
     initialData: [],
-    staleTime: 2 * 60 * 1000,
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   const eventsList = events && events.length > 0 ? events : availableEvents;
@@ -68,10 +46,10 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
     if (!eventsList || eventsList.length === 0) return [];
     
     return [...eventsList]
-      .filter(e => e && e.location && e.location.lat && e.location.lng)
+      .filter(e => e?.location?.lat && e?.location?.lng)
       .sort((a, b) => {
-        const distA = getDistance(userLocation.lat, userLocation.lng, a.location.lat, a.location.lng);
-        const distB = getDistance(userLocation.lat, userLocation.lng, b.location.lat, b.location.lng);
+        const distA = calculateDistance(userLocation.lat, userLocation.lng, a.location.lat, a.location.lng);
+        const distB = calculateDistance(userLocation.lat, userLocation.lng, b.location.lat, b.location.lng);
         return distA - distB;
       });
   }, [eventsList, userLocation]);
@@ -95,18 +73,8 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
   };
 
   const handleUpload = async () => {
-    if (!file) {
-      alert("❌ Por favor, selecione um vídeo.");
-      return;
-    }
-    
-    if (!selectedEventId) {
-      alert("❌ Por favor, selecione um evento.");
-      return;
-    }
-    
-    if (!user) {
-      alert("❌ Você precisa estar logado para publicar um reel.");
+    if (!file || !selectedEventId || !user) {
+      alert("❌ Preencha todos os campos.");
       return;
     }
 
@@ -163,17 +131,16 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
             >
               <CheckCircle2 className="w-16 h-16 sm:w-20 sm:h-20 text-green-400 mx-auto mb-4" />
             </motion.div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white font-orbitron mb-2">Reel Publicado!</h2>
-            <p className="text-sm sm:text-base text-gray-300 mb-6">Sua vibe foi compartilhada com a cena underground! 🔥</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Reel Publicado!</h2>
+            <p className="text-sm sm:text-base text-gray-300 mb-6">Sua vibe foi compartilhada! 🔥</p>
             <Button onClick={onUploadComplete} className="bg-gradient-to-r from-green-500 to-emerald-500 w-full">
               Voltar
             </Button>
           </div>
         ) : (
           <>
-            <h2 className="text-xl sm:text-2xl font-bold text-center text-white mb-4 sm:mb-6 font-orbitron">Compartilhe a Vibe</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-center text-white mb-4 sm:mb-6">Compartilhe a Vibe</h2>
             <div className="space-y-3 sm:space-y-4">
-              {/* Upload de Vídeo */}
               <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 sm:p-6 text-center cursor-pointer hover:border-cyan-500 transition-colors" 
                    onClick={() => document.getElementById('video-upload').click()}>
                 {uploading ? (
@@ -204,7 +171,6 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
                 />
               </div>
               
-              {/* Descrição */}
               <Textarea 
                 placeholder="Adicione uma legenda..."
                 value={description}
@@ -213,7 +179,6 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
                 disabled={uploading}
               />
               
-              {/* Seleção de Evento - CORRIGIDO */}
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Selecione o Evento *</label>
                 {loadingEvents ? (
@@ -233,7 +198,7 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
                       </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-600 text-white max-h-[300px]">
                         {sortedEvents.map(event => {
-                          const distance = getDistance(
+                          const distance = calculateDistance(
                             userLocation.lat, 
                             userLocation.lng, 
                             event.location.lat, 
@@ -276,11 +241,10 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
                 )}
               </div>
               
-              {/* Botão de Publicar */}
               <Button 
                 onClick={handleUpload} 
                 disabled={uploading || !file || !selectedEventId} 
-                className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base h-10 sm:h-11"
+                className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 disabled:opacity-50 text-sm sm:text-base h-10 sm:h-11"
               >
                 {uploading ? (
                   <>

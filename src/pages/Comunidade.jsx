@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,14 +10,9 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Tabs, TabsList, TabsContent, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import FollowButton from '../components/profile/FollowButton';
+import { CACHE_CONFIG } from '../components/shared/helpers';
 
 export default function Comunidade() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,6 +37,7 @@ export default function Comunidade() {
       }
     },
     retry: false,
+    ...CACHE_CONFIG.STATIC,
   });
 
   const { data: communities = [], isLoading } = useQuery({
@@ -49,32 +45,32 @@ export default function Comunidade() {
     queryFn: async () => {
       try {
         const data = await base44.entities.Community.list("-member_count", 50);
-        // CORREÇÃO: Filtrar comunidades inválidas
-        return (data || []).filter(c => c && c.id && c.name);
+        return (data || []).filter(c => c?.id && c?.name);
       } catch (error) {
         console.error('Erro ao buscar comunidades:', error);
         return [];
       }
     },
     initialData: [],
+    ...CACHE_CONFIG.LONG,
   });
 
   const { data: suggestedUsers = [] } = useQuery({
-    queryKey: ['suggestedUsers'],
+    queryKey: ['suggestedUsers', user?.id],
     queryFn: async () => {
       try {
         const users = await base44.entities.User.list("", 20);
-        // CORREÇÃO: Filtrar usuários inválidos e remover o usuário atual
         return (users || [])
-          .filter(u => u && u.id && u.id !== user?.id)
+          .filter(u => u?.id && u.id !== user?.id)
           .slice(0, 4);
       } catch (error) {
-        console.error('Erro ao buscar usuários sugeridos:', error);
+        console.error('Erro ao buscar usuários:', error);
         return [];
       }
     },
     enabled: !!user,
     initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   const createCommunityMutation = useMutation({
@@ -86,8 +82,7 @@ export default function Comunidade() {
       });
     },
     onSuccess: async (newCommunity) => {
-      // CORREÇÃO: Validar newCommunity antes de criar member
-      if (newCommunity && newCommunity.id) {
+      if (newCommunity?.id) {
         try {
           await base44.entities.CommunityMember.create({
             community_id: newCommunity.id,
@@ -102,17 +97,17 @@ export default function Comunidade() {
       queryClient.invalidateQueries(['communities']);
       setShowCreateModal(false);
       setNewCommunity({ name: '', description: '', type: 'musica', is_private: false, tags: [] });
-      alert('✅ Comunidade criada com sucesso!');
+      alert('✅ Comunidade criada!');
     },
     onError: (error) => {
-      console.error('Erro ao criar comunidade:', error);
+      console.error('Erro:', error);
       alert('❌ Erro ao criar comunidade');
     }
   });
 
   const handleCreateCommunity = () => {
     if (!user?.is_organizer) {
-      alert('❌ Apenas organizadores podem criar comunidades');
+      alert('❌ Apenas organizadores podem criar');
       return;
     }
 
@@ -129,29 +124,16 @@ export default function Comunidade() {
       navigate(createPageUrl("BemVindo"));
       return;
     }
-    
-    if (!communityId) {
-      console.error('ID da comunidade inválido');
-      return;
-    }
-    
-    alert(`Pedido para entrar na comunidade enviado ao moderador!`);
-    // TODO: Criar lógica de solicitação
+    alert(`Pedido enviado!`);
   };
 
   const handleUserClick = (userId) => {
-    if (!userId) {
-      console.error('ID do usuário inválido');
-      return;
-    }
+    if (!userId) return;
     navigate(createPageUrl("PerfilUsuario") + `?id=${userId}`);
   };
 
-  // CORREÇÃO: Filtrar comunidades válidas antes de buscar
   const filteredCommunities = communities.filter(community =>
-    community &&
-    community.name &&
-    community.description &&
+    community?.name && community?.description &&
     (community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     community.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -169,7 +151,6 @@ export default function Comunidade() {
           </p>
         </div>
         
-        {/* MUDANÇA: Apenas organizadores veem botão de criar */}
         {user?.is_organizer ? (
           <Button 
             onClick={() => setShowCreateModal(true)}
@@ -198,16 +179,11 @@ export default function Comunidade() {
 
       <Tabs defaultValue="connections" className="w-full">
         <TabsList className="mb-6 bg-gray-900/50 border-gray-700">
-          <TabsTrigger value="connections" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
-            Conexões
-          </TabsTrigger>
-          <TabsTrigger value="communities" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-            Comunidades ({filteredCommunities.length})
-          </TabsTrigger>
+          <TabsTrigger value="connections">Conexões</TabsTrigger>
+          <TabsTrigger value="communities">Comunidades ({filteredCommunities.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="connections" className="mt-6">
-          {/* Usuários Sugeridos */}
           <div className="mb-8">
             <h2 className="text-lg sm:text-xl font-bold mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400" />
@@ -216,8 +192,7 @@ export default function Comunidade() {
             {suggestedUsers.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {suggestedUsers.map(suggestedUser => {
-                  // CORREÇÃO: Validar usuário antes de renderizar
-                  if (!suggestedUser || !suggestedUser.id) return null;
+                  if (!suggestedUser?.id) return null;
                   
                   return (
                     <Card key={suggestedUser.id} className="bg-gray-900/50 border-gray-700 hover:border-cyan-500/50 transition-all">
@@ -234,7 +209,7 @@ export default function Comunidade() {
                           <h3 className="font-semibold text-white text-sm sm:text-base mb-1">
                             {suggestedUser.full_name || 'Usuário'}
                           </h3>
-                          {suggestedUser.music_preferences && suggestedUser.music_preferences.length > 0 && (
+                          {suggestedUser.music_preferences?.length > 0 && (
                             <div className="flex flex-wrap gap-1 justify-center mb-3">
                               {suggestedUser.music_preferences.slice(0, 2).map((genre, idx) => (
                                 <Badge key={`${genre}-${idx}`} className="bg-purple-500/20 text-purple-300 text-[10px]">
@@ -282,8 +257,7 @@ export default function Comunidade() {
           ) : filteredCommunities.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCommunities.map(community => {
-                // CORREÇÃO: Validar comunidade antes de renderizar
-                if (!community || !community.id) return null;
+                if (!community?.id) return null;
                 
                 return (
                   <Card key={community.id} className="bg-gray-900/50 border-gray-700 overflow-hidden hover:border-cyan-500/50 transition-all">
@@ -306,7 +280,7 @@ export default function Comunidade() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-gray-300 text-sm mb-4">{community.description || ''}</p>
-                      {community.tags && community.tags.length > 0 && (
+                      {community.tags?.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-4">
                           {community.tags.map((tag, idx) => (
                             <Badge key={`${tag}-${idx}`} variant="outline" className="text-cyan-300 border-cyan-500/30">
@@ -342,7 +316,6 @@ export default function Comunidade() {
         </TabsContent>
       </Tabs>
 
-      {/* Modal de Criar Comunidade - Apenas Organizadores */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent className="bg-gray-900 border-purple-500 text-white">
           <DialogHeader>
@@ -351,12 +324,12 @@ export default function Comunidade() {
               Criar Nova Comunidade
             </DialogTitle>
             <DialogDescription className="text-gray-400">
-              Como organizador, você será o moderador desta comunidade.
+              Como organizador, você será o moderador.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Nome da Comunidade *</label>
+              <label className="text-sm text-gray-400 mb-1 block">Nome *</label>
               <Input
                 value={newCommunity.name}
                 onChange={(e) => setNewCommunity(prev => ({ ...prev, name: e.target.value }))}
@@ -369,7 +342,7 @@ export default function Comunidade() {
               <Textarea
                 value={newCommunity.description}
                 onChange={(e) => setNewCommunity(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Descreva sua comunidade..."
+                placeholder="Descreva..."
                 className="bg-gray-800 border-gray-700 h-24"
               />
             </div>
@@ -395,7 +368,7 @@ export default function Comunidade() {
                 onChange={(e) => setNewCommunity(prev => ({ ...prev, is_private: e.target.checked }))}
                 className="w-4 h-4"
               />
-              <label className="text-sm text-gray-400">Comunidade Privada (requer aprovação)</label>
+              <label className="text-sm text-gray-400">Privada (requer aprovação)</label>
             </div>
           </div>
           <div className="flex gap-3 mt-4">
@@ -407,7 +380,7 @@ export default function Comunidade() {
               disabled={createCommunityMutation.isPending}
               className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600"
             >
-              {createCommunityMutation.isPending ? 'Criando...' : 'Criar Comunidade'}
+              {createCommunityMutation.isPending ? 'Criando...' : 'Criar'}
             </Button>
           </div>
         </DialogContent>

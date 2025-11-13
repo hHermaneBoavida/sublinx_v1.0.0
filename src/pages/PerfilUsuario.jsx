@@ -13,17 +13,16 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import FollowButton from "../components/profile/FollowButton";
 import EventHistoryCard from "../components/profile/EventHistoryCard";
+import { DEFAULT_AVATAR, CACHE_CONFIG } from "../components/shared/helpers";
 
 export default function PerfilUsuario() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('id');
   const [currentUser, setCurrentUser] = useState(null);
-
-  const userImage = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/5048ab8ec_perfil.png";
 
   useEffect(() => {
     loadCurrentUser();
@@ -38,26 +37,20 @@ export default function PerfilUsuario() {
     }
   };
 
-  // BUSCAR DADOS DO USUÁRIO - CORREÇÃO: Usar abordagem que respeita permissões
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ['userProfile', userId],
     queryFn: async () => {
       if (!userId) throw new Error("ID não fornecido");
 
-      console.log("🔍 Buscando usuário:", userId);
-      
       try {
-        // Tentar buscar eventos do organizador (público)
         const events = await base44.entities.Event.filter({ organizer_id: userId });
         
         if (events && events.length > 0) {
           const firstEvent = events[0];
-          console.log("✅ Dados extraídos de eventos");
-          
           return {
             id: userId,
             full_name: firstEvent.organizer || "Organizador",
-            avatar_url: firstEvent.organizer_avatar || userImage,
+            avatar_url: firstEvent.organizer_avatar || DEFAULT_AVATAR,
             is_organizer: true,
             bio: "Organizador de eventos na cena underground",
             music_preferences: [],
@@ -68,16 +61,13 @@ export default function PerfilUsuario() {
           };
         }
 
-        // Buscar via tickets
         const tickets = await base44.entities.Ticket.filter({ user_id: userId });
         
         if (tickets && tickets.length > 0) {
-          console.log("✅ Usuário encontrado via tickets");
-          
           return {
             id: userId,
             full_name: "Usuário Sublinx",
-            avatar_url: userImage,
+            avatar_url: DEFAULT_AVATAR,
             is_organizer: false,
             bio: "Entusiasta da cena underground",
             music_preferences: [],
@@ -88,11 +78,10 @@ export default function PerfilUsuario() {
           };
         }
 
-        // Perfil básico
         return {
           id: userId,
           full_name: "Usuário Sublinx",
-          avatar_url: userImage,
+          avatar_url: DEFAULT_AVATAR,
           is_organizer: false,
           bio: "Membro da comunidade Sublinx",
           music_preferences: [],
@@ -100,17 +89,14 @@ export default function PerfilUsuario() {
           location: { city: "Brasil" },
           is_public_profile: true
         };
-        
       } catch (error) {
         console.error("❌ Erro:", error);
-        
-        // Retornar perfil básico
         return {
           id: userId,
           full_name: "Usuário Sublinx",
-          avatar_url: userImage,
+          avatar_url: DEFAULT_AVATAR,
           is_organizer: false,
-          bio: "Membro da comunidade Sublinx",
+          bio: "Membro da comunidade",
           music_preferences: [],
           underground_level: 1,
           location: { city: "Brasil" },
@@ -120,9 +106,9 @@ export default function PerfilUsuario() {
     },
     enabled: !!userId,
     retry: 1,
+    ...CACHE_CONFIG.MEDIUM,
   });
 
-  // Buscar seguidores
   const { data: followersData = [] } = useQuery({
     queryKey: ['userFollowers', userId],
     queryFn: async () => {
@@ -135,9 +121,9 @@ export default function PerfilUsuario() {
     },
     enabled: !!userId && !!user,
     initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
-  // Buscar seguindo
   const { data: followingData = [] } = useQuery({
     queryKey: ['userFollowing', userId],
     queryFn: async () => {
@@ -150,9 +136,9 @@ export default function PerfilUsuario() {
     },
     enabled: !!userId && !!user,
     initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
-  // Buscar eventos passados
   const { data: pastEvents = [] } = useQuery({
     queryKey: ['userPastEvents', userId],
     queryFn: async () => {
@@ -195,9 +181,9 @@ export default function PerfilUsuario() {
     },
     enabled: !!userId && !!user,
     initialData: [],
+    ...CACHE_CONFIG.LONG,
   });
 
-  // Buscar reels
   const { data: userReels = [] } = useQuery({
     queryKey: ['userProfileReels', userId],
     queryFn: async () => {
@@ -210,6 +196,7 @@ export default function PerfilUsuario() {
     },
     enabled: !!userId && !!user,
     initialData: [],
+    ...CACHE_CONFIG.LONG,
   });
 
   const handleShare = () => {
@@ -271,7 +258,6 @@ export default function PerfilUsuario() {
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 text-white">
-      {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -298,7 +284,6 @@ export default function PerfilUsuario() {
         </Button>
       </motion.div>
 
-      {/* Profile Header */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -309,7 +294,7 @@ export default function PerfilUsuario() {
             <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500 via-purple-500 to-pink-500 rounded-full animate-spin-slow opacity-75 blur-sm"></div>
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-gray-900">
               <img
-                src={user.avatar_url || userImage}
+                src={user.avatar_url || DEFAULT_AVATAR}
                 alt={user.full_name}
                 className="w-full h-full object-cover"
               />
@@ -317,7 +302,6 @@ export default function PerfilUsuario() {
           </div>
 
           <div className="flex-1 min-w-0">
-            {/* Stats */}
             <div className="flex gap-4 sm:gap-8 mb-4">
               <div className="text-center">
                 <div className="text-base sm:text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
@@ -339,7 +323,6 @@ export default function PerfilUsuario() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex gap-2 sm:gap-3">
               {currentUser && (
                 <div className="flex-1">
@@ -368,14 +351,12 @@ export default function PerfilUsuario() {
           </div>
         </div>
 
-        {/* Bio */}
         <div className="space-y-3">
           <div className="font-semibold text-sm sm:text-base">{user.full_name}</div>
           {user.bio && (
             <div className="text-xs sm:text-sm text-gray-300">{user.bio}</div>
           )}
 
-          {/* Badges */}
           <div className="flex flex-wrap gap-2">
             {user.is_pro_member && (
               <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 border-0 text-xs shadow-lg">
@@ -393,7 +374,6 @@ export default function PerfilUsuario() {
             </Badge>
           </div>
 
-          {/* Gêneros Favoritos */}
           {user.music_preferences && user.music_preferences.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -413,7 +393,6 @@ export default function PerfilUsuario() {
             </div>
           )}
 
-          {/* Localização */}
           <div className="flex gap-4 py-3 border-t border-b border-gray-800 text-xs sm:text-sm">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-cyan-400" />
@@ -427,7 +406,6 @@ export default function PerfilUsuario() {
         </div>
       </motion.div>
 
-      {/* Tabs */}
       <Tabs defaultValue="posts" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-gray-900/50 border border-gray-800">
           <TabsTrigger value="posts">

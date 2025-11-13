@@ -55,6 +55,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import FollowButton from "../components/profile/FollowButton";
 import EventHistoryCard from "../components/profile/EventHistoryCard";
+import { CACHE_CONFIG, DEFAULT_AVATAR, MUSIC_GENRES } from "../components/shared/helpers";
 
 export default function Perfil() {
   const [showEditModal, setShowEditModal] = useState(false);
@@ -82,8 +83,6 @@ export default function Perfil() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const userImage = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/5048ab8ec_perfil.png";
-
   const { data: user, isLoading: loadingUser, refetch: refetchUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
@@ -98,7 +97,7 @@ export default function Perfil() {
         });
         
         // Defaults para garantir que os campos existam no objeto
-        if (!userData.avatar_url) userData.avatar_url = userImage;
+        if (!userData.avatar_url) userData.avatar_url = DEFAULT_AVATAR;
         if (!userData.music_preferences) userData.music_preferences = [];
         if (!userData.stats) {
           userData.stats = {
@@ -118,7 +117,7 @@ export default function Perfil() {
       }
     },
     retry: false, // Don't retry if user is not authenticated
-    staleTime: 10 * 1000, // Data considered fresh for 10 seconds
+    ...CACHE_CONFIG.SHORT,
   });
 
   // CORREÇÃO: Inicializar form quando user carregar
@@ -131,7 +130,7 @@ export default function Perfil() {
       setEditForm({
         full_name: user.full_name || "",
         bio: user.bio || "",
-        avatar_url: user.avatar_url || userImage,
+        avatar_url: user.avatar_url || DEFAULT_AVATAR,
         phone: user.phone || "",
         address_full: user.address_full || "",
         city: user.city || "",
@@ -157,7 +156,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   const { data: followingData = [] } = useQuery({
@@ -171,7 +171,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   // NOVO: Buscar usuários dos seguidores
@@ -188,7 +189,8 @@ export default function Perfil() {
       }
     },
     enabled: followersData && followersData.length > 0,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   // NOVO: Buscar usuários que está seguindo
@@ -205,7 +207,8 @@ export default function Perfil() {
       }
     },
     enabled: followingData && followingData.length > 0,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   // Buscar eventos criados (para organizadores)
@@ -220,7 +223,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id && !!user?.is_organizer,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.LONG,
   });
 
   // NOVO: Buscar eventos passados que o usuário participou
@@ -257,7 +261,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.LONG,
   });
 
   // NOVO: Buscar eventos com ingressos (aprovados)
@@ -297,7 +302,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   // CORREÇÃO: Separar eventos futuros e passados
@@ -320,7 +326,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id && !!user?.is_organizer && !!createdEvents && createdEvents.length > 0,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.SHORT,
   });
 
   // Buscar lista de convidados (solicitações aceitas)
@@ -339,7 +346,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id && !!user?.is_organizer && !!createdEvents && createdEvents.length > 0,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   // Buscar eventos curtidos (para usuários)
@@ -368,7 +376,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.LONG,
   });
 
   // Buscar solicitações feitas (para usuários)
@@ -383,7 +392,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   // NOVO: Buscar eventos das solicitações com status e detalhes
@@ -420,7 +430,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id && !!myRequests && myRequests.length > 0,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   const { data: userTickets = [] } = useQuery({
@@ -434,7 +445,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   const { data: userReels = [] } = useQuery({
@@ -448,7 +460,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id,
-    initialData: []
+    initialData: [],
+    ...CACHE_CONFIG.LONG,
   });
 
   const followersCount = followersData?.length || 0;
@@ -548,7 +561,7 @@ export default function Perfil() {
     const updateData = {
       full_name: trimmedName,
       bio: editForm.bio || "",
-      avatar_url: editForm.avatar_url || userImage,
+      avatar_url: editForm.avatar_url || DEFAULT_AVATAR,
       phone: editForm.phone || "",
       address_full: editForm.address_full || "",
       city: editForm.city || "",
@@ -672,11 +685,7 @@ export default function Perfil() {
   const remainingChanges = 3 - nameChangeCount;
 
   // List of all possible music genres for selection in the edit modal
-  const allGenres = [
-    "Techno", "House", "Trance", "Drum & Bass", "Dubstep", "Ambient",
-    "Experimental", "Funk", "Trap", "Kuduro", "Kizomba", "Samba",
-    "Pagode", "Rap", "Hip Hop", "Reggae"
-  ];
+  const allGenres = MUSIC_GENRES;
 
   // CORREÇÃO: Verificação segura para comparação de nomes
   const currentNameValue = editForm.full_name || "";
@@ -1379,7 +1388,7 @@ export default function Perfil() {
                         <CardContent className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <img 
-                              src={follower.avatar_url || userImage}
+                              src={follower.avatar_url || DEFAULT_AVATAR}
                               alt={follower.full_name}
                               className="w-12 h-12 rounded-full object-cover border-2 border-cyan-500/30"
                             />
@@ -1431,7 +1440,7 @@ export default function Perfil() {
                         <CardContent className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <img 
-                              src={following.avatar_url || userImage}
+                              src={following.avatar_url || DEFAULT_AVATAR}
                               alt={following.full_name}
                               className="w-12 h-12 rounded-full object-cover border-2 border-purple-500/30"
                             />
@@ -1485,7 +1494,7 @@ export default function Perfil() {
                     </div>
                   ) : (
                     <img
-                      src={editForm.avatar_url || userImage}
+                      src={editForm.avatar_url || DEFAULT_AVATAR}
                       alt="Avatar"
                       className="w-full h-full object-cover"
                     />
@@ -1772,7 +1781,7 @@ export default function Perfil() {
                 <div key={follower.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <img 
-                      src={follower.avatar_url || userImage}
+                      src={follower.avatar_url || DEFAULT_AVATAR}
                       alt={follower.full_name}
                       className="w-10 h-10 rounded-full object-cover border-2 border-cyan-500/30"
                     />
@@ -1812,7 +1821,7 @@ export default function Perfil() {
                 <div key={following.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <img 
-                      src={following.avatar_url || userImage}
+                      src={following.avatar_url || DEFAULT_AVATAR}
                       alt={following.full_name}
                       className="w-10 h-10 rounded-full object-cover border-2 border-purple-500/30"
                     />
