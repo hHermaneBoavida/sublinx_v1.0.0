@@ -10,7 +10,8 @@ import EventDetailsModal from "../components/map/EventDetailsModal";
 import { Loader2, MapPin, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import { filterFutureEvents, matchesVibe, CACHE_CONFIG } from "../components/shared/helpers";
+import { filterFutureEvents, matchesVibe } from "../components/shared/helpers";
+import { CACHE_CONFIG } from "../components/shared/constants";
 
 export default function Mapa() {
   const [viewMode, setViewMode] = useState("map");
