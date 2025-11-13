@@ -567,7 +567,7 @@ export default function MapView({
 
       {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* ⭐ ÚNICO MARCADOR COMPACTO - SUA LOCALIZAÇÃO ⭐ */}
+        {/* ⭐ ÚNICO MARCADOR MINI - SUA LOCALIZAÇÃO ⭐ */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-40"
           style={{ 
@@ -584,17 +584,17 @@ export default function MapView({
           }}
         >
           <div className="relative flex items-center justify-center">
-            {/* Layer 1: Glow Ambiente REDUZIDO (100px) */}
+            {/* Layer 1: Glow Ambiente MINI (70px) */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '100px',
-                height: '100px',
+                width: '70px',
+                height: '70px',
                 background: `radial-gradient(circle at center, 
                   ${vibeTheme.glowColor}25 0%, 
                   ${vibeTheme.secondaryGlow}12 45%, 
                   transparent 70%)`,
-                filter: 'blur(18px)',
+                filter: 'blur(15px)',
               }}
               animate={{
                 scale: [1, 1.15, 1],
@@ -607,17 +607,17 @@ export default function MapView({
               }}
             />
 
-            {/* Layer 2: Rastro de Energia (70px) */}
+            {/* Layer 2: Rastro de Energia (50px) */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '70px',
-                height: '70px',
+                width: '50px',
+                height: '50px',
                 background: `radial-gradient(circle at center, 
                   ${vibeTheme.glowColor}22 0%, 
                   ${vibeTheme.secondaryGlow}10 50%, 
                   transparent 70%)`,
-                filter: 'blur(10px)',
+                filter: 'blur(8px)',
               }}
               animate={{
                 scale: [1, 1.3, 1],
@@ -631,17 +631,17 @@ export default function MapView({
               }}
             />
 
-            {/* Layer 3: Pulso Sonar COMPACTO */}
+            {/* Layer 3: Pulso Sonar MINI */}
             <motion.div
               className="absolute rounded-full pointer-events-none"
               style={{
-                width: '6px',
-                height: '6px',
+                width: '4px',
+                height: '4px',
                 background: `radial-gradient(circle, ${vibeTheme.glowColor} 0%, transparent 70%)`,
-                boxShadow: `0 0 25px ${vibeTheme.glowColor}, 0 0 50px ${vibeTheme.glowColor}80`
+                boxShadow: `0 0 20px ${vibeTheme.glowColor}, 0 0 40px ${vibeTheme.glowColor}80`
               }}
               animate={{
-                scale: [1, 18, 1],
+                scale: [1, 15, 1],
                 opacity: [0.9, 0, 0.9]
               }}
               transition={{
@@ -652,11 +652,11 @@ export default function MapView({
               }}
             />
 
-            {/* Layer 4: Marcador Central COMPACTO (8x8px) */}
+            {/* Layer 4: Marcador Central MINI (6x6px) - SEM ANEL */}
             <motion.div 
               className="relative z-50" 
               style={{
-                filter: `drop-shadow(0 0 18px ${vibeTheme.glowColor}) drop-shadow(0 0 35px ${vibeTheme.glowColor}90) drop-shadow(0 0 50px ${vibeTheme.secondaryGlow}70)`,
+                filter: `drop-shadow(0 0 15px ${vibeTheme.glowColor}) drop-shadow(0 0 30px ${vibeTheme.glowColor}90) drop-shadow(0 0 45px ${vibeTheme.secondaryGlow}70)`,
               }}
               animate={{
                 scale: [1, 1.08, 1],
@@ -668,7 +668,7 @@ export default function MapView({
               }}
             >
               <div 
-                className="w-8 h-8 rounded-full relative overflow-hidden"
+                className="w-6 h-6 rounded-full relative overflow-hidden"
                 style={{
                   background: `
                     radial-gradient(circle at 30% 30%, 
@@ -676,16 +676,16 @@ export default function MapView({
                       ${vibeTheme.secondaryGlow} 50%,
                       ${vibeTheme.accentColor} 100%)
                   `,
-                  border: `3px solid rgba(255, 255, 255, 1)`,
+                  border: `2.5px solid rgba(255, 255, 255, 1)`,
                   boxShadow: `
-                    0 0 25px ${vibeTheme.glowColor},
-                    0 0 50px ${vibeTheme.glowColor}80,
-                    0 0 70px ${vibeTheme.secondaryGlow}60,
-                    inset 0 0 20px rgba(255, 255, 255, 0.5)
+                    0 0 20px ${vibeTheme.glowColor},
+                    0 0 40px ${vibeTheme.glowColor}80,
+                    0 0 60px ${vibeTheme.secondaryGlow}60,
+                    inset 0 0 18px rgba(255, 255, 255, 0.5)
                   `,
                 }}
               >
-                {/* Brilho Interno INTENSO */}
+                {/* Brilho Interno */}
                 <motion.div
                   className="absolute inset-0 rounded-full"
                   style={{
@@ -705,18 +705,18 @@ export default function MapView({
                   }}
                 />
 
-                {/* Ícone de Navegação COMPACTO */}
+                {/* Ícone de Navegação MINI */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Navigation 
-                    className="w-3.5 h-3.5 text-white" 
+                    className="w-3 h-3 text-white" 
                     strokeWidth={3.5}
                     style={{
-                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.9))'
+                      filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.9))'
                     }}
                   />
                 </div>
 
-                {/* Reflexo Superior Premium */}
+                {/* Reflexo Superior */}
                 <motion.div 
                   className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
                   style={{
@@ -731,49 +731,25 @@ export default function MapView({
                   }}
                 />
               </div>
-
-              {/* Anel Orbital ÚNICO - COMPACTO (45px) */}
-              <motion.div
-                className="absolute inset-0 rounded-full border-2 pointer-events-none"
-                style={{
-                  borderColor: `${vibeTheme.glowColor}50`,
-                  width: '45px',
-                  height: '45px',
-                  left: '50%',
-                  top: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  boxShadow: `0 0 18px ${vibeTheme.glowColor}50, inset 0 0 12px ${vibeTheme.glowColor}30`
-                }}
-                animate={{
-                  scale: [1, 1.5, 1],
-                  opacity: [0.8, 0, 0.8],
-                  rotate: [0, 360]
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-              />
             </motion.div>
 
-            {/* Partículas Flutuantes REDUZIDAS - 4 partículas menores */}
-            {[...Array(4)].map((_, i) => (
+            {/* Partículas Flutuantes MINI - 3 partículas */}
+            {[...Array(3)].map((_, i) => (
               <motion.div
                 key={i}
                 className="absolute rounded-full pointer-events-none"
                 style={{
-                  width: '2.5px',
-                  height: '2.5px',
+                  width: '2px',
+                  height: '2px',
                   background: i % 2 === 0 ? vibeTheme.glowColor : vibeTheme.secondaryGlow,
-                  filter: `blur(${1 + Math.random()}px)`,
-                  left: `${20 + (i * 20)}%`,
-                  top: `${15 + (i * 25)}%`,
-                  boxShadow: `0 0 12px ${i % 2 === 0 ? vibeTheme.glowColor : vibeTheme.secondaryGlow}`
+                  filter: `blur(${0.8 + Math.random()}px)`,
+                  left: `${25 + (i * 25)}%`,
+                  top: `${20 + (i * 25)}%`,
+                  boxShadow: `0 0 10px ${i % 2 === 0 ? vibeTheme.glowColor : vibeTheme.secondaryGlow}`
                 }}
                 animate={{
-                  y: [0, -12, 0],
-                  x: [0, Math.sin(i) * 8, 0],
+                  y: [0, -10, 0],
+                  x: [0, Math.sin(i) * 6, 0],
                   opacity: [0, 0.8, 0],
                   scale: [0.5, 1.2, 0.5]
                 }}
