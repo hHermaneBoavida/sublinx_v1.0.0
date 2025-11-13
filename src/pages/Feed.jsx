@@ -1,21 +1,28 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import EventFeedCard from "../components/feed/EventFeedCard";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import ShareVibeModal from "../components/feed/ShareVibeModal";
-import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap } from "lucide-react";
+import InfiniteScrollTrigger from "../components/feed/InfiniteScrollTrigger";
+import SortControls, { SORT_OPTIONS } from "../components/feed/SortControls";
+import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { filterFutureEvents, sortEventsByDistance, CACHE_CONFIG } from "../components/shared/helpers";
+import { filterFutureEvents, sortEventsByDistance, calculateDistance, CACHE_CONFIG } from "../components/shared/helpers";
+import { motion, AnimatePresence } from "framer-motion";
+
+const EVENTS_PER_PAGE = 10;
 
 export default function Feed() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showShareVibe, setShowShareVibe] = useState(false);
+  const [sortBy, setSortBy] = useState('distance'); // distance, date_asc, popularity, etc
+  const [showSortPanel, setShowSortPanel] = useState(false);
   const navigate = useNavigate();
 
   const { data: user } = useQuery({
@@ -28,22 +35,48 @@ export default function Feed() {
       }
     },
     retry: false,
-    ...CACHE_CONFIG.MEDIUM,
+    ...CACHE_CONFIG.STATIC,
   });
 
   const isGuest = !user;
 
-  const { data: events = [], isLoading: isLoadingEvents, refetch } = useQuery({
-    queryKey: ['feedEvents'],
-    queryFn: async () => {
-      const data = await base44.entities.Event.list("-date", 50);
-      return filterFutureEvents(data);
+  // NOVO: Infinite Query para paginação
+  const {
+    data: eventsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isLoadingEvents,
+    refetch
+  } = useInfiniteQuery({
+    queryKey: ['feedEventsInfinite', sortBy],
+    queryFn: async ({ pageParam = 0 }) => {
+      const offset = pageParam * EVENTS_PER_PAGE;
+      const data = await base44.entities.Event.list("-date", EVENTS_PER_PAGE + offset);
+      
+      const futureEvents = filterFutureEvents(data);
+      
+      // Retornar apenas os eventos da página atual
+      const pageEvents = futureEvents.slice(offset, offset + EVENTS_PER_PAGE);
+      
+      return {
+        events: pageEvents,
+        nextPage: futureEvents.length > offset + EVENTS_PER_PAGE ? pageParam + 1 : undefined,
+        totalCount: futureEvents.length
+      };
     },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 0,
     ...CACHE_CONFIG.MEDIUM,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    initialData: [],
   });
+
+  // Flatten pages into single array
+  const events = useMemo(() => {
+    if (!eventsData?.pages) return [];
+    return eventsData.pages.flatMap(page => page.events);
+  }, [eventsData]);
 
   const { data: advertisements = [] } = useQuery({
     queryKey: ['feedAds'],
@@ -66,12 +99,13 @@ export default function Feed() {
         return [];
       }
     },
-    ...CACHE_CONFIG.MEDIUM,
+    ...CACHE_CONFIG.LONG,
     initialData: [],
   });
 
+  // OTIMIZADO: Cache de interações com invalidação seletiva
   const { data: interactions = { likes: {}, comments: {}, requests: {} } } = useQuery({
-    queryKey: ['feedInteractions', user?.id],
+    queryKey: ['feedInteractions', user?.id, events.length],
     queryFn: async () => {
       if (!user || events.length === 0) return { likes: {}, comments: {}, requests: {} };
 
@@ -110,9 +144,63 @@ export default function Feed() {
     initialData: { likes: {}, comments: {}, requests: {} },
   });
 
+  // NOVO: Ordenação avançada com múltiplos critérios
   const sortedEvents = useMemo(() => {
-    return sortEventsByDistance(events, user?.location);
-  }, [events, user?.location]);
+    if (!events || events.length === 0) return [];
+
+    let sorted = [...events];
+
+    switch (sortBy) {
+      case 'distance':
+        sorted = sortEventsByDistance(sorted, user?.location);
+        break;
+      
+      case 'date_asc':
+        sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+        break;
+      
+      case 'date_desc':
+        sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+        break;
+      
+      case 'popularity':
+        sorted.sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0));
+        break;
+      
+      case 'likes':
+        sorted.sort((a, b) => {
+          const likesA = interactions.likes[a.id]?.length || 0;
+          const likesB = interactions.likes[b.id]?.length || 0;
+          return likesB - likesA;
+        });
+        break;
+      
+      case 'price_asc':
+        sorted.sort((a, b) => {
+          const priceA = a.price || a.ticket_types?.[0]?.price || 0;
+          const priceB = b.price || b.ticket_types?.[0]?.price || 0;
+          return priceA - priceB;
+        });
+        break;
+      
+      case 'price_desc':
+        sorted.sort((a, b) => {
+          const priceA = a.price || a.ticket_types?.[0]?.price || 0;
+          const priceB = b.price || b.ticket_types?.[0]?.price || 0;
+          return priceB - priceA;
+        });
+        break;
+      
+      case 'capacity':
+        sorted.sort((a, b) => (b.max_capacity || 0) - (a.max_capacity || 0));
+        break;
+      
+      default:
+        sorted = sortEventsByDistance(sorted, user?.location);
+    }
+
+    return sorted;
+  }, [events, sortBy, user?.location, interactions.likes]);
 
   const filteredEvents = useMemo(() => {
     if (!searchTerm) return sortedEvents;
@@ -127,6 +215,7 @@ export default function Feed() {
     );
   }, [sortedEvents, searchTerm]);
 
+  // NOVO: Inserir anúncios no feed otimizado
   const feedWithAds = useMemo(() => {
     if (!advertisements || advertisements.length === 0) {
       return filteredEvents.map(event => ({ type: 'event', data: event, key: `event-${event.id}` }));
@@ -147,8 +236,8 @@ export default function Feed() {
         result.push({ type: 'event', data: event, key: `event-${event.id}` });
       }
       
-      if ((index + 1) % 3 === 0 && middleAds.length > 0) {
-        const adIndex = Math.floor(index / 3) % middleAds.length;
+      if ((index + 1) % 5 === 0 && middleAds.length > 0) {
+        const adIndex = Math.floor(index / 5) % middleAds.length;
         const ad = middleAds[adIndex];
         if (ad?.id) {
           result.push({ type: 'ad', data: ad, key: `ad-middle-${ad.id}-${index}`, featured: true });
@@ -159,8 +248,15 @@ export default function Feed() {
     return result;
   }, [filteredEvents, advertisements]);
 
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
     <div className="max-w-xl mx-auto px-0 py-0">
+      {/* Header Compacto */}
       <div className="sticky top-0 z-10 bg-black/95 backdrop-blur-lg border-b border-gray-800/50 px-3 sm:px-4 py-2.5 sm:py-3">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
@@ -179,18 +275,23 @@ export default function Feed() {
               <Button 
                 onClick={() => navigate(createPageUrl("BemVindo"))}
                 size="sm"
-                className="bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-xs h-8 px-3"
+                className="bg-gradient-to-r from-cyan-600 to-purple-600 text-xs h-8 px-3"
               >
                 Entrar
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={() => navigate(createPageUrl("Mapa"))} className="h-8 w-8 sm:h-9 sm:w-9">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate(createPageUrl("Mapa"))} 
+              className="h-8 w-8 sm:h-9 sm:w-9"
+            >
               <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
             </Button>
           </div>
         </div>
 
-        <div className="relative">
+        <div className="relative mb-2">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             placeholder="Buscar evento, gênero, local..."
@@ -199,8 +300,50 @@ export default function Feed() {
             className="bg-gray-900/80 border-gray-700 pl-9 pr-3 text-white placeholder:text-gray-500 focus:border-cyan-500 text-sm h-9 rounded-lg"
           />
         </div>
+
+        {/* NOVO: Sort Toggle */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSortPanel(!showSortPanel)}
+            className="h-8 px-2 text-xs text-cyan-400 hover:bg-cyan-500/10"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 mr-1" />
+            Ordenar
+            {showSortPanel && <span className="ml-1">▼</span>}
+          </Button>
+          
+          {sortBy !== 'distance' && (
+            <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-[9px]">
+              {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
+            </Badge>
+          )}
+        </div>
+
+        {/* Sort Panel */}
+        <AnimatePresence>
+          {showSortPanel && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-3 overflow-hidden"
+            >
+              <SortControls 
+                value={sortBy} 
+                onChange={(value) => {
+                  setSortBy(value);
+                  setShowSortPanel(false);
+                }} 
+                hasLocation={!!user?.location}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
+      {/* Share Vibe Button */}
       <div className="px-3 sm:px-4 py-2.5 border-b border-gray-800/30">
         <Button
           className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 h-10 text-sm font-semibold shadow-lg"
@@ -208,10 +351,11 @@ export default function Feed() {
           disabled={isGuest}
         >
           <Heart className="w-4 h-4 mr-2" />
-          {isGuest ? "Entre para Compartilhar sua Vibe" : "Compartilhar Minha Vibe"}
+          {isGuest ? "Entre para Compartilhar" : "Compartilhar Minha Vibe"}
         </Button>
       </div>
 
+      {/* Feed com Infinite Scroll */}
       <div className="space-y-0">
         {isLoadingEvents ? (
           <>
@@ -222,32 +366,56 @@ export default function Feed() {
             <LoadingSkeleton />
           </>
         ) : feedWithAds.length > 0 ? (
-          feedWithAds.map((item, index) => {
-            if (!item?.data?.key) return null;
-            
-            return (
-              <React.Fragment key={item.key}>
-                {item.type === 'ad' ? (
-                  <SponsoredAdCard ad={item.data} featured={item.featured} />
-                ) : (
-                  <EventFeedCard
-                    event={item.data}
-                    user={user}
-                    isGuest={isGuest}
-                    initialLikes={interactions.likes[item.data.id] || []}
-                    initialComments={interactions.comments[item.data.id] || []}
-                    initialRequestStatus={interactions.requests[item.data.id] || null}
-                  />
-                )}
-                
-                {index < feedWithAds.length - 1 && (
-                  <div className="relative h-[1px] bg-gradient-to-r from-transparent via-gray-800/50 to-transparent">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent blur-[2px]" />
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })
+          <>
+            {feedWithAds.map((item, index) => {
+              if (!item?.data?.id && item.type !== 'ad') return null;
+              
+              return (
+                <React.Fragment key={item.key}>
+                  {item.type === 'ad' ? (
+                    <SponsoredAdCard ad={item.data} featured={item.featured} />
+                  ) : (
+                    <EventFeedCard
+                      event={item.data}
+                      user={user}
+                      isGuest={isGuest}
+                      initialLikes={interactions.likes[item.data.id] || []}
+                      initialComments={interactions.comments[item.data.id] || []}
+                      initialRequestStatus={interactions.requests[item.data.id] || null}
+                      index={index}
+                    />
+                  )}
+                  
+                  {index < feedWithAds.length - 1 && (
+                    <div className="relative h-[1px] bg-gradient-to-r from-transparent via-gray-800/50 to-transparent">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent blur-[2px]" />
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+
+            {/* Infinite Scroll Trigger */}
+            <InfiniteScrollTrigger
+              onIntersect={handleLoadMore}
+              isLoading={isFetchingNextPage}
+              hasMore={hasNextPage}
+            />
+
+            {/* End Message */}
+            {!hasNextPage && feedWithAds.length > 5 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-8 px-4"
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-full border border-gray-700">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <span className="text-sm text-gray-400">Você viu todos os eventos! 🎉</span>
+                </div>
+              </motion.div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12 sm:py-16 bg-gray-900/50 rounded-lg border border-gray-700 mx-3 sm:mx-4 mt-4">
             <Search className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
@@ -316,7 +484,7 @@ function SponsoredAdCard({ ad, featured = false }) {
           {featured ? (
             <>
               <Sparkles className="w-3 h-3" />
-              DESTAQUE PATROCINADO
+              DESTAQUE
             </>
           ) : (
             <>
@@ -342,6 +510,7 @@ function SponsoredAdCard({ ad, featured = false }) {
             src={ad.image_url}
             alt={ad.title || 'Anúncio'}
             className={`w-full h-full object-cover ${featured ? 'scale-105' : ''} transition-transform duration-500 hover:scale-110`}
+            loading="lazy"
           />
           <div className={`absolute inset-0 ${
             featured 
@@ -351,10 +520,7 @@ function SponsoredAdCard({ ad, featured = false }) {
           
           {featured && (
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <div className="relative">
-                <Crown className="w-16 h-16 text-yellow-400 opacity-20 animate-pulse" />
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 opacity-10 blur-2xl rounded-full" />
-              </div>
+              <Crown className="w-16 h-16 text-yellow-400 opacity-20 animate-pulse" />
             </div>
           )}
         </div>

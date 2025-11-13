@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,17 @@ import EventRequestModal from "./EventRequestModal";
 import ShareModal from "./ShareModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { CACHE_CONFIG } from "../shared/helpers";
+import LazyImage from "./LazyImage";
 
-export default function EventFeedCard({ event, user, isGuest, initialLikes = [], initialComments = [], initialRequestStatus }) {
+export default function EventFeedCard({
+  event,
+  user,
+  isGuest,
+  initialLikes = [],
+  initialComments = [],
+  initialRequestStatus,
+  index = 0 // Para delay de animação
+}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -188,7 +198,13 @@ export default function EventFeedCard({ event, user, isGuest, initialLikes = [],
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.8 }}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+          mass: 0.8,
+          delay: Math.min(index * 0.05, 0.3) // Delay baseado no índice (max 0.3s)
+        }}
       >
         <Card className="bg-gray-900/95 border-0 text-white overflow-hidden shadow-none rounded-none relative">
           <CardHeader className="p-2.5 pb-1.5 relative z-10">
@@ -230,57 +246,69 @@ export default function EventFeedCard({ event, user, isGuest, initialLikes = [],
             </div>
           </CardHeader>
 
-          <motion.div
-            className="relative w-full bg-gray-800 cursor-pointer overflow-hidden group"
-            style={{ aspectRatio: '16/9' }}
-            onClick={() => {
-              if (isGuest) {
-                navigate(createPageUrl("BemVindo"));
-              } else if (!user.is_pro_member) {
-                setShowUpgradePrompt(true);
-              }
+          {/* OTIMIZADO: Lazy Image com fade-in */}
+          <LazyImage
+            src={event.image_url || `https://picsum.photos/800/450?random=${event.id}`}
+            alt={event.title}
+            aspectRatio="16/9"
+            className="cursor-pointer"
+            onLoad={() => {
+              // Opcional: Track image load
             }}
-            whileHover={{ scale: 1.01 }}
           >
-            <img
-              src={event.image_url || `https://picsum.photos/800/450?random=${event.id}`}
-              alt={event.title}
-              className="w-full h-full object-cover"
-            />
+            {/* Overlays renderizados após image load */}
+            <div
+              className="absolute inset-0 cursor-pointer"
+              onClick={() => {
+                if (isGuest) {
+                  navigate(createPageUrl("BemVindo"));
+                } else if (!user.is_pro_member) {
+                  setShowUpgradePrompt(true);
+                }
+              }}
+            >
+              {!user?.is_pro_member && !isGuest && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="absolute top-1.5 right-1.5 backdrop-blur-md px-1.5 py-0.5 rounded-full flex items-center gap-0.5 border"
+                  style={{
+                    background: 'linear-gradient(to right, rgba(251, 191, 36, 0.9), rgba(245, 158, 11, 0.9))',
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    boxShadow: '0 0 20px rgba(251, 191, 36, 0.7)'
+                  }}
+                >
+                  <Lock className="w-2 h-2 text-white" />
+                  <span className="text-white text-[9px] font-bold">PRO</span>
+                </motion.div>
+              )}
 
-            {!user?.is_pro_member && !isGuest && (
-              <div
-                className="absolute top-1.5 right-1.5 backdrop-blur-md px-1.5 py-0.5 rounded-full flex items-center gap-0.5 border"
-                style={{
-                  background: 'linear-gradient(to right, rgba(251, 191, 36, 0.9), rgba(245, 158, 11, 0.9))',
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 0 20px rgba(251, 191, 36, 0.7)'
-                }}
-              >
-                <Lock className="w-2 h-2 text-white" />
-                <span className="text-white text-[9px] font-bold">PRO</span>
-              </div>
-            )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-
-            {event.vibe_tags?.length > 0 && (
-              <div className="absolute top-1.5 left-1.5 flex flex-wrap gap-1">
-                {event.vibe_tags.slice(0, 2).map((tag, index) => (
-                  <Badge
-                    key={index}
-                    className="backdrop-blur-md border text-[9px] px-1 py-0"
-                    style={{
-                      background: 'linear-gradient(to right, rgba(168, 85, 247, 0.9), rgba(236, 72, 153, 0.9))',
-                      borderColor: 'rgba(255, 255, 255, 0.3)'
-                    }}
-                  >
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </motion.div>
+              {event.vibe_tags?.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="absolute top-1.5 left-1.5 flex flex-wrap gap-1"
+                >
+                  {event.vibe_tags.slice(0, 2).map((tag, idx) => (
+                    <Badge
+                      key={idx}
+                      className="backdrop-blur-md border text-[9px] px-1 py-0"
+                      style={{
+                        background: 'linear-gradient(to right, rgba(168, 85, 247, 0.9), rgba(236, 72, 153, 0.9))',
+                        borderColor: 'rgba(255, 255, 255, 0.3)'
+                      }}
+                    >
+                      #{tag}
+                    </Badge>
+                  ))}
+                </motion.div>
+              )}
+            </div>
+          </LazyImage>
 
           <CardContent className="p-2.5 pt-1.5 space-y-1.5 relative z-10">
             <div className="flex items-center justify-between">
