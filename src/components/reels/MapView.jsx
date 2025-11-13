@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,17 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import SearchResults from "../map/SearchResults"; // NEW IMPORT
+import { intelligentSearch } from "@/functions/intelligentSearch"; // NEW IMPORT
 
 // Clustering inteligente AVANÇADO com densidade dinâmica
 const clusterEvents = (events, zoomLevel = 1, screenDensity = 1) => {
   if (!events || events.length === 0) return [];
-  
+
   const baseRadius = 0.015;
   const zoomFactor = Math.pow(2, (15 - zoomLevel) * 0.8);
   const densityFactor = 1 / screenDensity;
-  
+
   const CLUSTER_RADIUS = baseRadius * zoomFactor * densityFactor;
-  
+
   const clusters = [];
   const processed = new Set();
 
@@ -53,7 +56,7 @@ const clusterEvents = (events, zoomLevel = 1, screenDensity = 1) => {
 
     if (cluster.events.length > 1) {
       cluster.isCluster = true;
-      
+
       cluster.center = {
         lat: cluster.events.reduce((sum, e) => sum + e.location.lat, 0) / cluster.events.length,
         lng: cluster.events.reduce((sum, e) => sum + e.location.lng, 0) / cluster.events.length
@@ -64,16 +67,16 @@ const clusterEvents = (events, zoomLevel = 1, screenDensity = 1) => {
 
       const genreCounts = {};
       const typeCounts = {};
-      
+
       cluster.events.forEach(e => {
         genreCounts[e.genre] = (genreCounts[e.genre] || 0) + 1;
         typeCounts[e.type] = (typeCounts[e.type] || 0) + 1;
       });
 
-      cluster.dominantGenre = Object.keys(genreCounts).reduce((a, b) => 
+      cluster.dominantGenre = Object.keys(genreCounts).reduce((a, b) =>
         genreCounts[a] > genreCounts[b] ? a : b
       );
-      cluster.dominantType = Object.keys(typeCounts).reduce((a, b) => 
+      cluster.dominantType = Object.keys(typeCounts).reduce((a, b) =>
         typeCounts[a] > typeCounts[b] ? a : b
       );
     }
@@ -101,10 +104,10 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
   const { events, isCluster: isClusterGroup, density = 1 } = cluster;
   const mainEvent = events[0];
   const eventColor = getEventColor(mainEvent);
-  
+
   const getDensitySize = () => {
     if (!isClusterGroup) return { pin: 'w-10 h-10', glow: '60px', secondGlow: '80px' };
-    
+
     if (density > 10) return { pin: 'w-20 h-20', glow: '100px', secondGlow: '130px' };
     if (density > 5) return { pin: 'w-16 h-16', glow: '85px', secondGlow: '110px' };
     return { pin: 'w-14 h-14', glow: '75px', secondGlow: '95px' };
@@ -112,12 +115,12 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
 
   const sizes = getDensitySize();
   const glowIntensity = Math.min(0.9, 0.3 + (density / 15));
-  
+
   return (
     <motion.div
       className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group pointer-events-auto z-10"
-      style={{ 
-        left: `${position.x}%`, 
+      style={{
+        left: `${position.x}%`,
         top: `${position.y}%`,
       }}
       whileHover={{ scale: 1.15, zIndex: 20 }}
@@ -210,7 +213,7 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
         }}
       />
 
-      <motion.div 
+      <motion.div
         className="relative"
         animate={{
           boxShadow: [
@@ -224,7 +227,7 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
           filter: `drop-shadow(0 0 ${isClusterGroup ? (density > 10 ? '20px' : '15px') : '10px'} ${eventColor})`
         }}
       >
-        <div 
+        <div
           className={`${sizes.pin} rounded-full border-3 border-white/90 bg-gradient-to-br flex items-center justify-center relative overflow-hidden`}
           style={{
             background: `linear-gradient(135deg, ${eventColor}, ${eventColor}CC)`,
@@ -259,7 +262,7 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
               )}
             </div>
           ) : (
-            <motion.div 
+            <motion.div
               className="w-4 h-4 rounded-full bg-white z-10"
               animate={{
                 scale: [1, 1.4, 1],
@@ -326,6 +329,11 @@ export default function MapView({
   const [expandedCluster, setExpandedCluster] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(15);
   const [clusterFilter, setClusterFilter] = useState({ genre: 'all', type: 'all', sortBy: 'date' });
+  // NEW STATE VARIABLES
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchResults, setSearchResults] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -394,7 +402,7 @@ export default function MapView({
   const mapBounds = useMemo(() => {
     const latRange = 0.5 / Math.pow(2, zoomLevel - 10);
     const lngRange = 0.5 / Math.pow(2, zoomLevel - 10);
-    
+
     return {
       minLat: userLocation.lat - latRange,
       maxLat: userLocation.lat + latRange,
@@ -462,6 +470,45 @@ export default function MapView({
     return { genres, types };
   }, [expandedCluster]);
 
+  // NEW: Intelligent search function
+  const handleIntelligentSearch = useCallback(async () => {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      setShowSearchResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    setShowSearchResults(true);
+    setSearchResults(null); // Clear previous results
+
+    try {
+      const { data } = await intelligentSearch({
+        query: searchTerm,
+        userLocation: userLocation
+      });
+
+      console.log('🔍 Resultado da busca:', data);
+      setSearchResults(data);
+    } catch (error) {
+      console.error('❌ Erro na busca:', error);
+      setSearchResults({
+        query: searchTerm,
+        detected_type: 'error',
+        results: [],
+        suggestions: ['Erro ao buscar. Tente novamente.']
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  }, [searchTerm, userLocation]);
+
+  // Trigger search on Enter
+  const handleSearchKeyPress = useCallback((e) => {
+    if (e.key === 'Enter') {
+      handleIntelligentSearch();
+    }
+  }, [handleIntelligentSearch]);
+
   return (
     <motion.div
       className="w-full h-full relative overflow-hidden"
@@ -475,21 +522,21 @@ export default function MapView({
       }}
     >
       {/* Background Cyberpunk */}
-      <div className="absolute inset-0 z-0" style={{ 
-        background: 'linear-gradient(135deg, #0a1628 0%, #000000 50%, #0f0f23 100%)' 
+      <div className="absolute inset-0 z-0" style={{
+        background: 'linear-gradient(135deg, #0a1628 0%, #000000 50%, #0f0f23 100%)'
       }}>
-        <div 
+        <div
           className="absolute inset-0"
           style={{
-            background: `linear-gradient(135deg, 
-              ${vibeTheme.glowColor}08 0%, 
-              transparent 30%, 
-              ${vibeTheme.secondaryGlow}08 70%, 
+            background: `linear-gradient(135deg,
+              ${vibeTheme.glowColor}08 0%,
+              transparent 30%,
+              ${vibeTheme.secondaryGlow}08 70%,
               transparent 100%)`,
             mixBlendMode: 'screen'
           }}
         />
-        
+
         <div
           className="absolute inset-0 opacity-[0.12]"
           style={{
@@ -530,7 +577,7 @@ export default function MapView({
           const pos = coordToPosition(cluster.center.lat, cluster.center.lng);
           const color = getEventColor(cluster.events[0]);
           const intensity = Math.min(1, 0.2 + (cluster.density / 20));
-          
+
           return (
             <motion.div
               key={`hotspot-${idx}`}
@@ -558,14 +605,14 @@ export default function MapView({
           );
         })}
 
-        <div 
+        <div
           className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-15"
           style={{
             background: `radial-gradient(circle, ${vibeTheme.glowColor}, transparent 70%)`,
             animation: 'pulse-slow 7s ease-in-out infinite'
           }}
         />
-        <div 
+        <div
           className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-12"
           style={{
             background: `radial-gradient(circle, ${vibeTheme.secondaryGlow}, transparent 70%)`,
@@ -594,13 +641,13 @@ export default function MapView({
         />
       </div>
 
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none z-2"
         style={{
-          background: `linear-gradient(135deg, 
-            ${vibeTheme.glowColor}12 0%, 
-            transparent 25%, 
-            ${vibeTheme.secondaryGlow}10 75%, 
+          background: `linear-gradient(135deg,
+            ${vibeTheme.glowColor}12 0%,
+            transparent 25%,
+            ${vibeTheme.secondaryGlow}10 75%,
             transparent 100%)`,
           mixBlendMode: 'screen'
         }}
@@ -609,11 +656,11 @@ export default function MapView({
       <motion.div
         className="absolute inset-0 pointer-events-none z-3"
         style={{
-          background: `linear-gradient(to bottom, 
-            transparent 0%, 
-            ${vibeTheme.glowColor}08 48%, 
-            ${vibeTheme.glowColor}12 50%, 
-            ${vibeTheme.glowColor}08 52%, 
+          background: `linear-gradient(to bottom,
+            transparent 0%,
+            ${vibeTheme.glowColor}08 48%,
+            ${vibeTheme.glowColor}12 50%,
+            ${vibeTheme.glowColor}08 52%,
             transparent 100%)`,
           height: '100%',
         }}
@@ -627,7 +674,7 @@ export default function MapView({
         }}
       />
 
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none z-3"
         style={{
           background: 'radial-gradient(circle at center, transparent 0%, transparent 60%, rgba(0,0,0,0.3) 100%)'
@@ -639,15 +686,15 @@ export default function MapView({
         {/* Marcador do Usuário */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-40"
-          style={{ 
-            left: `${userPosition.x}%`, 
+          style={{
+            left: `${userPosition.x}%`,
             top: `${userPosition.y}%`,
           }}
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
-          transition={{ 
-            type: "spring", 
-            stiffness: 260, 
+          transition={{
+            type: "spring",
+            stiffness: 260,
             damping: 20,
             duration: 0.6
           }}
@@ -658,9 +705,9 @@ export default function MapView({
               style={{
                 width: '70px',
                 height: '70px',
-                background: `radial-gradient(circle at center, 
-                  ${vibeTheme.glowColor}25 0%, 
-                  ${vibeTheme.secondaryGlow}12 45%, 
+                background: `radial-gradient(circle at center,
+                  ${vibeTheme.glowColor}25 0%,
+                  ${vibeTheme.secondaryGlow}12 45%,
                   transparent 70%)`,
                 filter: 'blur(15px)',
               }}
@@ -676,52 +723,9 @@ export default function MapView({
             />
 
             <motion.div
-              className="absolute rounded-full pointer-events-none"
+              className="relative z-50"
               style={{
-                width: '50px',
-                height: '50px',
-                background: `radial-gradient(circle at center, 
-                  ${vibeTheme.glowColor}22 0%, 
-                  ${vibeTheme.secondaryGlow}10 50%, 
-                  transparent 70%)`,
-                filter: 'blur(8px)',
-              }}
-              animate={{
-                scale: [1, 1.3, 1],
-                opacity: [0.5, 0, 0.5],
-              }}
-              transition={{
-                duration: 3.5,
-                repeat: Infinity,
-                ease: "easeOut",
-                delay: 0.6
-              }}
-            />
-
-            <motion.div
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                width: '4px',
-                height: '4px',
-                background: `radial-gradient(circle, ${vibeTheme.glowColor} 0%, transparent 70%)`,
-                boxShadow: `0 0 20px ${vibeTheme.glowColor}, 0 0 40px ${vibeTheme.glowColor}80`
-              }}
-              animate={{
-                scale: [1, 15, 1],
-                opacity: [0.9, 0, 0.9]
-              }}
-              transition={{
-                duration: 6,
-                repeat: Infinity,
-                ease: "easeOut",
-                repeatDelay: 3
-              }}
-            />
-
-            <motion.div 
-              className="relative z-50" 
-              style={{
-                filter: `drop-shadow(0 0 18px ${vibeTheme.glowColor}) drop-shadow(0 0 35px ${vibeTheme.glowColor}90) drop-shadow(0 0 50px ${vibeTheme.secondaryGlow}70)`,
+                filter: `drop-shadow(0 0 18px ${vibeTheme.glowColor}) drop-shadow(0 0 35px ${vibeTheme.glowColor}90)`,
               }}
               animate={{
                 scale: [1, 1.08, 1],
@@ -732,96 +736,22 @@ export default function MapView({
                 ease: "easeInOut"
               }}
             >
-              <div 
+              <div
                 className="w-6 h-6 rounded-full relative overflow-hidden"
                 style={{
-                  background: `
-                    radial-gradient(circle at 30% 30%, 
-                      ${vibeTheme.glowColor} 0%,
-                      ${vibeTheme.secondaryGlow} 50%,
-                      ${vibeTheme.accentColor} 100%)
-                  `,
+                  background: `radial-gradient(circle at 30% 30%, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
                   border: `2.5px solid rgba(255, 255, 255, 1)`,
-                  boxShadow: `
-                    0 0 20px ${vibeTheme.glowColor},
-                    0 0 40px ${vibeTheme.glowColor}80,
-                    0 0 60px ${vibeTheme.secondaryGlow}60,
-                    inset 0 0 18px rgba(255, 255, 255, 0.5)
-                  `,
+                  boxShadow: `0 0 20px ${vibeTheme.glowColor}, inset 0 0 18px rgba(255, 255, 255, 0.5)`,
                 }}
               >
-                <motion.div
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    background: `radial-gradient(circle at 35% 35%, 
-                      rgba(255, 255, 255, 0.9) 0%, 
-                      rgba(255, 255, 255, 0.4) 40%,
-                      transparent 70%)`,
-                  }}
-                  animate={{
-                    opacity: [0.5, 1, 0.5],
-                    scale: [1, 1.2, 1]
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                />
-
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Navigation 
-                    className="w-3 h-3 text-white" 
+                  <Navigation
+                    className="w-3 h-3 text-white"
                     strokeWidth={3.5}
-                    style={{
-                      filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.9))'
-                    }}
                   />
                 </div>
-
-                <motion.div 
-                  className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
-                  style={{
-                    background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.4), transparent)'
-                  }}
-                  animate={{
-                    opacity: [0.3, 0.5, 0.3]
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity
-                  }}
-                />
               </div>
             </motion.div>
-
-            {[...Array(3)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full pointer-events-none"
-                style={{
-                  width: '2px',
-                  height: '2px',
-                  background: i % 2 === 0 ? vibeTheme.glowColor : vibeTheme.secondaryGlow,
-                  filter: `blur(${0.8 + Math.random()}px)`,
-                  left: `${25 + (i * 25)}%`,
-                  top: `${20 + (i * 25)}%`,
-                  boxShadow: `0 0 10px ${i % 2 === 0 ? vibeTheme.glowColor : vibeTheme.secondaryGlow}`
-                }}
-                animate={{
-                  y: [0, -10, 0],
-                  x: [0, Math.sin(i) * 6, 0],
-                  opacity: [0, 0.8, 0],
-                  scale: [0.5, 1.2, 0.5]
-                }}
-                transition={{
-                  duration: 4 + Math.random() * 2,
-                  repeat: Infinity,
-                  delay: Math.random() * 3,
-                  ease: "easeInOut"
-                }}
-              />
-            ))}
           </div>
         </motion.div>
 
@@ -842,7 +772,7 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* Header Simplificado */}
+      {/* Header Simplificado (now with intelligent search) */}
       <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 z-30 flex flex-col gap-2">
         <div className="flex flex-wrap gap-1.5 items-center">
           <motion.button
@@ -875,19 +805,37 @@ export default function MapView({
           </Link>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 z-10" style={{ color: vibeTheme.accentColor }} />
-          <Input
-            placeholder="Buscar eventos..."
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 pr-3 py-2 backdrop-blur-xl border-2 text-white placeholder:text-gray-500 text-sm h-9 rounded-xl"
-            style={{
-              background: 'rgba(0, 0, 0, 0.6)',
-              borderColor: `${vibeTheme.glowColor}30`,
-              boxShadow: `0 0 15px ${vibeTheme.glowColor}20`
-            }}
-          />
+        <div className="relative flex gap-2"> {/* Modified for search button */}
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 z-10" style={{ color: vibeTheme.accentColor }} />
+            <Input
+              placeholder="Buscar eventos, artistas, locais..." // Modified placeholder
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onKeyPress={handleSearchKeyPress} // NEW: Trigger search on Enter
+              className="pl-9 pr-3 py-2 backdrop-blur-xl border-2 text-white placeholder:text-gray-500 text-sm h-9 rounded-xl"
+              style={{
+                background: 'rgba(0, 0, 0, 0.6)',
+                borderColor: `${vibeTheme.glowColor}30`,
+                boxShadow: `0 0 15px ${vibeTheme.glowColor}20`
+              }}
+            />
+          </div>
+          <Button
+            onClick={handleIntelligentSearch} // NEW: Search button
+            disabled={isSearching || !searchTerm || searchTerm.trim().length === 0}
+            className="h-9 px-4 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700"
+          >
+            {isSearching ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+              />
+            ) : (
+              <Search className="w-4 h-4" />
+            )}
+          </Button>
         </div>
       </div>
 
@@ -904,7 +852,7 @@ export default function MapView({
             className="w-14 h-14 rounded-full border-3 border-white/30 relative overflow-hidden"
             style={{
               background: `linear-gradient(135deg, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
-              boxShadow: `0 0 30px ${vibeTheme.glowColor}, 0 0 60px ${vibeTheme.glowColor}70`
+              boxShadow: `0 0 30px ${vibeTheme.glowColor}` // Simplified boxShadow
             }}
           >
             <motion.div
@@ -940,33 +888,33 @@ export default function MapView({
             className="w-12 h-1.5 rounded-full mb-2"
             style={{
               background: `linear-gradient(to right, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
-              boxShadow: `0 0 15px ${vibeTheme.glowColor}, 0 0 30px ${vibeTheme.glowColor}70`
+              boxShadow: `0 0 15px ${vibeTheme.glowColor}` // Simplified boxShadow
             }}
-            animate={{ 
+            animate={{
               scaleX: [1, 1.3, 1],
               opacity: [0.7, 1, 0.7]
             }}
             transition={{ duration: 2, repeat: Infinity }}
           />
-          
+
           <motion.button
             className="backdrop-blur-xl px-6 py-3 rounded-full shadow-xl border-2 flex items-center gap-2 text-sm font-semibold relative overflow-hidden"
             style={{
               background: `linear-gradient(135deg, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
               borderColor: 'rgba(255, 255, 255, 0.3)',
-              boxShadow: `0 0 30px ${vibeTheme.glowColor}80, 0 0 60px ${vibeTheme.secondaryGlow}60`
+              boxShadow: `0 0 30px ${vibeTheme.glowColor}80` // Simplified boxShadow
             }}
-            whileHover={{ 
+            whileHover={{
               scale: 1.05,
-              boxShadow: `0 0 40px ${vibeTheme.glowColor}, 0 0 80px ${vibeTheme.secondaryGlow}80`
+              boxShadow: `0 0 40px ${vibeTheme.glowColor}, 0 0 80px ${vibeTheme.secondaryGlow}80` // Added back hover boxShadow
             }}
             whileTap={{ scale: 0.95 }}
           >
             <motion.div
               className="absolute inset-0"
               style={{
-                background: `radial-gradient(circle at 50% 50%, 
-                  rgba(255, 255, 255, 0.3) 0%, 
+                background: `radial-gradient(circle at 50% 50%,
+                  rgba(255, 255, 255, 0.3) 0%,
                   transparent 50%)`,
               }}
               animate={{
@@ -998,7 +946,7 @@ export default function MapView({
             <span className="text-white relative z-10">Ver Reels</span>
           </motion.button>
 
-          <motion.p 
+          <motion.p
             className="text-white/50 text-xs mt-1.5"
             animate={{ opacity: [0.3, 0.9, 0.3] }}
             transition={{ duration: 2.5, repeat: Infinity }}
@@ -1007,6 +955,27 @@ export default function MapView({
           </motion.p>
         </div>
       </motion.div>
+
+      {/* NEW: Search Results Overlay */}
+      <AnimatePresence>
+        {showSearchResults && (
+          <SearchResults
+            searchData={searchResults}
+            onClose={() => {
+              setShowSearchResults(false);
+              setSearchResults(null);
+            }}
+            onEventClick={(result) => {
+              const event = events.find(e => e.id === result.id);
+              if (event) {
+                onPinDetailsClick(event);
+                setShowSearchResults(false);
+              }
+            }}
+            isLoading={isSearching}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Modal de Cluster */}
       <AnimatePresence>
@@ -1054,8 +1023,8 @@ export default function MapView({
               <div className="grid grid-cols-3 gap-2 mb-4">
                 <div>
                   <label className="text-[10px] text-gray-400 mb-1 block">Gênero</label>
-                  <Select 
-                    value={clusterFilter.genre} 
+                  <Select
+                    value={clusterFilter.genre}
                     onValueChange={(value) => setClusterFilter(prev => ({ ...prev, genre: value }))}
                   >
                     <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white text-xs">
@@ -1074,8 +1043,8 @@ export default function MapView({
 
                 <div>
                   <label className="text-[10px] text-gray-400 mb-1 block">Tipo</label>
-                  <Select 
-                    value={clusterFilter.type} 
+                  <Select
+                    value={clusterFilter.type}
                     onValueChange={(value) => setClusterFilter(prev => ({ ...prev, type: value }))}
                   >
                     <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white text-xs">
@@ -1094,8 +1063,8 @@ export default function MapView({
 
                 <div>
                   <label className="text-[10px] text-gray-400 mb-1 block">Ordenar</label>
-                  <Select 
-                    value={clusterFilter.sortBy} 
+                  <Select
+                    value={clusterFilter.sortBy}
                     onValueChange={(value) => setClusterFilter(prev => ({ ...prev, sortBy: value }))}
                   >
                     <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white text-xs">
@@ -1115,7 +1084,7 @@ export default function MapView({
                   Mostrando {filteredClusterEvents.length} de {expandedCluster.events.length}
                 </span>
                 {(clusterFilter.genre !== 'all' || clusterFilter.type !== 'all') && (
-                  <Badge 
+                  <Badge
                     className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-[9px] cursor-pointer"
                     onClick={() => setClusterFilter({ genre: 'all', type: 'all', sortBy: clusterFilter.sortBy })}
                   >
@@ -1128,7 +1097,7 @@ export default function MapView({
                 {filteredClusterEvents.length > 0 ? (
                   filteredClusterEvents.map((event, idx) => {
                     const eventColor = getEventColor(event);
-                    
+
                     return (
                       <motion.div
                         key={event.id}
@@ -1140,7 +1109,7 @@ export default function MapView({
                           background: 'rgba(31, 41, 55, 0.5)',
                           borderColor: `${eventColor}30`
                         }}
-                        whileHover={{ 
+                        whileHover={{
                           scale: 1.02,
                           borderColor: eventColor,
                           boxShadow: `0 0 20px ${eventColor}50`
@@ -1152,7 +1121,7 @@ export default function MapView({
                       >
                         {event.image_url && (
                           <div className="w-full h-24 mb-2 rounded-lg overflow-hidden">
-                            <img 
+                            <img
                               src={event.image_url}
                               alt={event.title}
                               className="w-full h-full object-cover"
@@ -1163,9 +1132,9 @@ export default function MapView({
                         <h4 className="font-semibold text-white text-sm mb-1 line-clamp-1">
                           {event.title}
                         </h4>
-                        
+
                         <div className="flex flex-wrap gap-1 mb-2">
-                          <Badge 
+                          <Badge
                             className="text-[9px] border-0"
                             style={{
                               background: `${eventColor}40`,
