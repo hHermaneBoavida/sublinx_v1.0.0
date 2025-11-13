@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NotificationListener from "@/components/notifications/NotificationListener";
 import EventProximityChecker from "@/components/notifications/EventProximityChecker";
+import NotificationPermissionPrompt from "@/components/notifications/NotificationPermissionPrompt"; // Added import
 import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "@/components/shared/helpers";
 
@@ -182,6 +183,7 @@ export default function Layout({ children, currentPageName }) {
         {/* Notificações em TODAS as páginas */}
         {!isGuest && <NotificationListener user={user} />}
         {!isGuest && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
+        {!isGuest && <NotificationPermissionPrompt />} {/* Added NotificationPermissionPrompt */}
       </>
     );
   }
@@ -636,6 +638,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Sistema de Notificações em Tempo Real - SEMPRE ATIVO */}
       {!isGuest && <NotificationListener user={user} />}
       {!isGuest && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
+      {!isGuest && <NotificationPermissionPrompt />} {/* Added NotificationPermissionPrompt */}
 
       <style jsx>{`
         @keyframes grid-glow {
