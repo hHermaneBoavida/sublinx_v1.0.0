@@ -1,16 +1,15 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, Settings, MessageCircle } from "lucide-react";
+import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NotificationListener from "@/components/notifications/NotificationListener";
 import EventProximityChecker from "@/components/notifications/EventProximityChecker";
-import NotificationPermissionPrompt from "@/components/notifications/NotificationPermissionPrompt"; // Added import
+import NotificationPermissionPrompt from "@/components/notifications/NotificationPermissionPrompt";
 import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "@/components/shared/helpers";
 
@@ -48,7 +47,7 @@ export default function Layout({ children, currentPageName }) {
     select: (data) => data?.length || 0,
     enabled: !!user,
     initialData: 0,
-    refetchInterval: 30000, // Atualiza a cada 30s
+    refetchInterval: 30000,
     refetchIntervalInBackground: false,
     ...CACHE_CONFIG.SHORT,
   });
@@ -160,6 +159,9 @@ export default function Layout({ children, currentPageName }) {
     }
   }, []);
 
+  // CORRIGIDO: Não mostrar NotificationPermissionPrompt na página Mapa (imersiva)
+  const showNotificationPrompt = !isGuest && currentPageName !== "Mapa";
+
   const noLayoutPages = ["BemVindo", "Mapa"];
   if (noLayoutPages.includes(currentPageName)) {
     return (
@@ -183,7 +185,9 @@ export default function Layout({ children, currentPageName }) {
         {/* Notificações em TODAS as páginas */}
         {!isGuest && <NotificationListener user={user} />}
         {!isGuest && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
-        {!isGuest && <NotificationPermissionPrompt />} {/* Added NotificationPermissionPrompt */}
+        
+        {/* CORRIGIDO: NotificationPermissionPrompt não aparece na página Mapa */}
+        {showNotificationPrompt && <NotificationPermissionPrompt />}
       </>
     );
   }
@@ -252,7 +256,7 @@ export default function Layout({ children, currentPageName }) {
         }}
       />
 
-      {/* Header - OTIMIZADO */}
+      {/* Header */}
       <header className="relative z-10 p-3 sm:p-4 md:p-6 backdrop-blur-xl border-b-2" style={{
         background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(17,24,39,0.5))',
         borderColor: 'rgba(6, 182, 212, 0.2)',
@@ -357,7 +361,6 @@ export default function Layout({ children, currentPageName }) {
               </Link>
             )}
 
-            {/* MELHORADO: Indicador de Notificações com Animações */}
             {!isGuest && (
               <motion.div
                 whileHover={{ scale: 1.1 }}
@@ -367,7 +370,6 @@ export default function Layout({ children, currentPageName }) {
                   to={createPageUrl("Notificacoes")}
                   className="relative p-2 rounded-lg hover:bg-gray-800/50 transition-all duration-300 group"
                 >
-                  {/* Bell Icon */}
                   <motion.div
                     animate={unreadCount > 0 ? {
                       rotate: [0, -15, 15, -10, 10, 0],
@@ -381,7 +383,6 @@ export default function Layout({ children, currentPageName }) {
                     <Bell className="w-5 h-5 text-gray-300 group-hover:text-white" />
                   </motion.div>
 
-                  {/* Unread Badge - MELHORADO */}
                   {unreadCount > 0 && (
                     <motion.div
                       initial={{ scale: 0 }}
@@ -392,7 +393,6 @@ export default function Layout({ children, currentPageName }) {
                         boxShadow: '0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.5), inset 0 1px 0 rgba(255,255,255,0.3)'
                       }}
                     >
-                      {/* Pulse Ring */}
                       <motion.div
                         className="absolute inset-0 rounded-full"
                         style={{
@@ -405,7 +405,6 @@ export default function Layout({ children, currentPageName }) {
                         transition={{ duration: 2, repeat: Infinity }}
                       />
 
-                      {/* Top Gloss */}
                       <div
                         className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
                         style={{
@@ -413,7 +412,6 @@ export default function Layout({ children, currentPageName }) {
                         }}
                       />
 
-                      {/* Count */}
                       <motion.span
                         animate={{
                           scale: [1, 1.1, 1]
@@ -426,7 +424,6 @@ export default function Layout({ children, currentPageName }) {
                     </motion.div>
                   )}
 
-                  {/* Dot Indicator (when 0 but system is active) */}
                   {unreadCount === 0 && (
                     <motion.div
                       className="absolute top-1 right-1 w-2 h-2 rounded-full"
@@ -445,7 +442,6 @@ export default function Layout({ children, currentPageName }) {
               </motion.div>
             )}
 
-            {/* Mobile Profile/Login */}
             <div className="md:hidden">
               {user ? (
                 <motion.div
@@ -487,7 +483,6 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </header>
 
-      {/* FAB - Redesenhado com Neon */}
       {showFAB && (
         <motion.div
           className="fixed bottom-20 sm:bottom-24 md:bottom-8 right-4 sm:right-6 md:right-8 z-30 group"
@@ -567,12 +562,11 @@ export default function Layout({ children, currentPageName }) {
         </motion.div>
       )}
 
-      {/* Main Content */}
       <main className="relative z-0 pb-20 sm:pb-24 md:pb-0">
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation - Glass Neon */}
+      {/* Mobile Bottom Navigation */}
       <div 
         className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-xl border-t-2 z-20 safe-area-inset-bottom"
         style={{
@@ -635,10 +629,10 @@ export default function Layout({ children, currentPageName }) {
 
       <PWAInstallPrompt />
 
-      {/* Sistema de Notificações em Tempo Real - SEMPRE ATIVO */}
+      {/* Sistema de Notificações */}
       {!isGuest && <NotificationListener user={user} />}
       {!isGuest && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
-      {!isGuest && <NotificationPermissionPrompt />} {/* Added NotificationPermissionPrompt */}
+      {showNotificationPrompt && <NotificationPermissionPrompt />}
 
       <style jsx>{`
         @keyframes grid-glow {

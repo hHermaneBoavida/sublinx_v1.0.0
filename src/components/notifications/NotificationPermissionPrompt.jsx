@@ -13,12 +13,27 @@ export default function NotificationPermissionPrompt() {
       const currentPermission = Notification.permission;
       setPermission(currentPermission);
 
-      // Mostrar prompt se ainda não respondeu
+      // Verificar se já foi dispensado permanentemente
+      const dismissed = localStorage.getItem('notification_prompt_permanently_dismissed');
+      if (dismissed === 'true') {
+        return;
+      }
+
+      // Verificar se foi dispensado recentemente (últimas 24h)
+      const lastDismissed = localStorage.getItem('notification_prompt_dismissed');
+      if (lastDismissed) {
+        const daysSinceDismissed = (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24);
+        if (daysSinceDismissed < 1) {
+          return;
+        }
+      }
+
+      // Mostrar prompt apenas se permissão ainda não foi respondida
       if (currentPermission === 'default') {
-        // Aguardar 3s após load da página
+        // Aguardar 5s após load da página (mais tempo para não ser intrusivo)
         const timer = setTimeout(() => {
           setShow(true);
-        }, 3000);
+        }, 5000);
 
         return () => clearTimeout(timer);
       }
@@ -46,6 +61,7 @@ export default function NotificationPermissionPrompt() {
       }
       
       setShow(false);
+      localStorage.setItem('notification_prompt_permanently_dismissed', 'true');
     } catch (error) {
       console.error('Erro ao solicitar permissão:', error);
     }
@@ -56,6 +72,11 @@ export default function NotificationPermissionPrompt() {
     localStorage.setItem('notification_prompt_dismissed', Date.now().toString());
   };
 
+  const handlePermanentDismiss = () => {
+    setShow(false);
+    localStorage.setItem('notification_prompt_permanently_dismissed', 'true');
+  };
+
   if (!show || permission !== 'default') return null;
 
   return (
@@ -64,9 +85,9 @@ export default function NotificationPermissionPrompt() {
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -50 }}
-        className="fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-md w-full px-4"
+        className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-[100] max-w-sm w-full px-4"
       >
-        <Card className="bg-gradient-to-r from-cyan-900/95 to-purple-900/95 border-2 border-cyan-500/50 shadow-2xl backdrop-blur-xl overflow-hidden">
+        <Card className="bg-gradient-to-r from-cyan-900/98 to-purple-900/98 border-2 border-cyan-500/50 shadow-2xl backdrop-blur-xl overflow-hidden">
           {/* Animated Background */}
           <motion.div
             className="absolute inset-0 pointer-events-none"
@@ -91,11 +112,11 @@ export default function NotificationPermissionPrompt() {
             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
           />
 
-          <CardContent className="p-6 relative z-10">
-            <div className="flex items-start gap-4">
+          <CardContent className="p-4 sm:p-5 relative z-10">
+            <div className="flex items-start gap-3">
               {/* Animated Icon */}
               <motion.div
-                className="flex-shrink-0 rounded-full p-3 relative overflow-hidden"
+                className="flex-shrink-0 rounded-full p-2 relative overflow-hidden"
                 style={{
                   background: 'linear-gradient(135deg, rgba(6, 182, 212, 1), rgba(139, 92, 246, 1))',
                   boxShadow: '0 0 25px rgba(6, 182, 212, 0.8)'
@@ -113,50 +134,57 @@ export default function NotificationPermissionPrompt() {
                   animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
                   transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
                 >
-                  <Bell className="w-6 h-6 text-white" />
+                  <Bell className="w-5 h-5 text-white" />
                 </motion.div>
               </motion.div>
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-white text-lg mb-2 flex items-center gap-2">
+                <h3 className="font-bold text-white text-base sm:text-lg mb-1 flex items-center gap-2">
                   Ativar Notificações
-                  <Zap className="w-4 h-4 text-yellow-400 animate-pulse" />
+                  <Zap className="w-3.5 h-3.5 text-yellow-400 animate-pulse" />
                 </h3>
-                <p className="text-sm text-gray-200 mb-4">
-                  Receba alertas instantâneos de:
+                <p className="text-xs sm:text-sm text-gray-200 mb-3">
+                  Receba alertas de:
                 </p>
-                <ul className="text-xs text-gray-300 space-y-1 mb-4">
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                    📍 Eventos próximos de você
+                <ul className="text-[10px] sm:text-xs text-gray-300 space-y-0.5 mb-3">
+                  <li className="flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-cyan-400" />
+                    📍 Eventos próximos
                   </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                  <li className="flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-purple-400" />
                     ❤️ Curtidas e comentários
                   </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400" />
-                    🎉 Eventos surpresa exclusivos
+                  <li className="flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-pink-400" />
+                    🎉 Eventos surpresa
                   </li>
                 </ul>
 
                 <div className="flex gap-2">
                   <Button
                     onClick={handleRequestPermission}
-                    className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white font-semibold text-sm h-9"
+                    className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white font-semibold text-xs h-8"
                   >
-                    <Bell className="w-4 h-4 mr-2" />
+                    <Bell className="w-3.5 h-3.5 mr-1" />
                     Ativar
                   </Button>
                   <Button
                     onClick={handleDismiss}
                     variant="ghost"
-                    className="text-white hover:bg-white/10 text-sm h-9 px-3"
+                    className="text-white hover:bg-white/10 text-xs h-8 px-2.5"
                   >
-                    Agora não
+                    Depois
                   </Button>
                 </div>
+
+                <button
+                  onClick={handlePermanentDismiss}
+                  className="text-[10px] text-gray-400 hover:text-gray-300 underline mt-2 w-full text-center"
+                >
+                  Não perguntar novamente
+                </button>
               </div>
 
               {/* Close Button */}
