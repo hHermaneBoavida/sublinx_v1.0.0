@@ -110,6 +110,14 @@ export const AVAILABILITY_STATUS = {
   SOLD_OUT: { threshold: 100, label: 'ESGOTADO', color: 'red' },
 };
 
+// CACHE CONFIG (React Query)
+export const CACHE_CONFIG = {
+  SHORT: { staleTime: 30000, cacheTime: 60000 },      // 30s / 1min
+  MEDIUM: { staleTime: 60000, cacheTime: 300000 },    // 1min / 5min
+  LONG: { staleTime: 300000, cacheTime: 600000 },     // 5min / 10min
+  STATIC: { staleTime: Infinity, cacheTime: Infinity } // Nunca expira
+};
+
 // AVATARS DEFAULT
 export const DEFAULT_AVATAR = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/5048ab8ec_perfil.png";
 

@@ -1,19 +1,14 @@
-
 import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, Search, MapPin, Navigation, Music2, Filter, Calendar, X } from 'lucide-react';
+import { Plus, Eye, Menu, Search, MapPin, Navigation, Music2 } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import SearchResults from "../map/SearchResults";
 import { intelligentSearch } from "@/functions/intelligentSearch";
 import useCurrentUser from "../shared/useCurrentUser";
-import { CACHE_CONFIG, EVENT_TYPE_COLORS } from "../shared/constants";
+import { EVENT_TYPE_COLORS } from "../shared/constants";
 import { clusterEvents, getClusterVisualSize, getClusterColor } from "../shared/services/clusteringAlgorithm";
 
 const EventPin = memo(({ cluster, position, onClick, theme }) => {
@@ -34,7 +29,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
       exit={{ opacity: 0, scale: 0 }}
       transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
     >
-      {/* Tooltip */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         whileHover={{ opacity: 1, y: 0 }}
@@ -70,7 +64,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
         )}
       </motion.div>
 
-      {/* Glows */}
       <motion.div
         className="absolute inset-0 rounded-full pointer-events-none"
         style={{
@@ -107,7 +100,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
         transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
       />
 
-      {/* Pin Principal */}
       <motion.div
         className="relative"
         animate={{
@@ -127,7 +119,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
             boxShadow: `0 0 20px ${eventColor}, inset 0 0 15px rgba(255,255,255,0.3)`
           }}
         >
-          {/* Inner glow */}
           <motion.div
             className="absolute inset-0"
             style={{
@@ -155,7 +146,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
           )}
         </div>
 
-        {/* Pulse ring */}
         <motion.div
           className="absolute inset-0 rounded-full border-2 pointer-events-none"
           style={{
@@ -202,7 +192,6 @@ export default function MapView({
 }) {
   const [expandedCluster, setExpandedCluster] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(15);
-  const [clusterFilter, setClusterFilter] = useState({ genre: 'all', type: 'all', sortBy: 'date' });
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -228,7 +217,6 @@ export default function MapView({
     return events.filter(e => e?.id && e?.title && e?.location?.lat && e?.location?.lng);
   }, [events]);
 
-  // NOVO: Clustering otimizado
   const eventClusters = useMemo(() => {
     return clusterEvents(validEvents, zoomLevel, screenDensity);
   }, [validEvents, zoomLevel, screenDensity]);
@@ -263,44 +251,10 @@ export default function MapView({
   const handleClusterClick = useCallback((cluster) => {
     if (cluster.isCluster) {
       setExpandedCluster(cluster);
-      setClusterFilter({ genre: 'all', type: 'all', sortBy: 'date' });
     } else {
       onPinDetailsClick(cluster.events[0]);
     }
   }, [onPinDetailsClick]);
-
-  const filteredClusterEvents = useMemo(() => {
-    if (!expandedCluster) return [];
-
-    let filtered = [...expandedCluster.events];
-
-    if (clusterFilter.genre !== 'all') {
-      filtered = filtered.filter(e => e.genre === clusterFilter.genre);
-    }
-
-    if (clusterFilter.type !== 'all') {
-      filtered = filtered.filter(e => e.type === clusterFilter.type);
-    }
-
-    if (clusterFilter.sortBy === 'date') {
-      filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
-    } else if (clusterFilter.sortBy === 'price') {
-      filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
-    } else if (clusterFilter.sortBy === 'popularity') {
-      filtered.sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0));
-    }
-
-    return filtered;
-  }, [expandedCluster, clusterFilter]);
-
-  const clusterFilterOptions = useMemo(() => {
-    if (!expandedCluster) return { genres: [], types: [] };
-
-    const genres = [...new Set(expandedCluster.events.map(e => e.genre))];
-    const types = [...new Set(expandedCluster.events.map(e => e.type))];
-
-    return { genres, types };
-  }, [expandedCluster]);
 
   const handleIntelligentSearch = useCallback(async () => {
     if (!searchTerm || searchTerm.trim().length === 0) {
@@ -377,78 +331,6 @@ export default function MapView({
             animation: 'grid-pulse 5s ease-in-out infinite'
           }}
         />
-
-        <div
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage: `
-              repeating-linear-gradient(
-                45deg,
-                ${vibeTheme.glowColor} 0px,
-                ${vibeTheme.glowColor} 1px,
-                transparent 1px,
-                transparent 60px
-              ),
-              repeating-linear-gradient(
-                -45deg,
-                ${vibeTheme.secondaryGlow} 0px,
-                ${vibeTheme.secondaryGlow} 0.5px,
-                transparent 0.5px,
-                transparent 60px
-              )
-            `,
-            animation: 'diagonal-slide 20s linear infinite'
-          }}
-        />
-
-        {/* Hotspots com intensidade baseada em densidade */}
-        {eventClusters.filter(c => c.isCluster || c.events.length >= 2).map((cluster, idx) => {
-          const pos = coordToPosition(cluster.center.lat, cluster.center.lng);
-          const color = getClusterColor(cluster);
-          const sizes = getClusterVisualSize(cluster); // NEW - to get isHotspot
-          const intensity = Math.min(1, 0.2 + (cluster.density / 20));
-
-          return (
-            <motion.div
-              key={`hotspot-${idx}`}
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                left: `${pos.x}%`,
-                top: `${pos.y}%`,
-                width: sizes.isHotspot ? '200px' : '150px',
-                height: sizes.isHotspot ? '200px' : '150px',
-                transform: 'translate(-50%, -50%)',
-                background: `radial-gradient(circle, ${color}${Math.floor(intensity * 40)} 0%, ${color}${Math.floor(intensity * 20)} 40%, transparent 70%)`,
-                filter: 'blur(30px)',
-              }}
-              animate={{
-                scale: [1, 1.3, 1],
-                opacity: [0.3 * intensity, 0.6 * intensity, 0.3 * intensity]
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: idx * 0.5
-              }}
-            />
-          );
-        })}
-
-        <div
-          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-15"
-          style={{
-            background: `radial-gradient(circle, ${vibeTheme.glowColor}, transparent 70%)`,
-            animation: 'pulse-slow 7s ease-in-out infinite'
-          }}
-        />
-        <div
-          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-12"
-          style={{
-            background: `radial-gradient(circle, ${vibeTheme.secondaryGlow}, transparent 70%)`,
-            animation: 'pulse-slow 9s ease-in-out infinite 1.5s'
-          }}
-        />
       </div>
 
       {/* Mapa OpenStreetMap */}
@@ -471,63 +353,13 @@ export default function MapView({
         />
       </div>
 
-      <div
-        className="absolute inset-0 pointer-events-none z-2"
-        style={{
-          background: `linear-gradient(135deg,
-            ${vibeTheme.glowColor}12 0%,
-            transparent 25%,
-            ${vibeTheme.secondaryGlow}10 75%,
-            transparent 100%)`,
-          mixBlendMode: 'screen'
-        }}
-      />
-
-      <motion.div
-        className="absolute inset-0 pointer-events-none z-3"
-        style={{
-          background: `linear-gradient(to bottom,
-            transparent 0%,
-            ${vibeTheme.glowColor}08 48%,
-            ${vibeTheme.glowColor}12 50%,
-            ${vibeTheme.glowColor}08 52%,
-            transparent 100%)`,
-          height: '100%',
-        }}
-        animate={{
-          y: ['-100%', '200%']
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-      />
-
-      <div
-        className="absolute inset-0 pointer-events-none z-3"
-        style={{
-          background: 'radial-gradient(circle at center, transparent 0%, transparent 60%, rgba(0,0,0,0.3) 100%)'
-        }}
-      />
-
-      {/* Markers Layer */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* Marcador do Usuário */}
         <motion.div
           className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-40"
-          style={{
-            left: `${userPosition.x}%`,
-            top: `${userPosition.y}%`,
-          }}
+          style={{ left: `${userPosition.x}%`, top: `${userPosition.y}%` }}
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
-          transition={{
-            type: "spring",
-            stiffness: 260,
-            damping: 20,
-            duration: 0.6
-          }}
+          transition={{ type: "spring", stiffness: 260, damping: 20, duration: 0.6 }}
         >
           <div className="relative flex items-center justify-center">
             <motion.div
@@ -545,11 +377,7 @@ export default function MapView({
                 scale: [1, 1.15, 1],
                 opacity: [0.4, 0.8, 0.4],
               }}
-              transition={{
-                duration: 4.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
             />
 
             <motion.div
@@ -557,14 +385,8 @@ export default function MapView({
               style={{
                 filter: `drop-shadow(0 0 18px ${vibeTheme.glowColor}) drop-shadow(0 0 35px ${vibeTheme.glowColor}90)`,
               }}
-              animate={{
-                scale: [1, 1.08, 1],
-              }}
-              transition={{
-                duration: 2.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
+              animate={{ scale: [1, 1.08, 1] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
               <div
                 className="w-6 h-6 rounded-full relative overflow-hidden"
@@ -575,17 +397,13 @@ export default function MapView({
                 }}
               >
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Navigation
-                    className="w-3 h-3 text-white"
-                    strokeWidth={3.5}
-                  />
+                  <Navigation className="w-3 h-3 text-white" strokeWidth={3.5} />
                 </div>
               </div>
             </motion.div>
           </div>
         </motion.div>
 
-        {/* Event Clusters */}
         <AnimatePresence>
           {eventClusters.map((cluster, index) => {
             const position = coordToPosition(cluster.center.lat, cluster.center.lng);
@@ -602,7 +420,6 @@ export default function MapView({
         </AnimatePresence>
       </div>
 
-      {/* Header Simplificado (now with intelligent search) */}
       <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 z-30 flex flex-col gap-2">
         <div className="flex flex-wrap gap-1.5 items-center">
           <motion.button
@@ -669,7 +486,6 @@ export default function MapView({
         </div>
       </div>
 
-      {/* FAB Upload */}
       {canCreateReels && (
         <motion.div
           className="absolute bottom-20 right-3 z-30"
@@ -682,7 +498,7 @@ export default function MapView({
             className="w-14 h-14 rounded-full border-3 border-white/30 relative overflow-hidden"
             style={{
               background: `linear-gradient(135deg, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
-              boxShadow: `0 0 30px ${vibeTheme.glowColor}` // Simplified boxShadow
+              boxShadow: `0 0 30px ${vibeTheme.glowColor}`
             }}
           >
             <motion.div
@@ -690,20 +506,14 @@ export default function MapView({
               style={{
                 background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent 70%)',
               }}
-              animate={{
-                opacity: [0.3, 0.7, 0.3]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity
-              }}
+              animate={{ opacity: [0.3, 0.7, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity }}
             />
             <Plus className="w-6 h-6 relative z-10" />
           </Button>
         </motion.div>
       )}
 
-      {/* Ver Reels Button */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 z-20 pb-3 px-4"
         drag="y"
@@ -718,12 +528,9 @@ export default function MapView({
             className="w-12 h-1.5 rounded-full mb-2"
             style={{
               background: `linear-gradient(to right, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
-              boxShadow: `0 0 15px ${vibeTheme.glowColor}` // Simplified boxShadow
+              boxShadow: `0 0 15px ${vibeTheme.glowColor}`
             }}
-            animate={{
-              scaleX: [1, 1.3, 1],
-              opacity: [0.7, 1, 0.7]
-            }}
+            animate={{ scaleX: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
             transition={{ duration: 2, repeat: Infinity }}
           />
 
@@ -732,46 +539,11 @@ export default function MapView({
             style={{
               background: `linear-gradient(135deg, ${vibeTheme.glowColor}, ${vibeTheme.secondaryGlow})`,
               borderColor: 'rgba(255, 255, 255, 0.3)',
-              boxShadow: `0 0 30px ${vibeTheme.glowColor}80` // Simplified boxShadow
+              boxShadow: `0 0 30px ${vibeTheme.glowColor}80`
             }}
-            whileHover={{
-              scale: 1.05,
-              boxShadow: `0 0 40px ${vibeTheme.glowColor}, 0 0 80px ${vibeTheme.secondaryGlow}80` // Added back hover boxShadow
-            }}
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <motion.div
-              className="absolute inset-0"
-              style={{
-                background: `radial-gradient(circle at 50% 50%,
-                  rgba(255, 255, 255, 0.3) 0%,
-                  transparent 50%)`,
-              }}
-              animate={{
-                scale: [1, 1.5, 1],
-                opacity: [0, 0.5, 0]
-              }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-
-            <motion.div
-              className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full pointer-events-none"
-              style={{
-                background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent)',
-              }}
-              animate={{
-                opacity: [0.2, 0.4, 0.2]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity
-              }}
-            />
-
             <Eye className="w-5 h-5 text-white relative z-10" />
             <span className="text-white relative z-10">Ver Reels</span>
           </motion.button>
@@ -786,7 +558,6 @@ export default function MapView({
         </div>
       </motion.div>
 
-      {/* NEW: Search Results Overlay */}
       <AnimatePresence>
         {showSearchResults && (
           <SearchResults
@@ -808,268 +579,10 @@ export default function MapView({
         )}
       </AnimatePresence>
 
-      {/* Modal de Cluster */}
-      <AnimatePresence>
-        {expandedCluster && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 backdrop-blur-md z-50 flex items-center justify-center p-4"
-            style={{
-              background: 'rgba(0, 0, 0, 0.92)'
-            }}
-            onClick={() => setExpandedCluster(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="rounded-2xl border-2 p-4 sm:p-6 max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col"
-              style={{
-                background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.98))',
-                borderColor: vibeTheme.glowColor,
-                boxShadow: `0 0 50px ${vibeTheme.glowColor}60`
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                  <MapPin className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: vibeTheme.accentColor }} />
-                  {expandedCluster.events.length} Eventos
-                  {getClusterVisualSize(expandedCluster).isHotspot && (
-                    <Badge className="bg-gradient-to-r from-orange-600 to-red-600 text-white border-0 text-[10px]">
-                      🔥 HOT ZONE
-                    </Badge>
-                  )}
-                </h3>
-                <button
-                  onClick={() => setExpandedCluster(null)}
-                  className="p-2 rounded-full hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-400 hover:text-white" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                <div>
-                  <label className="text-[10px] text-gray-400 mb-1 block">Gênero</label>
-                  <Select
-                    value={clusterFilter.genre}
-                    onValueChange={(value) => setClusterFilter(prev => ({ ...prev, genre: value }))}
-                  >
-                    <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-600 text-white">
-                      <SelectItem value="all" className="text-xs">Todos</SelectItem>
-                      {clusterFilterOptions.genres.map(genre => (
-                        <SelectItem key={genre} value={genre} className="text-xs capitalize">
-                          {genre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-gray-400 mb-1 block">Tipo</label>
-                  <Select
-                    value={clusterFilter.type}
-                    onValueChange={(value) => setClusterFilter(prev => ({ ...prev, type: value }))}
-                  >
-                    <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-600 text-white">
-                      <SelectItem value="all" className="text-xs">Todos</SelectItem>
-                      {clusterFilterOptions.types.map(type => (
-                        <SelectItem key={type} value={type} className="text-xs capitalize">
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-gray-400 mb-1 block">Ordenar</label>
-                  <Select
-                    value={clusterFilter.sortBy}
-                    onValueChange={(value) => setClusterFilter(prev => ({ ...prev, sortBy: value }))}
-                  >
-                    <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-600 text-white">
-                      <SelectItem value="date" className="text-xs">Data</SelectItem>
-                      <SelectItem value="price" className="text-xs">Preço</SelectItem>
-                      <SelectItem value="popularity" className="text-xs">Popular</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 mb-3 text-xs">
-                <span className="text-gray-400">
-                  Mostrando {filteredClusterEvents.length} de {expandedCluster.events.length}
-                </span>
-                {(clusterFilter.genre !== 'all' || clusterFilter.type !== 'all') && (
-                  <Badge
-                    className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-[9px] cursor-pointer"
-                    onClick={() => setClusterFilter({ genre: 'all', type: 'all', sortBy: clusterFilter.sortBy })}
-                  >
-                    Limpar filtros
-                  </Badge>
-                )}
-              </div>
-
-              <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-                {filteredClusterEvents.length > 0 ? (
-                  filteredClusterEvents.map((event, idx) => {
-                    const eventColor = EVENT_TYPE_COLORS[event.type] || EVENT_TYPE_COLORS['default'];
-
-                    return (
-                      <motion.div
-                        key={event.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                        className="p-3 rounded-lg border cursor-pointer transition-all overflow-hidden"
-                        style={{
-                          background: 'rgba(31, 41, 55, 0.5)',
-                          borderColor: `${eventColor}30`
-                        }}
-                        whileHover={{
-                          scale: 1.02,
-                          borderColor: eventColor,
-                          boxShadow: `0 0 20px ${eventColor}50`
-                        }}
-                        onClick={() => {
-                          onPinDetailsClick(event);
-                          setExpandedCluster(null);
-                        }}
-                      >
-                        {event.image_url && (
-                          <div className="w-full h-24 mb-2 rounded-lg overflow-hidden">
-                            <img
-                              src={event.image_url}
-                              alt={event.title}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-
-                        <h4 className="font-semibold text-white text-sm mb-1 line-clamp-1">
-                          {event.title}
-                        </h4>
-
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          <Badge
-                            className="text-[9px] border-0"
-                            style={{
-                              background: `${eventColor}40`,
-                              color: eventColor
-                            }}
-                          >
-                            {event.genre}
-                          </Badge>
-                          <Badge variant="outline" className="text-[9px] border-gray-600 text-gray-300">
-                            {event.type}
-                          </Badge>
-                        </div>
-
-                        <div className="space-y-1 text-xs text-gray-400">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-cyan-400" />
-                            <span>{format(new Date(event.date), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-purple-400" />
-                            <span className="truncate">{event.location.venue_name}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-700">
-                          <span className="text-green-400 font-semibold text-xs">
-                            R$ {event.price?.toFixed(2) || event.ticket_types?.[0]?.price?.toFixed(2) || '0.00'}
-                          </span>
-                          <span className="text-gray-500 text-[10px]">
-                            {event.current_attendees}/{event.max_capacity}
-                          </span>
-                        </div>
-                      </motion.div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-12">
-                    <Filter className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-400 text-sm">Nenhum evento com esses filtros</p>
-                    <Button
-                      onClick={() => setClusterFilter({ genre: 'all', type: 'all', sortBy: 'date' })}
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 border-gray-600 text-gray-300 text-xs"
-                    >
-                      Limpar Filtros
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <div className="text-cyan-400 font-bold text-base">
-                    {expandedCluster.events.length}
-                  </div>
-                  <div className="text-gray-500 text-[10px]">Eventos</div>
-                </div>
-                <div>
-                  <div className="text-purple-400 font-bold text-base">
-                    {new Set(expandedCluster.events.map(e => e.genre)).size}
-                  </div>
-                  <div className="text-gray-500 text-[10px]">Gêneros</div>
-                </div>
-                <div>
-                  <div className="text-pink-400 font-bold text-base">
-                    {expandedCluster.density > 10 ? '🔥 Alta' : expandedCluster.density > 5 ? '⚡ Média' : '📍 Baixa'}
-                  </div>
-                  <div className="text-gray-500 text-[10px]">Densidade</div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <style jsx>{`
         @keyframes grid-pulse {
-          0%, 100% {
-            opacity: 0.12;
-          }
-          50% {
-            opacity: 0.22;
-          }
-        }
-
-        @keyframes diagonal-slide {
-          0% {
-            background-position: 0 0;
-          }
-          100% {
-            background-position: 100px 100px;
-          }
-        }
-
-        @keyframes pulse-slow {
-          0%, 100% {
-            transform: scale(1);
-            opacity: 0.15;
-          }
-          50% {
-            transform: scale(1.15);
-            opacity: 0.25;
-          }
+          0%, 100% { opacity: 0.12; }
+          50% { opacity: 0.22; }
         }
       `}</style>
     </motion.div>
