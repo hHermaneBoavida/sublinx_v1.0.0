@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Eye, Menu, Search, MapPin, Navigation, Music2, ZoomIn, ZoomOut, Filter, Calendar, X } from 'lucide-react';
+import { Plus, Eye, Menu, Search, MapPin, Navigation, Music2, Filter, Calendar, X } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useQuery } from '@tanstack/react-query';
@@ -17,10 +16,9 @@ import { ptBR } from "date-fns/locale";
 const clusterEvents = (events, zoomLevel = 1, screenDensity = 1) => {
   if (!events || events.length === 0) return [];
   
-  // NOVO: Ajuste dinâmico baseado em zoom E densidade de tela
-  const baseRadius = 0.015; // Raio base
-  const zoomFactor = Math.pow(2, (15 - zoomLevel) * 0.8); // Mais agressivo em zoom out
-  const densityFactor = 1 / screenDensity; // Dispositivos de alta densidade = clusters menores
+  const baseRadius = 0.015;
+  const zoomFactor = Math.pow(2, (15 - zoomLevel) * 0.8);
+  const densityFactor = 1 / screenDensity;
   
   const CLUSTER_RADIUS = baseRadius * zoomFactor * densityFactor;
   
@@ -34,7 +32,7 @@ const clusterEvents = (events, zoomLevel = 1, screenDensity = 1) => {
       events: [event],
       center: { lat: event.location.lat, lng: event.location.lng },
       isCluster: false,
-      density: 1, // NOVO: Densidade do cluster
+      density: 1,
       dominantGenre: event.genre,
       dominantType: event.type
     };
@@ -56,17 +54,14 @@ const clusterEvents = (events, zoomLevel = 1, screenDensity = 1) => {
     if (cluster.events.length > 1) {
       cluster.isCluster = true;
       
-      // Calcular centro ponderado
       cluster.center = {
         lat: cluster.events.reduce((sum, e) => sum + e.location.lat, 0) / cluster.events.length,
         lng: cluster.events.reduce((sum, e) => sum + e.location.lng, 0) / cluster.events.length
       };
 
-      // NOVO: Calcular densidade (eventos por km²)
-      const area = Math.PI * Math.pow(CLUSTER_RADIUS * 111, 2); // ~111km por grau
+      const area = Math.PI * Math.pow(CLUSTER_RADIUS * 111, 2);
       cluster.density = cluster.events.length / area;
 
-      // NOVO: Determinar gênero/tipo dominante
       const genreCounts = {};
       const typeCounts = {};
       
@@ -90,7 +85,6 @@ const clusterEvents = (events, zoomLevel = 1, screenDensity = 1) => {
   return clusters;
 };
 
-// Cores por tipo de evento
 const getEventColor = (event) => {
   const colorMap = {
     'rave': 'rgba(236, 72, 153, 0.9)',
@@ -103,24 +97,20 @@ const getEventColor = (event) => {
   return colorMap[event.type] || 'rgba(6, 182, 212, 0.9)';
 };
 
-// NOVO: Componente de Pin com indicador de densidade
 const EventPin = memo(({ cluster, position, onClick, theme }) => {
   const { events, isCluster: isClusterGroup, density = 1 } = cluster;
   const mainEvent = events[0];
   const eventColor = getEventColor(mainEvent);
   
-  // NOVO: Tamanho dinâmico baseado em densidade
   const getDensitySize = () => {
     if (!isClusterGroup) return { pin: 'w-10 h-10', glow: '60px', secondGlow: '80px' };
     
-    if (density > 10) return { pin: 'w-20 h-20', glow: '100px', secondGlow: '130px' }; // MUITO DENSO
-    if (density > 5) return { pin: 'w-16 h-16', glow: '85px', secondGlow: '110px' }; // DENSO
-    return { pin: 'w-14 h-14', glow: '75px', secondGlow: '95px' }; // NORMAL
+    if (density > 10) return { pin: 'w-20 h-20', glow: '100px', secondGlow: '130px' };
+    if (density > 5) return { pin: 'w-16 h-16', glow: '85px', secondGlow: '110px' };
+    return { pin: 'w-14 h-14', glow: '75px', secondGlow: '95px' };
   };
 
   const sizes = getDensitySize();
-
-  // NOVO: Intensidade do glow baseada em densidade
   const glowIntensity = Math.min(0.9, 0.3 + (density / 15));
   
   return (
@@ -137,7 +127,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
       exit={{ opacity: 0, scale: 0 }}
       transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
     >
-      {/* Tooltip MELHORADO */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         whileHover={{ opacity: 1, y: 0 }}
@@ -176,7 +165,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
         )}
       </motion.div>
 
-      {/* Glow pulsante com intensidade baseada em densidade */}
       <motion.div
         className="absolute inset-0 rounded-full pointer-events-none"
         style={{
@@ -222,7 +210,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
         }}
       />
 
-      {/* Pin Principal com tamanho dinâmico */}
       <motion.div 
         className="relative"
         animate={{
@@ -265,7 +252,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
               <div className="text-white font-bold text-base">
                 {events.length}
               </div>
-              {/* NOVO: Indicador de densidade */}
               {density > 10 && (
                 <div className="text-[8px] text-yellow-300 font-bold leading-none">
                   🔥
@@ -288,7 +274,6 @@ const EventPin = memo(({ cluster, position, onClick, theme }) => {
           )}
         </div>
 
-        {/* Anel orbital */}
         <motion.div
           className="absolute inset-0 rounded-full border-2 pointer-events-none"
           style={{
@@ -357,7 +342,6 @@ export default function MapView({
 
   const canCreateReels = user && (user.is_pro_member || user.is_organizer);
 
-  // NOVO: Detectar densidade da tela
   const screenDensity = useMemo(() => {
     return window.devicePixelRatio || 1;
   }, []);
@@ -439,29 +423,25 @@ export default function MapView({
   const handleClusterClick = useCallback((cluster) => {
     if (cluster.isCluster) {
       setExpandedCluster(cluster);
-      setClusterFilter({ genre: 'all', type: 'all', sortBy: 'date' }); // Reset filtros
+      setClusterFilter({ genre: 'all', type: 'all', sortBy: 'date' });
     } else {
       onPinDetailsClick(cluster.events[0]);
     }
   }, [onPinDetailsClick]);
 
-  // NOVO: Filtrar eventos dentro do cluster
   const filteredClusterEvents = useMemo(() => {
     if (!expandedCluster) return [];
 
     let filtered = [...expandedCluster.events];
 
-    // Aplicar filtro de gênero
     if (clusterFilter.genre !== 'all') {
       filtered = filtered.filter(e => e.genre === clusterFilter.genre);
     }
 
-    // Aplicar filtro de tipo
     if (clusterFilter.type !== 'all') {
       filtered = filtered.filter(e => e.type === clusterFilter.type);
     }
 
-    // Aplicar ordenação
     if (clusterFilter.sortBy === 'date') {
       filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
     } else if (clusterFilter.sortBy === 'price') {
@@ -473,7 +453,6 @@ export default function MapView({
     return filtered;
   }, [expandedCluster, clusterFilter]);
 
-  // NOVO: Extrair opções únicas de filtro do cluster
   const clusterFilterOptions = useMemo(() => {
     if (!expandedCluster) return { genres: [], types: [] };
 
@@ -482,14 +461,6 @@ export default function MapView({
 
     return { genres, types };
   }, [expandedCluster]);
-
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 1, 18));
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 1, 10));
-  };
 
   return (
     <motion.div
@@ -603,7 +574,7 @@ export default function MapView({
         />
       </div>
 
-      {/* Mapa OpenStreetMap - SEM MARCADOR */}
+      {/* Mapa OpenStreetMap */}
       <div className="absolute inset-0 z-1">
         <iframe
           key={`map-${zoomLevel}-${bbox}`}
@@ -920,51 +891,6 @@ export default function MapView({
         </div>
       </div>
 
-      {/* Controles de Zoom */}
-      <div className="absolute right-3 bottom-32 z-30 flex flex-col gap-2">
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={handleZoomIn}
-          disabled={zoomLevel >= 18}
-          className="w-11 h-11 rounded-full backdrop-blur-xl border-2 flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            background: `linear-gradient(135deg, ${vibeTheme.glowColor}20, ${vibeTheme.secondaryGlow}15)`,
-            borderColor: `${vibeTheme.glowColor}60`,
-            boxShadow: `0 0 20px ${vibeTheme.glowColor}50`
-          }}
-        >
-          <ZoomIn className="w-5 h-5" />
-        </motion.button>
-        
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={handleZoomOut}
-          disabled={zoomLevel <= 10}
-          className="w-11 h-11 rounded-full backdrop-blur-xl border-2 flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            background: `linear-gradient(135deg, ${vibeTheme.glowColor}20, ${vibeTheme.secondaryGlow}15)`,
-            borderColor: `${vibeTheme.glowColor}60`,
-            boxShadow: `0 0 20px ${vibeTheme.glowColor}50`
-          }}
-        >
-          <ZoomOut className="w-5 h-5" />
-        </motion.button>
-        
-        <div 
-          className="w-11 h-11 rounded-full backdrop-blur-xl border-2 flex items-center justify-center text-xs font-bold"
-          style={{
-            background: 'rgba(0, 0, 0, 0.7)',
-            borderColor: 'rgba(107, 114, 128, 0.6)',
-            color: vibeTheme.accentColor,
-            textShadow: `0 0 10px ${vibeTheme.glowColor}`
-          }}
-        >
-          {zoomLevel}
-        </div>
-      </div>
-
       {/* FAB Upload */}
       {canCreateReels && (
         <motion.div
@@ -1082,7 +1008,7 @@ export default function MapView({
         </div>
       </motion.div>
 
-      {/* NOVO: Modal de Cluster AVANÇADO com Filtros */}
+      {/* Modal de Cluster */}
       <AnimatePresence>
         {expandedCluster && (
           <motion.div
@@ -1107,7 +1033,6 @@ export default function MapView({
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                   <MapPin className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: vibeTheme.accentColor }} />
@@ -1126,7 +1051,6 @@ export default function MapView({
                 </button>
               </div>
 
-              {/* NOVO: Filtros Avançados */}
               <div className="grid grid-cols-3 gap-2 mb-4">
                 <div>
                   <label className="text-[10px] text-gray-400 mb-1 block">Gênero</label>
@@ -1186,7 +1110,6 @@ export default function MapView({
                 </div>
               </div>
 
-              {/* NOVO: Info de Filtros Ativos */}
               <div className="flex items-center gap-2 mb-3 text-xs">
                 <span className="text-gray-400">
                   Mostrando {filteredClusterEvents.length} de {expandedCluster.events.length}
@@ -1201,7 +1124,6 @@ export default function MapView({
                 )}
               </div>
 
-              {/* Lista de Eventos FILTRADOS */}
               <div className="flex-1 overflow-y-auto space-y-2 pr-2">
                 {filteredClusterEvents.length > 0 ? (
                   filteredClusterEvents.map((event, idx) => {
@@ -1228,7 +1150,6 @@ export default function MapView({
                           setExpandedCluster(null);
                         }}
                       >
-                        {/* Event Image */}
                         {event.image_url && (
                           <div className="w-full h-24 mb-2 rounded-lg overflow-hidden">
                             <img 
@@ -1269,7 +1190,6 @@ export default function MapView({
                           </div>
                         </div>
 
-                        {/* NOVO: Preço e Lotação */}
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-700">
                           <span className="text-green-400 font-semibold text-xs">
                             R$ {event.price?.toFixed(2) || event.ticket_types?.[0]?.price?.toFixed(2) || '0.00'}
@@ -1297,7 +1217,6 @@ export default function MapView({
                 )}
               </div>
 
-              {/* NOVO: Footer com Estatísticas */}
               <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-3 gap-3 text-center">
                 <div>
                   <div className="text-cyan-400 font-bold text-base">
@@ -1323,7 +1242,6 @@ export default function MapView({
         )}
       </AnimatePresence>
 
-      {/* CSS Animations */}
       <style jsx>{`
         @keyframes grid-pulse {
           0%, 100% {
