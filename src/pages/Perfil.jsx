@@ -1,593 +1,145 @@
-
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Settings,
-  Grid,
-  Heart,
-  MessageCircle,
-  Crown,
-  Calendar,
-  MapPin,
-  LogOut,
-  AlertCircle,
-  UserPlus,
-  UserMinus,
-  Users,
-  CheckCircle,
-  Clock,
-  X,
-  BarChart3,
-  Music,
-  TrendingUp,
-  Loader2,
-  Camera,
-  Save,
-  Check // Added Check icon
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Settings, LogOut, Crown, Zap, Calendar, Ticket,
+  Heart, MessageSquare, Users, TrendingUp, Camera,
+  MapPin, Star, Award, Target, BarChart3, Edit2, Share2,
+  UserPlus, Copy, Instagram, Twitter, Mail, Phone, Shield,
+  CreditCard, XCircle, CheckCircle, Sparkles, Trophy
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import FollowButton from "../components/profile/FollowButton";
+import EditProfileModal from "../components/profile/EditProfileModal";
+import TicketCard from "../components/tickets/TicketCard";
 import EventHistoryCard from "../components/profile/EventHistoryCard";
-import { CACHE_CONFIG, DEFAULT_AVATAR, MUSIC_GENRES } from "../components/shared/helpers";
+import { CACHE_CONFIG } from "../components/shared/helpers";
 
 export default function Perfil() {
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [editForm, setEditForm] = useState({
-    full_name: "",
-    bio: "",
-    avatar_url: "",
-    phone: "",
-    address_full: "",
-    city: "",
-    state: "",
-    postal_code: "",
-    email: "",
-    cpf: "",
-    cnpj: "",
-    music_preferences: []
-  });
-  const [nameChangeCount, setNameChangeCount] = useState(0);
-  const [originalName, setOriginalName] = useState("");
-  const [showFollowersModal, setShowFollowersModal] = useState(false);
-  const [showFollowingModal, setShowFollowingModal] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false); // New state for success message
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
+  const [showCancelPlan, setShowCancelPlan] = useState(false);
 
-  const { data: user, isLoading: loadingUser, refetch: refetchUser } = useQuery({
+  const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
       try {
-        const userData = await base44.auth.me();
-        
-        console.log('📥 Dados do usuário carregados:', {
-          id: userData.id,
-          full_name: userData.full_name,
-          email: userData.email,
-          name_change_count: userData.name_change_count
-        });
-        
-        // Defaults para garantir que os campos existam no objeto
-        if (!userData.avatar_url) userData.avatar_url = DEFAULT_AVATAR;
-        if (!userData.music_preferences) userData.music_preferences = [];
-        if (!userData.stats) {
-          userData.stats = {
-            events_attended: 0,
-            events_organized: 0,
-            posts_created: 0,
-            photos_shared: 0,
-            videos_shared: 0
-          };
-        }
-        
-        return userData;
+        return await base44.auth.me();
       } catch (error) {
-        console.error("❌ Erro ao carregar usuário:", error);
         navigate(createPageUrl("BemVindo"));
-        throw error; // Propagate error for react-query to handle
+        throw error;
       }
     },
-    retry: false, // Don't retry if user is not authenticated
-    ...CACHE_CONFIG.SHORT,
+    retry: false,
+    ...CACHE_CONFIG.STATIC,
   });
 
-  // CORREÇÃO: Inicializar form quando user carregar
-  useEffect(() => {
-    if (user) {
-      console.log('🔄 Inicializando formulário com dados do usuário');
-      
-      setNameChangeCount(user.name_change_count || 0);
-      setOriginalName(user.full_name || "");
-      setEditForm({
-        full_name: user.full_name || "",
-        bio: user.bio || "",
-        avatar_url: user.avatar_url || DEFAULT_AVATAR,
-        phone: user.phone || "",
-        address_full: user.address_full || "",
-        city: user.city || "",
-        state: user.state || "",
-        postal_code: user.postal_code || "",
-        email: user.email || "", // Não editável, apenas visualização
-        cpf: user.cpf || "",     // Não editável, apenas visualização
-        cnpj: user.cnpj || "",   // Não editável, apenas visualização
-        music_preferences: user.music_preferences || []
-      });
-    }
-  }, [user]);
-
-  // Buscar dados reais de follows
-  const { data: followersData = [] } = useQuery({
+  const { data: followers = [] } = useQuery({
     queryKey: ['followers', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      try {
-        return await base44.entities.Follow.filter({ following_id: user.id });
-      } catch {
-        return [];
-      }
+      return await base44.entities.Follow.filter({ following_id: user.id });
     },
     enabled: !!user?.id,
-    initialData: [],
-    ...CACHE_CONFIG.MEDIUM,
-  });
-
-  const { data: followingData = [] } = useQuery({
-    queryKey: ['following', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      try {
-        return await base44.entities.Follow.filter({ follower_id: user.id });
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!user?.id,
-    initialData: [],
-    ...CACHE_CONFIG.MEDIUM,
-  });
-
-  // NOVO: Buscar usuários dos seguidores
-  const { data: followersUsers = [] } = useQuery({
-    queryKey: ['followersUsers', followersData],
-    queryFn: async () => {
-      if (!followersData || followersData.length === 0) return [];
-      const followerIds = followersData.map(f => f.follower_id);
-      try {
-        const users = await base44.entities.User.filter({ id: { $in: followerIds } });
-        return users || [];
-      } catch {
-        return [];
-      }
-    },
-    enabled: followersData && followersData.length > 0,
-    initialData: [],
-    ...CACHE_CONFIG.MEDIUM,
-  });
-
-  // NOVO: Buscar usuários que está seguindo
-  const { data: followingUsers = [] } = useQuery({
-    queryKey: ['followingUsers', followingData],
-    queryFn: async () => {
-      if (!followingData || followingData.length === 0) return [];
-      const followingIds = followingData.map(f => f.following_id);
-      try {
-        const users = await base44.entities.User.filter({ id: { $in: followingIds } });
-        return users || [];
-      } catch {
-        return [];
-      }
-    },
-    enabled: followingData && followingData.length > 0,
-    initialData: [],
-    ...CACHE_CONFIG.MEDIUM,
-  });
-
-  // Buscar eventos criados (para organizadores)
-  const { data: createdEvents = [] } = useQuery({
-    queryKey: ['createdEvents', user?.id],
-    queryFn: async () => {
-      if (!user?.id || !user?.is_organizer) return [];
-      try {
-        return await base44.entities.Event.filter({ organizer_id: user.id }, "-date");
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!user?.id && !!user?.is_organizer,
-    initialData: [],
-    ...CACHE_CONFIG.LONG,
-  });
-
-  // NOVO: Buscar eventos passados que o usuário participou
-  const { data: pastEvents = [] } = useQuery({
-    queryKey: ['pastEvents', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      try {
-        // Buscar tickets do usuário
-        const tickets = await base44.entities.Ticket.filter({ user_id: user.id });
-        const eventIds = [...new Set(tickets.map(t => t.event_id))];
-        
-        if (eventIds.length === 0) return [];
-
-        // Buscar os eventos
-        const events = await Promise.all(
-          eventIds.map(async id => {
-            try {
-              const eventList = await base44.entities.Event.filter({ id });
-              return eventList[0] || null;
-            } catch {
-              return null;
-            }
-          })
-        );
-
-        // Filtrar eventos passados
-        const now = new Date();
-        return events
-          .filter(e => e !== null && new Date(e.date) < now)
-          .sort((a, b) => new Date(b.date) - new Date(a.date));
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!user?.id,
-    initialData: [],
-    ...CACHE_CONFIG.LONG,
-  });
-
-  // NOVO: Buscar eventos com ingressos (aprovados)
-  const { data: myTicketEvents = [] } = useQuery({
-    queryKey: ['myTicketEvents', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      try {
-        // Buscar solicitações aprovadas
-        const approvedRequests = await base44.entities.EventRequest.filter({ 
-          user_id: user.id,
-          status: "approved"
-        });
-        
-        if (approvedRequests.length === 0) return [];
-
-        const eventIds = [...new Set(approvedRequests.map(r => r.event_id))];
-
-        // Buscar os eventos
-        const events = await Promise.all(
-          eventIds.map(async id => {
-            try {
-              const eventList = await base44.entities.Event.filter({ id });
-              return eventList[0] || null;
-            } catch {
-              return null;
-            }
-          })
-        );
-
-        // Retornar todos os eventos aprovados (futuros e passados)
-        return events
-          .filter(e => e !== null)
-          .sort((a, b) => new Date(b.date) - new Date(a.date));
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!user?.id,
-    initialData: [],
-    ...CACHE_CONFIG.MEDIUM,
-  });
-
-  // CORREÇÃO: Separar eventos futuros e passados
-  const upcomingTicketEvents = myTicketEvents.filter(e => new Date(e.date) >= new Date());
-  const pastTicketEvents = myTicketEvents.filter(e => new Date(e.date) < new Date());
-
-  // Buscar solicitações de eventos (para organizadores)
-  const { data: eventRequests = [] } = useQuery({
-    queryKey: ['eventRequests', user?.id, createdEvents],
-    queryFn: async () => {
-      if (!user?.id || !user?.is_organizer || !createdEvents || createdEvents.length === 0) return [];
-      try {
-        const eventIds = createdEvents.map(e => e.id);
-        return await base44.entities.EventRequest.filter({
-          event_id: { $in: eventIds },
-          status: "pending"
-        });
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!user?.id && !!user?.is_organizer && !!createdEvents && createdEvents.length > 0,
-    initialData: [],
     ...CACHE_CONFIG.SHORT,
   });
 
-  // Buscar lista de convidados (solicitações aceitas)
-  const { data: guestList = [] } = useQuery({
-    queryKey: ['guestList', user?.id, createdEvents],
-    queryFn: async () => {
-      if (!user?.id || !user?.is_organizer || !createdEvents || createdEvents.length === 0) return [];
-      try {
-        const eventIds = createdEvents.map(e => e.id);
-        return await base44.entities.EventRequest.filter({
-          event_id: { $in: eventIds },
-          status: "approved"
-        });
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!user?.id && !!user?.is_organizer && !!createdEvents && createdEvents.length > 0,
-    initialData: [],
-    ...CACHE_CONFIG.MEDIUM,
-  });
-
-  // Buscar eventos curtidos (para usuários)
-  const { data: likedEvents = [] } = useQuery({
-    queryKey: ['likedEvents', user?.id],
+  const { data: following = [] } = useQuery({
+    queryKey: ['following', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      try {
-        const likes = await base44.entities.Like.filter({ user_id: user.id });
-        const eventIds = likes.map(l => l.event_id);
-        if (eventIds.length === 0) return [];
-
-        const events = await Promise.all(
-          eventIds.map(async id => {
-            try {
-              const eventList = await base44.entities.Event.filter({ id });
-              return eventList[0] || null;
-            } catch {
-              return null;
-            }
-          })
-        );
-        return events.filter(e => e !== null);
-      } catch {
-        return [];
-      }
+      return await base44.entities.Follow.filter({ follower_id: user.id });
     },
     enabled: !!user?.id,
-    initialData: [],
-    ...CACHE_CONFIG.LONG,
-  });
-
-  // Buscar solicitações feitas (para usuários)
-  const { data: myRequests = [] } = useQuery({
-    queryKey: ['myRequests', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      try {
-        return await base44.entities.EventRequest.filter({ user_id: user.id }, "-created_date");
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!user?.id,
-    initialData: [],
-    ...CACHE_CONFIG.MEDIUM,
-  });
-
-  // NOVO: Buscar eventos das solicitações com status e detalhes
-  const { data: requestsWithEvents = [] } = useQuery({
-    queryKey: ['requestsWithEvents', user?.id, myRequests],
-    queryFn: async () => {
-      if (!user?.id || !myRequests || myRequests.length === 0) return [];
-      try {
-        const eventIds = [...new Set(myRequests.map(r => r.event_id))];
-        
-        const eventsPromises = eventIds.map(async id => {
-          try {
-            const eventList = await base44.entities.Event.filter({ id });
-            return eventList[0] || null;
-          } catch {
-            return null;
-          }
-        });
-
-        const events = await Promise.all(eventsPromises);
-        
-        // Combinar eventos com suas solicitações
-        const combined = myRequests.map(request => {
-          const event = events.find(e => e && e.id === request.event_id);
-          return {
-            ...request,
-            event: event
-          };
-        }).filter(item => item.event !== null);
-
-        return combined.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!user?.id && !!myRequests && myRequests.length > 0,
-    initialData: [],
-    ...CACHE_CONFIG.MEDIUM,
+    ...CACHE_CONFIG.SHORT,
   });
 
   const { data: userTickets = [] } = useQuery({
     queryKey: ['userTickets', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      try {
-        return await base44.entities.Ticket.filter({ user_id: user.id });
-      } catch {
-        return [];
-      }
+      return await base44.entities.Ticket.filter({ user_id: user.id }, "-created_date");
     },
     enabled: !!user?.id,
-    initialData: [],
     ...CACHE_CONFIG.MEDIUM,
   });
 
-  const { data: userReels = [] } = useQuery({
-    queryKey: ['userReels', user?.id],
+  const { data: allEvents = [] } = useQuery({
+    queryKey: ['profileEvents'],
     queryFn: async () => {
-      if (!user?.id) return [];
-      try {
-        return await base44.entities.Reel.filter({ user_id: user.id });
-      } catch {
-        return [];
-      }
+      return await base44.entities.Event.list("-date", 100);
+    },
+    ...CACHE_CONFIG.MEDIUM,
+  });
+
+  const { data: subscription } = useQuery({
+    queryKey: ['subscription', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const subs = await base44.entities.Subscription.filter({ 
+        user_id: user.id,
+        status: 'active'
+      });
+      return subs && subs.length > 0 ? subs[0] : null;
     },
     enabled: !!user?.id,
-    initialData: [],
+  });
+
+  const { data: userBadges = [] } = useQuery({
+    queryKey: ['userBadges', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return await base44.entities.UserBadge.filter({ user_id: user.id });
+    },
+    enabled: !!user?.id,
     ...CACHE_CONFIG.LONG,
   });
 
-  const followersCount = followersData?.length || 0;
-  const followingCount = followingData?.length || 0;
+  const myEvents = useMemo(() => {
+    if (!user || !allEvents) return [];
+    return allEvents.filter(e => e.organizer_id === user.id);
+  }, [allEvents, user]);
 
-  // CORREÇÃO: Mutation para salvar perfil
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data) => {
-      console.log('📤 Enviando atualização de perfil:', data);
-      
-      try {
-        const result = await base44.auth.updateMe(data);
-        console.log('✅ Resposta da atualização:', result);
-        return result;
-      } catch (error) {
-        console.error('❌ Erro ao atualizar perfil:', error);
-        throw error;
-      }
-    },
-    onSuccess: async (updatedData) => {
-      console.log('✅ Perfil atualizado com sucesso:', updatedData);
-      
-      // Aguardar um pouco antes de refetch para garantir que o backend processou
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Invalidar queries para atualizar UI e refetch o usuário para pegar os dados mais recentes (ex: name_change_count)
-      await queryClient.invalidateQueries(['currentUser']);
-      await refetchUser(); // Explicitly refetch the current user data after update
+  const attendedEvents = useMemo(() => {
+    if (!userTickets || !allEvents) return [];
+    const eventIds = userTickets.map(t => t.event_id);
+    return allEvents.filter(e => eventIds.includes(e.id));
+  }, [userTickets, allEvents]);
 
-      // Se organizador, sincronizar eventos
-      if (user?.is_organizer) {
-        console.log('🔄 Sincronizando eventos do organizador...');
-        try {
-          const myEvents = await base44.entities.Event.filter({ organizer_id: user.id });
-          
-          if (myEvents && myEvents.length > 0) {
-            console.log(`🔄 Atualizando ${myEvents.length} evento(s)...`);
-            for (const event of myEvents) {
-              try {
-                await base44.entities.Event.update(event.id, {
-                  organizer: editForm.full_name || user.full_name, // Use fallback in case editForm is empty
-                  organizer_avatar: editForm.avatar_url || user.avatar_url // Use fallback
-                });
-              } catch (eventError) {
-                console.error(`Erro ao sincronizar evento ${event.id}:`, eventError);
-              }
-            }
-            
-            // Invalida o cache dos eventos para forçar a atualização
-            queryClient.invalidateQueries(['feedEvents']);
-            queryClient.invalidateQueries(['discoverEvents']);
-            queryClient.invalidateQueries(['mapEvents']);
-            queryClient.invalidateQueries(['createdEvents']);
-          }
-        } catch (syncError) {
-          console.error("Erro ao sincronizar eventos:", syncError);
-        }
-      }
+  const cancelPlanMutation = useMutation({
+    mutationFn: async () => {
+      if (!subscription) throw new Error("Nenhuma assinatura ativa");
       
-      // Mostrar mensagem de sucesso e fechar modal
-      setShowSuccessMessage(true);
-      setTimeout(() => {
-        setShowSuccessMessage(false);
-        setShowEditModal(false);
-      }, 2000); // Hide message and close modal after 2 seconds
+      await base44.entities.Subscription.update(subscription.id, {
+        status: 'cancelled',
+        end_date: new Date().toISOString()
+      });
+
+      await base44.auth.updateMe({
+        is_pro_member: false,
+        is_organizer: false,
+        subscription_type: 'free'
+      });
     },
-    onError: (error) => {
-      console.error("❌ Erro na mutation:", error);
-      alert("❌ Erro ao atualizar perfil. Tente novamente.");
+    onSuccess: () => {
+      queryClient.invalidateQueries(['subscription']);
+      queryClient.invalidateQueries(['currentUser']);
+      setShowCancelPlan(false);
+      alert("Plano cancelado com sucesso");
     }
   });
-
-  const handleSaveProfile = async () => {
-    console.log('💾 Iniciando salvamento do perfil...');
-    console.log('📝 Dados do formulário:', editForm);
-    
-    // CORREÇÃO: Validação segura com verificação de undefined
-    const trimmedName = (editForm.full_name || "").trim();
-    
-    if (!trimmedName || trimmedName.length === 0) {
-      alert("❌ O nome não pode estar vazio");
-      return;
-    }
-
-    const nameChanged = trimmedName !== originalName;
-    console.log('🔍 Nome mudou?', nameChanged, {
-      novo: trimmedName,
-      original: originalName
-    });
-
-    if (nameChanged && nameChangeCount >= 3) {
-      alert("❌ Limite de alterações de nome atingido (3 vezes).");
-      return;
-    }
-
-    // CORREÇÃO: Criar objeto com valores seguros
-    const updateData = {
-      full_name: trimmedName,
-      bio: editForm.bio || "",
-      avatar_url: editForm.avatar_url || DEFAULT_AVATAR,
-      phone: editForm.phone || "",
-      address_full: editForm.address_full || "",
-      city: editForm.city || "",
-      state: editForm.state || "",
-      postal_code: editForm.postal_code || "",
-      music_preferences: editForm.music_preferences || []
-    };
-
-    // CORREÇÃO: Adicionar name_change_count APENAS se o nome mudou
-    if (nameChanged) {
-      updateData.name_change_count = nameChangeCount + 1;
-      console.log('📊 Incrementando contador de alterações:', nameChangeCount + 1);
-    }
-
-    console.log('📤 Objeto de atualização final:', updateData);
-
-    // Usar mutation para enviar os dados
-    updateProfileMutation.mutate(updateData);
-
-    // Atualizar estados locais para feedback imediato na UI (antes do refetch completo)
-    if (nameChanged) {
-      setNameChangeCount(nameChangeCount + 1); // Atualiza o contador local
-      setOriginalName(trimmedName); // Atualiza o nome original para futuras comparações
-    }
-    // Remove direct alert for success, handled by mutation.onSuccess
-  };
 
   const handleLogout = async () => {
     try {
@@ -595,1280 +147,964 @@ export default function Perfil() {
       navigate(createPageUrl("BemVindo"));
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
-      navigate(createPageUrl("BemVindo"));
-      window.location.reload(); // Fallback for hard refresh
     }
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Validar tipo de arquivo
-    if (!file.type.startsWith('image/')) {
-      alert("❌ Por favor, selecione uma imagem válida.");
-      return;
-    }
-
-    // Validar tamanho (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert("❌ A imagem deve ter no máximo 5MB.");
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setEditForm(prev => ({ ...prev, avatar_url: file_url }));
-      alert("✅ Imagem carregada com sucesso!");
-    } catch (error) {
-      console.error("Erro no upload:", error);
-      alert("❌ Falha no upload da imagem. Tente novamente.");
-    } finally {
-      setIsUploading(false);
-      e.target.value = null; // Clear the input so same file can be selected again
-    }
-  };
-
-  const requestMutation = useMutation({
-    mutationFn: async ({ requestId, action }) => {
-      await base44.entities.EventRequest.update(requestId, { status: action });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['eventRequests']);
-      queryClient.invalidateQueries(['guestList']);
-    }
-  });
-
-  const handleRequestAction = async (requestId, action) => {
-    try {
-      await requestMutation.mutateAsync({ requestId, action });
-      alert(`✅ Solicitação ${action === 'approved' ? 'aprovada' : 'negada'}!`);
-    } catch (error) {
-      console.error("Erro:", error);
-      alert("❌ Erro ao processar solicitação.");
-    }
-  };
-
-  const handleGenreToggle = (genre) => {
-    setEditForm(prev => {
-      const current = prev.music_preferences || [];
-      if (current.includes(genre)) {
-        return {
-          ...prev,
-          music_preferences: current.filter(g => g !== genre)
-        };
-      } else {
-        return {
-          ...prev,
-          music_preferences: [...current, genre]
-        };
+  const handleShareProfile = async () => {
+    const profileUrl = window.location.href;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Perfil de ${user.full_name}`,
+          text: `Confira meu perfil no SUBLINX!`,
+          url: profileUrl
+        });
+      } catch (err) {
+        console.log('Share cancelled');
       }
-    });
+    } else {
+      navigator.clipboard.writeText(profileUrl);
+      alert('Link do perfil copiado!');
+    }
   };
 
   if (loadingUser) {
     return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 text-cyan-500 animate-spin" />
-          <p className="text-gray-400">Carregando perfil...</p>
-        </div>
+      <div className="w-full h-screen flex items-center justify-center bg-black">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full"
+        />
       </div>
     );
   }
 
-  if (!user) return null; // Should not happen if navigate in useQuery is effective, but good fallback
+  const stats = {
+    followers: followers.length,
+    following: following.length,
+    events: user.is_organizer ? myEvents.length : attendedEvents.length,
+    tickets: userTickets.filter(t => t.status === 'valid').length,
+    level: user.underground_level || 1,
+    xp: user.experience_points || 0
+  };
 
-  const totalPosts = (user.stats?.photos_shared || 0) + (user.stats?.videos_shared || 0) + (userReels?.length || 0);
-  const canChangeName = nameChangeCount < 3;
-  const remainingChanges = 3 - nameChangeCount;
+  const planConfig = {
+    free: { name: 'Free', color: 'text-gray-400', icon: Zap },
+    underground_pro: { name: 'Underground Pro', color: 'text-cyan-400', icon: Crown },
+    organizer_elite: { name: 'Organizer Elite', color: 'text-yellow-400', icon: Crown }
+  };
 
-  // List of all possible music genres for selection in the edit modal
-  const allGenres = MUSIC_GENRES;
-
-  // CORREÇÃO: Verificação segura para comparação de nomes
-  const currentNameValue = editForm.full_name || "";
-  const isNameChanged = currentNameValue.trim() !== originalName;
+  const currentPlan = planConfig[user.subscription_type] || planConfig.free;
 
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 text-white">
-      {/* Success Toast */}
-      {showSuccessMessage && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top">
-          <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
-            <Check className="w-5 h-5" />
-            <span className="font-semibold">Perfil atualizado com sucesso!</span>
-          </div>
-        </div>
-      )}
+    <div className="min-h-screen bg-black text-white pb-24 md:pb-8">
+      {/* Hero Header com Avatar */}
+      <div className="relative h-64 overflow-hidden">
+        {/* Background com gradiente cyberpunk */}
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/40 via-purple-900/40 to-pink-900/40" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, rgba(6, 182, 212, 0.3) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(6, 182, 212, 0.3) 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px',
+          }}
+        />
+        
+        {/* Floating particles */}
+        {[...Array(15)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 rounded-full"
+            style={{
+              background: i % 3 === 0 ? '#06b6d4' : i % 3 === 1 ? '#8b5cf6' : '#ec4899',
+              boxShadow: `0 0 10px currentColor`,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0, 1, 0],
+              scale: [0, 1.5, 0]
+            }}
+            transition={{
+              duration: 3 + Math.random() * 2,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
 
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
-        <h1 className="text-lg sm:text-xl font-semibold truncate">{user.full_name || user.email?.split('@')[0]}</h1>
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(createPageUrl("Configuracoes"))}
-            className="h-8 w-8 sm:h-10 sm:w-10"
-          >
-            <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowLogoutDialog(true)}
-            className="h-8 w-8 sm:h-10 sm:w-10 text-red-400 hover:text-red-300 hover:bg-red-900/20"
-          >
-            <LogOut className="w-5 h-5 sm:w-6 sm:h-6" />
-          </Button>
+        {/* Avatar centralizado */}
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", duration: 0.8 }}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 z-20"
+        >
+          <div className="relative">
+            {/* Glow rings */}
+            <motion.div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, transparent 70%)',
+                filter: 'blur(20px)',
+                width: '180px',
+                height: '180px',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+              }}
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.4, 0.7, 0.4]
+              }}
+              transition={{ duration: 3, repeat: Infinity }}
+            />
+
+            {/* Avatar */}
+            <motion.img
+              src={user.avatar_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/5048ab8ec_perfil.png"}
+              alt={user.full_name}
+              className="w-32 h-32 rounded-full object-cover relative z-10 border-4"
+              style={{
+                borderColor: user.is_organizer ? '#FBBF24' : '#06B6D4',
+                boxShadow: `0 0 40px ${user.is_organizer ? '#FBBF24' : '#06B6D4'}`
+              }}
+              whileHover={{ scale: 1.05, rotate: 5 }}
+            />
+
+            {/* Level badge */}
+            <motion.div
+              className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-600 border-4 border-black flex items-center justify-center z-20"
+              whileHover={{ scale: 1.1, rotate: -10 }}
+              style={{
+                boxShadow: '0 0 20px rgba(251, 191, 36, 0.8)'
+              }}
+            >
+              <span className="text-sm font-bold text-white">{stats.level}</span>
+            </motion.div>
+
+            {/* Pro/Organizer badge */}
+            {(user.is_pro_member || user.is_organizer) && (
+              <motion.div
+                className="absolute -top-2 -right-2 z-20"
+                animate={{
+                  rotate: [0, 10, -10, 0],
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+              >
+                <Crown className="w-8 h-8 text-yellow-400" style={{ filter: 'drop-shadow(0 0 10px #FBBF24)' }} />
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Top controls */}
+        <div className="absolute top-4 right-4 flex gap-2 z-10">
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+            <Button
+              onClick={handleShareProfile}
+              size="icon"
+              variant="ghost"
+              className="bg-black/50 backdrop-blur-xl border border-cyan-500/30 hover:bg-cyan-600/20"
+            >
+              <Share2 className="w-5 h-5 text-cyan-400" />
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+            <Button
+              onClick={() => setShowEditModal(true)}
+              size="icon"
+              variant="ghost"
+              className="bg-black/50 backdrop-blur-xl border border-purple-500/30 hover:bg-purple-600/20"
+            >
+              <Edit2 className="w-5 h-5 text-purple-400" />
+            </Button>
+          </motion.div>
         </div>
       </div>
 
-      <div className="mb-4 sm:mb-6">
-        <div className="flex items-start gap-4 sm:gap-6 mb-4">
-          <div className="flex-shrink-0">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-32 md:h-32 rounded-full overflow-hidden border-2 border-gray-700">
-              <img
-                src={user.avatar_url}
-                alt={user.full_name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
+      {/* Profile Info */}
+      <div className="max-w-4xl mx-auto px-4 mt-20">
+        {/* Name & Bio */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-6"
+        >
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+            {user.full_name}
+          </h1>
+          {user.bio && (
+            <p className="text-gray-400 max-w-md mx-auto mb-3">{user.bio}</p>
+          )}
 
-          <div className="flex-1 min-w-0">
-            <div className="flex gap-4 sm:gap-8 mb-3 sm:mb-4">
-              <div className="text-center">
-                <div className="text-base sm:text-xl font-bold">{totalPosts}</div>
-                <div className="text-xs sm:text-sm text-gray-400">posts</div>
-              </div>
-              <div 
-                className="text-center cursor-pointer hover:text-gray-300"
-                onClick={() => setShowFollowersModal(true)} // Made clickable
-              >
-                <div className="text-base sm:text-xl font-bold">{followersCount}</div>
-                <div className="text-xs sm:text-sm text-gray-400">seguidores</div>
-              </div>
-              <div 
-                className="text-center cursor-pointer hover:text-gray-300"
-                onClick={() => setShowFollowingModal(true)} // Made clickable
-              >
-                <div className="text-base sm:text-xl font-bold">{followingCount}</div>
-                <div className="text-xs sm:text-sm text-gray-400">seguindo</div>
-              </div>
-            </div>
-
-            {/* Desktop Buttons - COM DASHBOARD */}
-            <div className="hidden sm:flex gap-2">
-              <Button
-                onClick={() => setShowEditModal(true)}
-                variant="outline"
-                className="flex-1 bg-gray-800 border-gray-600 hover:bg-gray-700 text-sm"
-              >
-                Editar Perfil
-              </Button>
-              {user.is_organizer && (
-                <>
-                  <Button
-                    onClick={() => navigate(createPageUrl("DashboardOrganizador"))}
-                    className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-sm"
-                  >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Dashboard
-                  </Button>
-                  <Button
-                    onClick={() => navigate(createPageUrl("MeusEventos"))}
-                    className="flex-1 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-sm"
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Meus Eventos
-                  </Button>
-                </>
-              )}
-              {!user.is_pro_member && (
-                <Button
-                  onClick={() => navigate(createPageUrl("Planos"))}
-                  className="flex-1 bg-gradient-to-r from-yellow-600 to-orange-600 text-sm"
-                >
-                  <Crown className="w-4 h-4 mr-2" />
-                  Upgrade Pro
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <div className="font-semibold mb-1 text-sm sm:text-base">{user.full_name}</div>
-          {user.bio && <div className="text-xs sm:text-sm text-gray-300">{user.bio}</div>}
-
-          <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
-            {user.is_pro_member && (
-              <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 border-0 text-[10px] sm:text-xs">
-                PRO
-              </Badge>
-            )}
-            {user.is_organizer && (
-              <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 border-0 text-[10px] sm:text-xs">
-                Organizador
-              </Badge>
-            )}
-            <Badge variant="outline" className="border-cyan-500/30 text-cyan-300 text-[10px] sm:text-xs">
-              Nível {user.underground_level || 1}
+          {/* Plan badge */}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Badge className={`bg-gradient-to-r ${
+              user.is_organizer 
+                ? 'from-yellow-600/20 to-orange-600/20 border-yellow-500/50 text-yellow-300'
+                : user.is_pro_member
+                ? 'from-cyan-600/20 to-purple-600/20 border-cyan-500/50 text-cyan-300'
+                : 'from-gray-700/20 to-gray-600/20 border-gray-500/50 text-gray-400'
+            }`}>
+              <currentPlan.icon className="w-3 h-3 mr-1" />
+              {currentPlan.name}
             </Badge>
+            
+            {user.verified_organizer && (
+              <Badge className="bg-blue-600/20 border-blue-500/30 text-blue-300">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Verificado
+              </Badge>
+            )}
           </div>
 
-          {/* NOVO: Gêneros Favoritos */}
-          {user.music_preferences && user.music_preferences.length > 0 && (
-            <div className="mt-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Music className="w-4 h-4 text-purple-400" />
-                <span className="text-xs sm:text-sm font-semibold text-purple-300">Gêneros Favoritos</span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {user.music_preferences.map(genre => (
-                  <Badge 
-                    key={genre} 
-                    className="bg-purple-500/20 border-purple-500/30 text-purple-300 text-[10px] sm:text-xs"
-                  >
-                    {genre}
-                  </Badge>
-                ))}
-              </div>
+          {/* Social links */}
+          {user.social_links && (
+            <div className="flex items-center justify-center gap-3">
+              {user.social_links.instagram && (
+                <a href={user.social_links.instagram} target="_blank" rel="noopener noreferrer">
+                  <Button size="icon" variant="ghost" className="text-pink-400 hover:text-pink-300 hover:bg-pink-900/20">
+                    <Instagram className="w-5 h-5" />
+                  </Button>
+                </a>
+              )}
+              {user.social_links.twitter && (
+                <a href={user.social_links.twitter} target="_blank" rel="noopener noreferrer">
+                  <Button size="icon" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20">
+                    <Twitter className="w-5 h-5" />
+                  </Button>
+                </a>
+              )}
             </div>
           )}
+        </motion.div>
+
+        {/* Stats Grid - Redesigned */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <motion.div
+            whileHover={{ scale: 1.05, y: -2 }}
+            onClick={() => setShowFollowers(true)}
+            className="cursor-pointer"
+          >
+            <Card className="bg-gradient-to-br from-cyan-900/30 to-gray-900 border-cyan-700/50 text-center">
+              <CardContent className="p-4">
+                <Users className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-white">{stats.followers}</div>
+                <div className="text-xs text-gray-400">Seguidores</div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.05, y: -2 }}
+            onClick={() => setShowFollowing(true)}
+            className="cursor-pointer"
+          >
+            <Card className="bg-gradient-to-br from-purple-900/30 to-gray-900 border-purple-700/50 text-center">
+              <CardContent className="p-4">
+                <UserPlus className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-white">{stats.following}</div>
+                <div className="text-xs text-gray-400">Seguindo</div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div whileHover={{ scale: 1.05, y: -2 }}>
+            <Card className="bg-gradient-to-br from-pink-900/30 to-gray-900 border-pink-700/50 text-center">
+              <CardContent className="p-4">
+                {user.is_organizer ? (
+                  <Calendar className="w-6 h-6 text-pink-400 mx-auto mb-2" />
+                ) : (
+                  <Ticket className="w-6 h-6 text-pink-400 mx-auto mb-2" />
+                )}
+                <div className="text-2xl font-bold text-white">{stats.events}</div>
+                <div className="text-xs text-gray-400">
+                  {user.is_organizer ? 'Eventos' : 'Ingressos'}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div whileHover={{ scale: 1.05, y: -2 }}>
+            <Card className="bg-gradient-to-br from-yellow-900/30 to-gray-900 border-yellow-700/50 text-center">
+              <CardContent className="p-4">
+                <Trophy className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-white">{userBadges.length}</div>
+                <div className="text-xs text-gray-400">Badges</div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
-        {/* Mobile Buttons */}
-        <div className="flex sm:hidden gap-2 mb-4">
-          <Button
-            onClick={() => setShowEditModal(true)}
-            variant="outline"
-            className="flex-1 bg-gray-800 border-gray-600 hover:bg-gray-700 h-9 text-xs"
-          >
-            Editar Perfil
-          </Button>
+        {/* XP Progress Bar */}
+        <Card className="bg-gray-900/50 border-gray-700 mb-6 overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-400">Nível {stats.level}</span>
+              <span className="text-sm font-bold text-cyan-400">{stats.xp} XP</span>
+            </div>
+            <div className="w-full h-3 bg-gray-800 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${(stats.xp % 1000) / 10}%` }}
+                className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 relative"
+              >
+                <motion.div
+                  className="absolute inset-0 bg-white/30"
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                />
+              </motion.div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1 text-right">
+              {1000 - (stats.xp % 1000)} XP para o próximo nível
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {user.is_organizer && (
             <>
-              <Button
+              <QuickActionButton
+                icon={BarChart3}
+                label="Dashboard"
                 onClick={() => navigate(createPageUrl("DashboardOrganizador"))}
-                className="bg-gradient-to-r from-cyan-600 to-purple-600 h-9 px-3"
-              >
-                <BarChart3 className="w-4 h-4" />
-              </Button>
-              <Button
+                gradient="from-cyan-600 to-purple-600"
+              />
+              <QuickActionButton
+                icon={Calendar}
+                label="Meus Eventos"
                 onClick={() => navigate(createPageUrl("MeusEventos"))}
-                className="bg-gradient-to-r from-yellow-600 to-orange-600 h-9 px-3"
-              >
-                <Calendar className="w-4 h-4" />
-              </Button>
+                gradient="from-purple-600 to-pink-600"
+              />
             </>
           )}
-          {!user.is_pro_member && (
-            <Button
-              onClick={() => navigate(createPageUrl("Planos"))}
-              className="bg-gradient-to-r from-yellow-600 to-orange-600 h-9 px-3"
-            >
-              <Crown className="w-4 h-4" />
-            </Button>
-          )}
+          
+          <QuickActionButton
+            icon={CreditCard}
+            label="Planos"
+            onClick={() => navigate(createPageUrl("Planos"))}
+            gradient="from-yellow-600 to-orange-600"
+            badge={!user.is_pro_member}
+          />
+          
+          <QuickActionButton
+            icon={Settings}
+            label="Configurações"
+            onClick={() => navigate(createPageUrl("Configuracoes"))}
+            gradient="from-gray-600 to-gray-700"
+          />
         </div>
 
-        <div className="flex gap-3 sm:gap-4 py-3 border-t border-b border-gray-800 text-xs sm:text-sm">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-400" />
-            <span className="text-gray-400">{pastEvents.length} eventos</span> {/* Updated to pastEvents */}
-          </div>
-          <div className="flex items-center gap-2">
-            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
-            <span className="text-gray-400">{user.location?.city || user.city || "São Paulo"}</span>
-          </div>
-        </div>
+        {/* Active Subscription Card */}
+        {subscription && subscription.status === 'active' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="bg-gradient-to-br from-yellow-900/20 to-gray-900 border-yellow-700/50 mb-6">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-yellow-600/20 flex items-center justify-center">
+                      <Crown className="w-7 h-7 text-yellow-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-lg mb-1">
+                        {subscription.plan_type === 'underground_pro' ? 'Underground Pro' : 'Organizer Elite'}
+                      </h3>
+                      <p className="text-sm text-gray-400 mb-2">
+                        Ativo desde {format(new Date(subscription.start_date), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                      </p>
+                      {subscription.features && subscription.features.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {subscription.features.slice(0, 3).map((feature, i) => (
+                            <Badge key={i} className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-xs">
+                              {feature}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setShowCancelPlan(true)}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-500/30 text-red-400 hover:bg-red-900/20"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Tabs */}
+        <Tabs defaultValue={user.is_organizer ? "eventos" : "ingressos"} className="w-full">
+          <TabsList className="grid w-full bg-gray-900/80 border border-gray-700" style={{
+            gridTemplateColumns: user.is_organizer ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)'
+          }}>
+            {user.is_organizer ? (
+              <>
+                <TabsTrigger value="eventos">Eventos</TabsTrigger>
+                <TabsTrigger value="badges">Badges</TabsTrigger>
+                <TabsTrigger value="stats">Estatísticas</TabsTrigger>
+                <TabsTrigger value="config">Conta</TabsTrigger>
+              </>
+            ) : (
+              <>
+                <TabsTrigger value="ingressos">Ingressos</TabsTrigger>
+                <TabsTrigger value="badges">Badges</TabsTrigger>
+                <TabsTrigger value="config">Conta</TabsTrigger>
+              </>
+            )}
+          </TabsList>
+
+          {/* Tab: Eventos (Organizer) */}
+          {user.is_organizer && (
+            <TabsContent value="eventos" className="space-y-3 mt-4">
+              {myEvents.length > 0 ? (
+                myEvents.map((event, index) => (
+                  <EventHistoryCard key={event.id} event={event} index={index} />
+                ))
+              ) : (
+                <EmptyState
+                  icon={Calendar}
+                  title="Nenhum evento criado"
+                  description="Comece criando seu primeiro evento"
+                  action={() => navigate(createPageUrl("CriarEvento"))}
+                  actionLabel="Criar Evento"
+                />
+              )}
+            </TabsContent>
+          )}
+
+          {/* Tab: Ingressos (User) */}
+          {!user.is_organizer && (
+            <TabsContent value="ingressos" className="space-y-3 mt-4">
+              {userTickets.length > 0 ? (
+                userTickets
+                  .filter(t => t.status === 'valid')
+                  .map((ticket, index) => {
+                    const event = allEvents.find(e => e.id === ticket.event_id);
+                    return event ? (
+                      <TicketCard key={ticket.id} ticket={ticket} event={event} />
+                    ) : null;
+                  })
+              ) : (
+                <EmptyState
+                  icon={Ticket}
+                  title="Nenhum ingresso"
+                  description="Explore eventos e garanta seus ingressos"
+                  action={() => navigate(createPageUrl("Feed"))}
+                  actionLabel="Ver Eventos"
+                />
+              )}
+            </TabsContent>
+          )}
+
+          {/* Tab: Badges */}
+          <TabsContent value="badges" className="mt-4">
+            {userBadges.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {userBadges.map((badge, index) => (
+                  <BadgeCard key={badge.id} badge={badge} index={index} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={Award}
+                title="Nenhum badge conquistado"
+                description="Participe de eventos para desbloquear badges"
+                action={() => navigate(createPageUrl("Feed"))}
+                actionLabel="Explorar Eventos"
+              />
+            )}
+          </TabsContent>
+
+          {/* Tab: Stats (Organizer) */}
+          {user.is_organizer && (
+            <TabsContent value="stats" className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <StatsCard
+                  icon={DollarSign}
+                  label="Receita Total"
+                  value={`R$ ${myEvents.reduce((sum, e) => sum + (e.revenue || 0), 0).toFixed(2)}`}
+                  color="from-green-600 to-emerald-600"
+                />
+                <StatsCard
+                  icon={Ticket}
+                  label="Ingressos Vendidos"
+                  value={myEvents.reduce((sum, e) => sum + (e.tickets_sold || 0), 0)}
+                  color="from-blue-600 to-indigo-600"
+                />
+                <StatsCard
+                  icon={Users}
+                  label="Total Participantes"
+                  value={myEvents.reduce((sum, e) => sum + (e.current_attendees || 0), 0)}
+                  color="from-purple-600 to-pink-600"
+                />
+                <StatsCard
+                  icon={TrendingUp}
+                  label="Taxa Média Ocupação"
+                  value={`${myEvents.length > 0 
+                    ? (myEvents.reduce((sum, e) => sum + (e.current_attendees / e.max_capacity || 0), 0) / myEvents.length * 100).toFixed(0) 
+                    : 0}%`}
+                  color="from-cyan-600 to-purple-600"
+                />
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Tab: Conta */}
+          <TabsContent value="config" className="space-y-4 mt-4">
+            <Card className="bg-gray-900/50 border-gray-700">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-3 pb-4 border-b border-gray-700">
+                  <Mail className="w-5 h-5 text-cyan-400" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-400">Email</p>
+                    <p className="text-white font-medium">{user.email}</p>
+                  </div>
+                  {user.email_verified && (
+                    <Badge className="bg-green-600/20 border-green-500/30 text-green-300">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Verificado
+                    </Badge>
+                  )}
+                </div>
+
+                {user.phone && (
+                  <div className="flex items-center gap-3 pb-4 border-b border-gray-700">
+                    <Phone className="w-5 h-5 text-purple-400" />
+                    <div>
+                      <p className="text-sm text-gray-400">Telefone</p>
+                      <p className="text-white font-medium">{user.phone}</p>
+                    </div>
+                  </div>
+                )}
+
+                {user.city && (
+                  <div className="flex items-center gap-3 pb-4 border-b border-gray-700">
+                    <MapPin className="w-5 h-5 text-pink-400" />
+                    <div>
+                      <p className="text-sm text-gray-400">Localização</p>
+                      <p className="text-white font-medium">{user.city}{user.state ? `, ${user.state}` : ''}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-yellow-400" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-400">Membro desde</p>
+                    <p className="text-white font-medium">
+                      {format(new Date(user.created_date), "MMMM 'de' yyyy", { locale: ptBR })}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions */}
+            <div className="space-y-3">
+              <Button
+                onClick={() => navigate(createPageUrl("ConfiguracoesPrivacidade"))}
+                variant="outline"
+                className="w-full border-gray-700 hover:bg-gray-800"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Privacidade e Segurança
+              </Button>
+
+              {!user.is_pro_member && !user.is_organizer && (
+                <Button
+                  onClick={() => navigate(createPageUrl("Planos"))}
+                  className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Tornar-se Pro
+                </Button>
+              )}
+
+              <Button
+                onClick={() => setShowLogoutConfirm(true)}
+                variant="outline"
+                className="w-full border-red-500/30 text-red-400 hover:bg-red-900/20"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* TABS DIFERENTES PARA ORGANIZADOR E USUÁRIO */}
-      {user.is_organizer ? (
-        <Tabs defaultValue="events" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800">
-            <TabsTrigger value="events">Eventos ({createdEvents?.length || 0})</TabsTrigger>
-            <TabsTrigger value="requests">Solicitações ({eventRequests?.length || 0})</TabsTrigger>
-            <TabsTrigger value="guests">Convidados ({guestList?.length || 0})</TabsTrigger>
-          </TabsList>
+      {/* Modals */}
+      <AnimatePresence>
+        {showEditModal && (
+          <EditProfileModal
+            user={user}
+            onClose={() => setShowEditModal(false)}
+          />
+        )}
 
-          <TabsContent value="events" className="mt-4">
-            {createdEvents && createdEvents.length > 0 ? (
-              <div className="grid gap-4">
-                {createdEvents.map(event => (
-                  <Card key={event.id} className="bg-gray-900/50 border-gray-700">
-                    <CardHeader>
-                      <CardTitle className="text-white text-sm sm:text-base">{event.title}</CardTitle>
-                      <p className="text-xs sm:text-sm text-gray-400">
-                        {format(new Date(event.date), "PPP", { locale: ptBR })}
-                      </p>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-300">
-                          <Users className="w-4 h-4" />
-                          {event.current_attendees}/{event.max_capacity} participantes
-                        </div>
-                        <Button
-                          onClick={() => navigate(createPageUrl("MeusEventos"))}
-                          size="sm"
-                          className="bg-cyan-600 hover:bg-cyan-700"
-                        >
-                          Gerenciar
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-gray-900/50 rounded-lg">
-                <Calendar className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 text-sm sm:text-base mb-4">Nenhum evento criado ainda</p>
-                <Button onClick={() => navigate(createPageUrl("CriarEvento"))} className="text-sm">
-                  Criar Evento
-                </Button>
-              </div>
-            )}
-          </TabsContent>
+        {showFollowers && (
+          <FollowModal
+            title="Seguidores"
+            follows={followers}
+            currentUserId={user.id}
+            onClose={() => setShowFollowers(false)}
+            type="followers"
+          />
+        )}
 
-          <TabsContent value="requests" className="mt-4">
-            {eventRequests && eventRequests.length > 0 ? (
-              <div className="space-y-4">
-                {eventRequests.map(request => (
-                  <Card key={request.id} className="bg-gray-900/50 border-gray-700">
-                    <CardContent className="pt-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold text-white text-sm sm:text-base">Solicitação para evento</p>
-                          <p className="text-xs sm:text-sm text-gray-400">Usuário: {request.user_id}</p>
-                          {request.message && (
-                            <p className="text-xs sm:text-sm text-gray-300 mt-2 bg-gray-800/50 p-2 rounded">
-                              "{request.message}"
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleRequestAction(request.id, 'approved')} className="bg-green-600 hover:bg-green-700">
-                            <CheckCircle className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleRequestAction(request.id, 'denied')} className="border-red-600 text-red-400">
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-gray-900/50 rounded-lg">
-                <Clock className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 text-sm sm:text-base">Nenhuma solicitação pendente</p>
-              </div>
-            )}
-          </TabsContent>
+        {showFollowing && (
+          <FollowModal
+            title="Seguindo"
+            follows={following}
+            currentUserId={user.id}
+            onClose={() => setShowFollowing(false)}
+            type="following"
+          />
+        )}
 
-          <TabsContent value="guests" className="mt-4">
-            {guestList && guestList.length > 0 ? (
-              <div className="space-y-4">
-                {guestList.map(guest => (
-                  <Card key={guest.id} className="bg-gray-900/50 border-gray-700">
-                    <CardContent className="pt-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-white text-sm sm:text-base">Convidado aprovado</p>
-                          <p className="text-xs sm:text-sm text-gray-400">Usuário: {guest.user_id}</p>
-                          <Badge className="mt-2 bg-green-600 text-xs">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Aprovado
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-gray-900/50 rounded-lg">
-                <Users className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 text-sm sm:text-base">Nenhum convidado ainda</p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      ) : (
-        <Tabs defaultValue="tickets" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800">
-            <TabsTrigger value="tickets">Ingressos ({upcomingTicketEvents.length})</TabsTrigger>
-            <TabsTrigger value="past">Histórico</TabsTrigger>
-            <TabsTrigger value="connections">Conexões</TabsTrigger>
-          </TabsList>
+        {showCancelPlan && (
+          <CancelPlanModal
+            subscription={subscription}
+            onCancel={async () => {
+              await cancelPlanMutation.mutateAsync();
+            }}
+            onClose={() => setShowCancelPlan(false)}
+            isLoading={cancelPlanMutation.isPending}
+          />
+        )}
 
-          {/* TAB: Meus Ingressos (Eventos Aprovados Futuros) */}
-          <TabsContent value="tickets" className="mt-4">
-            {upcomingTicketEvents && upcomingTicketEvents.length > 0 ? (
-              <div className="grid gap-4">
-                {upcomingTicketEvents.map(event => (
-                  <Card key={event.id} className="bg-gray-900/50 border-green-500/30 hover:border-green-500/50 transition-all overflow-hidden">
-                    <div className="flex">
-                      <div className="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0">
-                        <img
-                          src={event.image_url || `https://picsum.photos/300/300?random=${event.id}`}
-                          alt={event.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <CardContent className="flex-1 p-3 sm:p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-white text-sm sm:text-base mb-1 line-clamp-1">
-                              {event.title}
-                            </h3>
-                            <Badge className="bg-green-600/20 border-green-500/30 text-green-300 text-[10px]">
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Aprovado
-                            </Badge>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1 text-xs sm:text-sm text-gray-400">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-400" />
-                            <span>{format(new Date(event.date), "PPP 'às' HH:mm", { locale: ptBR })}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
-                            <span className="truncate">{event.location?.venue_name || event.location?.city}</span>
-                          </div>
-                        </div>
+        {showLogoutConfirm && (
+          <LogoutConfirmModal
+            onConfirm={handleLogout}
+            onClose={() => setShowLogoutConfirm(false)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
-                        <Button 
-                          onClick={() => navigate(createPageUrl("Feed"))}
-                          size="sm"
-                          className="w-full mt-3 bg-green-600 hover:bg-green-700 text-xs"
-                        >
-                          Ver Ingresso
-                        </Button>
-                      </CardContent>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-gray-900/50 rounded-lg">
-                <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg sm:text-xl font-semibold text-gray-400 mb-2">
-                  Nenhum ingresso aprovado
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-500 px-4 mb-4">
-                  Solicite acesso a eventos secretos para receber ingressos
-                </p>
-                <Button onClick={() => navigate(createPageUrl("Feed"))} className="text-sm">
-                  Explorar Eventos
-                </Button>
-              </div>
-            )}
-          </TabsContent>
+function QuickActionButton({ icon: Icon, label, onClick, gradient, badge = false }) {
+  return (
+    <motion.div whileHover={{ scale: 1.05, y: -3 }} whileTap={{ scale: 0.95 }}>
+      <Button
+        onClick={onClick}
+        className={`w-full h-20 flex flex-col items-center justify-center gap-2 bg-gradient-to-br ${gradient} relative overflow-hidden`}
+      >
+        <motion.div
+          className="absolute inset-0 bg-white/10"
+          animate={{ x: ['-100%', '100%'] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        />
+        <Icon className="w-6 h-6 relative z-10" />
+        <span className="text-sm font-semibold relative z-10">{label}</span>
+        {badge && (
+          <Badge className="absolute top-2 right-2 bg-red-600 text-white border-0 text-xs">
+            Novo
+          </Badge>
+        )}
+      </Button>
+    </motion.div>
+  );
+}
 
-          {/* TAB: Histórico - MELHORADO COM SUB-TABS */}
-          <TabsContent value="past" className="mt-4">
-            <Tabs defaultValue="participated" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-gray-800/50">
-                <TabsTrigger value="participated" className="text-xs sm:text-sm">
-                  Participados ({pastTicketEvents.length})
-                </TabsTrigger>
-                <TabsTrigger value="liked" className="text-xs sm:text-sm">
-                  Curtidos ({likedEvents.length})
-                </TabsTrigger>
-                <TabsTrigger value="requested" className="text-xs sm:text-sm">
-                  Solicitados ({myRequests.length})
-                </TabsTrigger>
-              </TabsList>
-
-              {/* SUB-TAB: Eventos Participados */}
-              <TabsContent value="participated" className="mt-4">
-                {pastTicketEvents && pastTicketEvents.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Calendar className="w-5 h-5 text-cyan-400" />
-                      <h3 className="text-base sm:text-lg font-semibold">Eventos que você participou</h3>
-                    </div>
-                    <div className="grid gap-3">
-                      {pastTicketEvents.map(event => (
-                        <EventHistoryCard key={event.id} event={event} />
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 bg-gray-900/50 rounded-lg border border-gray-700">
-                    <Calendar className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-400 mb-2">
-                      Nenhum evento participado
-                    </h3>
-                    <p className="text-xs sm:text-sm text-gray-500 px-4 mb-4">
-                      Quando você participar de eventos, eles aparecerão aqui
-                    </p>
-                    <Button onClick={() => navigate(createPageUrl("Feed"))} className="text-sm">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Explorar Eventos
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* SUB-TAB: Eventos Curtidos */}
-              <TabsContent value="liked" className="mt-4">
-                {likedEvents && likedEvents.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Heart className="w-5 h-5 text-pink-400" />
-                      <h3 className="text-base sm:text-lg font-semibold">Eventos que você curtiu</h3>
-                    </div>
-                    <div className="grid gap-3">
-                      {likedEvents.map(event => (
-                        <Card key={event.id} className="bg-gray-900/50 border-gray-700 hover:border-pink-500/50 transition-all overflow-hidden group">
-                          <div className="flex">
-                            <div className="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 relative overflow-hidden">
-                              <img
-                                src={event.image_url || `https://picsum.photos/300/300?random=${event.id}`}
-                                alt={event.title}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                              />
-                              <div className="absolute top-2 right-2 bg-pink-600 rounded-full p-1.5">
-                                <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-white fill-white" />
-                              </div>
-                            </div>
-                            <CardContent className="flex-1 p-3 sm:p-4">
-                              <h3 className="font-semibold text-white text-sm sm:text-base mb-2 line-clamp-1 group-hover:text-pink-400 transition-colors">
-                                {event.title}
-                              </h3>
-                              
-                              <div className="space-y-1 text-xs sm:text-sm text-gray-400">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-400" />
-                                  <span>{format(new Date(event.date), "PPP 'às' HH:mm", { locale: ptBR })}</span>
-                                </div>
-                                
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
-                                  <span className="truncate">{event.location?.venue_name || event.location?.city}</span>
-                                </div>
-
-                                {event.genre && (
-                                  <div className="flex items-center gap-2">
-                                    <Music className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
-                                    <Badge variant="outline" className="border-green-500/30 text-green-300 text-[10px]">
-                                      {event.genre}
-                                    </Badge>
-                                  </div>
-                                )}
-                              </div>
-
-                              <Button 
-                                onClick={() => navigate(createPageUrl(`Mapa`))}
-                                size="sm"
-                                variant="outline"
-                                className="w-full mt-3 border-pink-500/30 text-pink-400 hover:bg-pink-500/10 text-xs"
-                              >
-                                Ver Detalhes
-                              </Button>
-                            </CardContent>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 bg-gray-900/50 rounded-lg border border-gray-700">
-                    <Heart className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-400 mb-2">
-                      Nenhum evento curtido
-                    </h3>
-                    <p className="text-xs sm:text-sm text-gray-500 px-4 mb-4">
-                      Curta eventos para salvá-los e acompanhar as novidades
-                    </p>
-                    <Button onClick={() => navigate(createPageUrl("Feed"))} className="text-sm">
-                      <Heart className="w-4 h-4 mr-2" />
-                      Explorar Eventos
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* SUB-TAB: Eventos Solicitados */}
-              <TabsContent value="requested" className="mt-4">
-                {requestsWithEvents && requestsWithEvents.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Clock className="w-5 h-5 text-yellow-400" />
-                      <h3 className="text-base sm:text-lg font-semibold">Solicitações de acesso</h3>
-                    </div>
-                    <div className="grid gap-3">
-                      {requestsWithEvents.map(item => (
-                        <Card 
-                          key={item.id} 
-                          className={`bg-gray-900/50 border-gray-700 hover:border-opacity-100 transition-all overflow-hidden group ${
-                            item.status === 'approved' ? 'border-green-500/30' : 
-                            item.status === 'denied' ? 'border-red-500/30' : 
-                            'border-yellow-500/30'
-                          }`}
-                        >
-                          <div className="flex">
-                            <div className="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 relative overflow-hidden">
-                              <img
-                                src={item.event.image_url || `https://picsum.photos/300/300?random=${item.event.id}`}
-                                alt={item.event.title}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                              />
-                              {/* Status Badge no canto */}
-                              <div className={`absolute top-2 right-2 rounded-full p-1.5 ${
-                                item.status === 'approved' ? 'bg-green-600' : 
-                                item.status === 'denied' ? 'bg-red-600' : 
-                                'bg-yellow-600'
-                              }`}>
-                                {item.status === 'approved' ? (
-                                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                                ) : item.status === 'denied' ? (
-                                  <X className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                                ) : (
-                                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                                )}
-                              </div>
-                            </div>
-                            <CardContent className="flex-1 p-3 sm:p-4">
-                              <div className="flex items-start justify-between mb-2">
-                                <h3 className="font-semibold text-white text-sm sm:text-base line-clamp-1 flex-1">
-                                  {item.event.title}
-                                </h3>
-                                <Badge className={`ml-2 text-[10px] ${
-                                  item.status === 'approved' ? 'bg-green-600/20 border-green-500/30 text-green-300' : 
-                                  item.status === 'denied' ? 'bg-red-600/20 border-red-500/30 text-red-300' : 
-                                  'bg-yellow-600/20 border-yellow-500/30 text-yellow-300'
-                                }`}>
-                                  {item.status === 'approved' ? 'Aprovado' : 
-                                   item.status === 'denied' ? 'Negado' : 
-                                   'Pendente'}
-                                </Badge>
-                              </div>
-                              
-                              <div className="space-y-1 text-xs sm:text-sm text-gray-400 mb-3">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-400" />
-                                  <span>{format(new Date(item.event.date), "PPP 'às' HH:mm", { locale: ptBR })}</span>
-                                </div>
-                                
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
-                                  <span className="truncate">{item.event.location?.venue_name || item.event.location?.city}</span>
-                                </div>
-                              </div>
-
-                              {/* Mensagem enviada */}
-                              {item.message && (
-                                <div className="bg-gray-800/50 rounded p-2 mb-2">
-                                  <p className="text-xs text-gray-400 mb-1">Sua mensagem:</p>
-                                  <p className="text-xs text-gray-300 italic">"{item.message}"</p>
-                                </div>
-                              )}
-
-                              {/* Resposta do organizador */}
-                              {item.organizer_response && (
-                                <div className={`rounded p-2 mb-2 ${
-                                  item.status === 'approved' ? 'bg-green-900/20' : 'bg-red-900/20'
-                                }`}>
-                                  <p className={`text-xs mb-1 ${
-                                    item.status === 'approved' ? 'text-green-400' : 'text-red-400'
-                                  }`}>
-                                    Resposta do organizador:
-                                  </p>
-                                  <p className="text-xs text-gray-300 italic">"{item.organizer_response}"</p>
-                                </div>
-                              )}
-
-                              {/* Botões de ação baseados no status */}
-                              {item.status === 'approved' ? (
-                                <Button 
-                                  onClick={() => navigate(createPageUrl("Feed"))}
-                                  size="sm"
-                                  className="w-full bg-green-600 hover:bg-green-700 text-xs"
-                                >
-                                  <CheckCircle className="w-3 h-3 mr-2" />
-                                  Ver Ingresso
-                                </Button>
-                              ) : item.status === 'pending' ? (
-                                <div className="flex gap-2">
-                                  <Button 
-                                    size="sm"
-                                    variant="outline"
-                                    className="flex-1 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 text-xs"
-                                    disabled
-                                  >
-                                    <Clock className="w-3 h-3 mr-2" />
-                                    Aguardando
-                                  </Button>
-                                  <Button 
-                                    onClick={() => navigate(createPageUrl("Mapa"))}
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-gray-600 text-xs"
-                                  >
-                                    Ver Evento
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Button 
-                                  onClick={() => navigate(createPageUrl("Feed"))}
-                                  size="sm"
-                                  variant="outline"
-                                  className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs"
-                                >
-                                  Explorar Outros Eventos
-                                </Button>
-                              )}
-
-                              <div className="mt-2 text-[10px] text-gray-500 text-center">
-                                Solicitado em {format(new Date(item.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                              </div>
-                            </CardContent>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 bg-gray-900/50 rounded-lg border border-gray-700">
-                    <Clock className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-400 mb-2">
-                      Nenhuma solicitação feita
-                    </h3>
-                    <p className="text-xs sm:text-sm text-gray-500 px-4 mb-4">
-                      Solicite acesso a eventos secretos e acompanhe aqui o status
-                    </p>
-                    <Button onClick={() => navigate(createPageUrl("Feed"))} className="text-sm">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Explorar Eventos Secretos
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          {/* TAB: Conexões Sociais */}
-          <TabsContent value="connections" className="mt-4">
-            <div className="space-y-6">
-              {/* Seguidores */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Users className="w-5 h-5 text-cyan-400" />
-                    Seguidores ({followersCount})
-                  </h3>
-                  {followersCount > 3 && ( // Only show "Ver Todos" if more than 3
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setShowFollowersModal(true)}
-                      className="text-cyan-400"
-                    >
-                      Ver Todos
-                    </Button>
-                  )}
-                </div>
-                {followersUsers && followersUsers.length > 0 ? (
-                  <div className="grid gap-3">
-                    {followersUsers.slice(0, 3).map(follower => ( // Display max 3
-                      <Card key={follower.id} className="bg-gray-900/50 border-gray-700">
-                        <CardContent className="p-4 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <img 
-                              src={follower.avatar_url || DEFAULT_AVATAR}
-                              alt={follower.full_name}
-                              className="w-12 h-12 rounded-full object-cover border-2 border-cyan-500/30"
-                            />
-                            <div>
-                              <p className="font-semibold text-white">{follower.full_name}</p>
-                              <p className="text-sm text-gray-400">
-                                {follower.music_preferences?.slice(0, 2).join(', ') || 'Sem gêneros'}
-                              </p>
-                            </div>
-                          </div>
-                          <FollowButton 
-                            targetUserId={follower.id}
-                            currentUserId={user.id}
-                          />
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-900/50 rounded-lg border border-gray-700">
-                    <Users className="w-12 h-12 text-gray-600 mx-auto mb-2" />
-                    <p className="text-gray-400 text-sm">Nenhum seguidor ainda</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Seguindo */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-purple-400" />
-                    Seguindo ({followingCount})
-                  </h3>
-                  {followingCount > 3 && ( // Only show "Ver Todos" if more than 3
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setShowFollowingModal(true)}
-                      className="text-purple-400"
-                    >
-                      Ver Todos
-                    </Button>
-                  )}
-                </div>
-                {followingUsers && followingUsers.length > 0 ? (
-                  <div className="grid gap-3">
-                    {followingUsers.slice(0, 3).map(following => ( // Display max 3
-                      <Card key={following.id} className="bg-gray-900/50 border-gray-700">
-                        <CardContent className="p-4 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <img 
-                              src={following.avatar_url || DEFAULT_AVATAR}
-                              alt={following.full_name}
-                              className="w-12 h-12 rounded-full object-cover border-2 border-purple-500/30"
-                            />
-                            <div>
-                              <p className="font-semibold text-white">{following.full_name}</p>
-                              <p className="text-sm text-gray-400">
-                                {following.music_preferences?.slice(0, 2).join(', ') || 'Sem gêneros'}
-                              </p>
-                            </div>
-                          </div>
-                          <FollowButton 
-                            targetUserId={following.id}
-                            currentUserId={user.id}
-                            isFollowing={true} // Assume they are following if in this list
-                          />
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-900/50 rounded-lg border border-gray-700">
-                    <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-2" />
-                    <p className="text-gray-400 text-sm">Você não está seguindo ninguém</p>
-                  </div>
-                )}
-              </div>
+function StatsCard({ icon: Icon, label, value, color }) {
+  return (
+    <motion.div whileHover={{ scale: 1.03 }}>
+      <Card className={`bg-gradient-to-br ${color}/20 to-gray-900 border-${color}/50`}>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${color}/30 flex items-center justify-center`}>
+              <Icon className="w-6 h-6 text-white" />
             </div>
-          </TabsContent>
-        </Tabs>
-      )}
+            <div>
+              <p className="text-sm text-gray-400">{label}</p>
+              <p className="text-2xl font-bold text-white">{value}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
 
-      {/* Edit Profile Modal - MELHORADO */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="bg-gray-900 border-purple-500 text-white max-w-md max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
-              Editar Perfil
-              {updateProfileMutation.isPending && (
-                <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* Avatar com Preview */}
-            <div className="text-center">
-              <div className="relative inline-block">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-600">
-                  {isUploading ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                      <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-                    </div>
-                  ) : (
-                    <img
-                      src={editForm.avatar_url || DEFAULT_AVATAR}
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
-                <label 
-                  htmlFor="avatar-upload" 
-                  className="absolute bottom-0 right-0 bg-cyan-600 hover:bg-cyan-700 rounded-full p-2 cursor-pointer transition-colors"
+function BadgeCard({ badge, index }) {
+  const rarityConfig = {
+    comum: { color: 'from-gray-600 to-gray-700', glow: 'rgba(156, 163, 175, 0.5)' },
+    raro: { color: 'from-blue-600 to-cyan-600', glow: 'rgba(6, 182, 212, 0.6)' },
+    épico: { color: 'from-purple-600 to-pink-600', glow: 'rgba(168, 85, 247, 0.6)' },
+    lendário: { color: 'from-yellow-500 to-orange-600', glow: 'rgba(251, 191, 36, 0.8)' }
+  };
+
+  const config = rarityConfig[badge.rarity] || rarityConfig.comum;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.1 }}
+      whileHover={{ scale: 1.05, y: -5 }}
+    >
+      <Card className={`bg-gradient-to-br ${config.color}/20 to-gray-900 border-2 relative overflow-hidden`}
+        style={{ borderColor: config.glow }}
+      >
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background: `radial-gradient(circle at 50% 0%, ${config.glow}, transparent 70%)`,
+            filter: 'blur(20px)',
+          }}
+          animate={{
+            opacity: [0.2, 0.4, 0.2]
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+        />
+        
+        <CardContent className="p-6 text-center relative z-10">
+          <div className={`w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br ${config.color} flex items-center justify-center`}
+            style={{ boxShadow: `0 0 30px ${config.glow}` }}
+          >
+            <Award className="w-8 h-8 text-white" />
+          </div>
+          <h3 className="font-bold text-white mb-1">{badge.badge_name}</h3>
+          <p className="text-xs text-gray-400 mb-2">{badge.badge_description}</p>
+          <Badge className={`bg-gradient-to-r ${config.color} text-white border-0 text-xs`}>
+            {badge.rarity}
+          </Badge>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+function EmptyState({ icon: Icon, title, description, action, actionLabel }) {
+  return (
+    <Card className="bg-gray-900/50 border-gray-700">
+      <CardContent className="p-12 text-center">
+        <Icon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+        <h3 className="text-xl font-semibold text-gray-400 mb-2">{title}</h3>
+        <p className="text-gray-500 mb-6">{description}</p>
+        {action && (
+          <Button onClick={action} className="bg-gradient-to-r from-cyan-600 to-purple-600">
+            {actionLabel}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FollowModal({ title, follows, currentUserId, onClose, type }) {
+  const { data: users = [] } = useQuery({
+    queryKey: ['followUsers', follows],
+    queryFn: async () => {
+      if (!follows || follows.length === 0) return [];
+      
+      const userIds = type === 'followers' 
+        ? follows.map(f => f.follower_id)
+        : follows.map(f => f.following_id);
+
+      const allUsers = await base44.entities.User.list("", 500);
+      return allUsers.filter(u => userIds.includes(u.id));
+    },
+    enabled: follows.length > 0,
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md"
+      >
+        <Card className="bg-gray-900 border-cyan-500/30">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">{title}</h2>
+              <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300">
+                {follows.length}
+              </Badge>
+            </div>
+
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {users.map((user) => (
+                <motion.div
+                  key={user.id}
+                  whileHover={{ scale: 1.02 }}
+                  className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-cyan-500/50 transition-colors cursor-pointer"
+                  onClick={() => {
+                    onClose();
+                    window.location.href = createPageUrl("PerfilUsuario") + `?id=${user.id}`;
+                  }}
                 >
-                  <Camera className="w-4 h-4 text-white" />
-                </label>
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                  disabled={isUploading || updateProfileMutation.isPending}
-                />
+                  <img
+                    src={user.avatar_url || "https://i.pravatar.cc/80"}
+                    alt={user.full_name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-cyan-500/30"
+                  />
+                  <div className="flex-1">
+                    <p className="font-semibold text-white">{user.full_name}</p>
+                    <p className="text-sm text-gray-400">
+                      Nível {user.underground_level || 1}
+                    </p>
+                  </div>
+                  {user.is_organizer && (
+                    <Crown className="w-5 h-5 text-yellow-400" />
+                  )}
+                </motion.div>
+              ))}
+            </div>
+
+            <Button onClick={onClose} className="w-full mt-6" variant="outline">
+              Fechar
+            </Button>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function CancelPlanModal({ subscription, onCancel, onClose, isLoading }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md"
+      >
+        <Card className="bg-gray-900 border-red-500/30">
+          <CardContent className="p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center mx-auto mb-4">
+                <XCircle className="w-10 h-10 text-red-400" />
               </div>
-              <p className="text-xs text-gray-500 mt-2">Clique na câmera para alterar (máx 5MB)</p>
-            </div>
-
-            {/* Nome com contador */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs sm:text-sm text-gray-400 block">Nome Completo *</label>
-                {!canChangeName ? (
-                  <span className="text-xs text-red-400 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    Limite atingido (3/3)
-                  </span>
-                ) : (
-                  <span className="text-xs text-cyan-400">
-                    Alterações restantes: {remainingChanges}/3
-                  </span>
-                )}
-              </div>
-              <Input
-                value={currentNameValue}
-                onChange={(e) => {
-                  console.log('✏️ Nome alterado para:', e.target.value);
-                  setEditForm(prev => ({ ...prev, full_name: e.target.value }));
-                }}
-                className="bg-gray-800 border-gray-600 text-sm"
-                disabled={!canChangeName || updateProfileMutation.isPending}
-                placeholder="Seu nome completo"
-              />
-              {isNameChanged && canChangeName && (
-                <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded">
-                  <p className="text-xs text-yellow-400 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>
-                      Nome será alterado de "<strong>{originalName || '(vazio)'}</strong>" para "<strong>{currentNameValue}</strong>"
-                    </span>
-                  </p>
-                  <p className="text-xs text-yellow-300 mt-1">
-                    Esta alteração será permanente e contará como 1 das 3 alterações permitidas.
-                  </p>
-                </div>
-              )}
-              
-              {/* Debug Info */}
-              {/* <div className="mt-2 p-2 bg-gray-800/50 rounded text-xs text-gray-500">
-                <p>🔍 Debug:</p>
-                <p>Original: {originalName || '(vazio)'}</p>
-                <p>Atual: {currentNameValue || '(vazio)'}</p>
-                <p>Mudou: {isNameChanged ? 'SIM ✅' : 'NÃO'}</p>
-                <p>Contador: {nameChangeCount}/3</p>
-              </div> */}
-            </div>
-
-            {/* Bio com contador de caracteres */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs sm:text-sm text-gray-400 block">Bio</label>
-                <span className="text-xs text-gray-500">
-                  {(editForm.bio || '').length}/200
-                </span>
-              </div>
-              <Textarea
-                value={editForm.bio || ""}
-                onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
-                className="bg-gray-800 border-gray-600 h-20 sm:h-24 text-sm resize-none"
-                placeholder="Conte sobre você..."
-                maxLength={200}
-                disabled={updateProfileMutation.isPending}
-              />
-            </div>
-
-            {/* Telefone */}
-            <div>
-              <label className="text-xs sm:text-sm text-gray-400 mb-1 block">Telefone</label>
-              <Input
-                value={editForm.phone || ""}
-                onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                className="bg-gray-800 border-gray-600 text-sm"
-                placeholder="(11) 99999-9999"
-                disabled={updateProfileMutation.isPending}
-              />
-            </div>
-
-            {/* Endereço */}
-            <div>
-              <label className="text-xs sm:text-sm text-gray-400 mb-1 block">Endereço</label>
-              <Input
-                value={editForm.address_full || ""}
-                onChange={(e) => setEditForm(prev => ({ ...prev, address_full: e.target.value }))}
-                className="bg-gray-800 border-gray-600 text-sm"
-                placeholder="Rua, número, complemento"
-                disabled={updateProfileMutation.isPending}
-              />
-            </div>
-
-            {/* Cidade e Estado */}
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs sm:text-sm text-gray-400 mb-1 block">Cidade</label>
-                <Input
-                  value={editForm.city || ""}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, city: e.target.value }))}
-                  className="bg-gray-800 border-gray-600 text-sm"
-                  placeholder="São Paulo"
-                  disabled={updateProfileMutation.isPending}
-                />
-              </div>
-              <div>
-                <label className="text-xs sm:text-sm text-gray-400 mb-1 block">Estado</label>
-                <Input
-                  value={editForm.state || ""}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, state: e.target.value }))}
-                  className="bg-gray-800 border-gray-600 text-sm"
-                  placeholder="SP"
-                  maxLength={2}
-                  disabled={updateProfileMutation.isPending}
-                />
-              </div>
-            </div>
-
-            {/* CEP */}
-            <div>
-              <label className="text-xs sm:text-sm text-gray-400 mb-1 block">CEP</label>
-              <Input
-                value={editForm.postal_code || ""}
-                onChange={(e) => setEditForm(prev => ({ ...prev, postal_code: e.target.value }))}
-                className="bg-gray-800 border-gray-600 text-sm"
-                placeholder="00000-000"
-                disabled={updateProfileMutation.isPending}
-              />
-            </div>
-
-            {/* Gêneros Favoritos */}
-            <div>
-              <label className="text-xs sm:text-sm text-gray-400 mb-2 block flex items-center gap-2">
-                <Music className="w-4 h-4 text-purple-400" />
-                Gêneros Favoritos
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {allGenres.map(genre => {
-                  const isSelected = (editForm.music_preferences || []).includes(genre);
-                  return (
-                    <Badge
-                      key={genre}
-                      onClick={() => !updateProfileMutation.isPending && handleGenreToggle(genre)}
-                      className={`cursor-pointer transition-all text-xs ${
-                        isSelected
-                          ? 'bg-purple-600 hover:bg-purple-700 border-purple-500'
-                          : 'bg-gray-800 hover:bg-gray-700 border-gray-600'
-                      } ${updateProfileMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {isSelected && <CheckCircle className="w-3 h-3 mr-1" />}
-                      {genre}
-                    </Badge>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Selecione seus gêneros favoritos para recomendações personalizadas
+              <h2 className="text-2xl font-bold text-white mb-2">Cancelar Plano?</h2>
+              <p className="text-gray-400">
+                Você perderá acesso aos seguintes benefícios:
               </p>
             </div>
 
-            {/* Divisor */}
-            <div className="border-t border-gray-700 my-4"></div>
-
-            {/* Campos NÃO Editáveis */}
-            <div className="space-y-3">
-              <p className="text-xs text-gray-500 uppercase font-semibold">Dados não editáveis</p>
-
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Email</label>
-                <Input
-                  value={editForm.email || ""}
-                  className="bg-gray-800/50 border-gray-700 text-sm text-gray-500"
-                  disabled
-                />
+            {subscription?.features && (
+              <div className="bg-gray-800/50 rounded-lg p-4 mb-6 space-y-2">
+                {subscription.features.map((feature, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm text-gray-300">
+                    <XCircle className="w-4 h-4 text-red-400" />
+                    {feature}
+                  </div>
+                ))}
               </div>
+            )}
 
-              {editForm.cpf && (
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">CPF</label>
-                  <Input
-                    value={editForm.cpf}
-                    className="bg-gray-800/50 border-gray-700 text-sm text-gray-500"
-                    disabled
-                  />
-                </div>
-              )}
-
-              {user.is_organizer && editForm.cnpj && (
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">CNPJ</label>
-                  <Input
-                    value={editForm.cnpj}
-                    className="bg-gray-800/50 border-gray-700 text-sm text-gray-500"
-                    disabled
-                  />
-                </div>
-              )}
+            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
+              <p className="text-sm text-yellow-300">
+                ⚠️ O cancelamento é imediato. Você pode reativar a qualquer momento.
+              </p>
             </div>
 
-            {/* Aviso */}
-            {nameChangeCount >= 2 && nameChangeCount < 3 && (
-              <Alert className="bg-yellow-900/20 border-yellow-500/50">
-                <AlertCircle className="h-4 w-4 text-yellow-500" />
-                <AlertDescription className="text-xs text-yellow-200">
-                  ⚠️ Atenção: Esta é sua ÚLTIMA alteração de nome disponível!
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {nameChangeCount >= 3 && (
-              <Alert className="bg-red-900/20 border-red-500/50">
-                <AlertCircle className="h-4 w-4 text-red-500" />
-                <AlertDescription className="text-xs text-red-200">
-                  🚫 Você atingiu o limite de 3 alterações de nome.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Botões */}
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-3">
               <Button
+                onClick={onClose}
                 variant="outline"
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 border-gray-600 text-sm"
-                disabled={updateProfileMutation.isPending}
+                className="flex-1 border-gray-600"
+                disabled={isLoading}
+              >
+                Manter Plano
+              </Button>
+              <Button
+                onClick={onCancel}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'Confirmar Cancelamento'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function LogoutConfirmModal({ onConfirm, onClose }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm"
+      >
+        <Card className="bg-gray-900 border-gray-700">
+          <CardContent className="p-6 text-center">
+            <LogOut className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Sair da conta?</h2>
+            <p className="text-gray-400 mb-6">
+              Você precisará fazer login novamente
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="flex-1 border-gray-600"
               >
                 Cancelar
               </Button>
               <Button
-                onClick={handleSaveProfile}
-                className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 text-sm"
-                disabled={updateProfileMutation.isPending || isUploading}
+                onClick={onConfirm}
+                className="flex-1 bg-red-600 hover:bg-red-700"
               >
-                {updateProfileMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Salvar
-                  </>
-                )}
+                Sair
               </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Lista de Seguidores */}
-      <Dialog open={showFollowersModal} onOpenChange={setShowFollowersModal}>
-        <DialogContent className="bg-gray-900 border-cyan-500 text-white max-w-md max-h-[70vh] overflow-y-auto mx-4 sm:mx-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-cyan-400" />
-              Seguidores ({followersCount})
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-4">
-            {followersUsers && followersUsers.length > 0 ? (
-              followersUsers.map(follower => (
-                <div key={follower.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={follower.avatar_url || DEFAULT_AVATAR}
-                      alt={follower.full_name}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-cyan-500/30"
-                    />
-                    <div>
-                      <p className="font-semibold text-white text-sm">{follower.full_name}</p>
-                      <p className="text-xs text-gray-400">
-                        {follower.music_preferences?.slice(0, 2).join(', ') || 'Sem gêneros'}
-                      </p>
-                    </div>
-                  </div>
-                  <FollowButton 
-                    targetUserId={follower.id}
-                    currentUserId={user.id}
-                    size="sm"
-                  />
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-gray-400 py-8">Nenhum seguidor</p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Lista de Seguindo */}
-      <Dialog open={showFollowingModal} onOpenChange={setShowFollowingModal}>
-        <DialogContent className="bg-gray-900 border-purple-500 text-white max-w-md max-h-[70vh] overflow-y-auto mx-4 sm:mx-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-purple-400" />
-              Seguindo ({followingCount})
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-4">
-            {followingUsers && followingUsers.length > 0 ? (
-              followingUsers.map(following => (
-                <div key={following.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={following.avatar_url || DEFAULT_AVATAR}
-                      alt={following.full_name}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-purple-500/30"
-                    />
-                    <div>
-                      <p className="font-semibold text-white text-sm">{following.full_name}</p>
-                      <p className="text-xs text-gray-400">
-                        {following.music_preferences?.slice(0, 2).join(', ') || 'Sem gêneros'}
-                      </p>
-                    </div>
-                  </div>
-                  <FollowButton 
-                    targetUserId={following.id}
-                    currentUserId={user.id}
-                    isFollowing={true} // Assume they are following if in this list
-                  />
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-gray-400 py-8">Você não está seguindo ninguém</p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Logout Dialog */}
-      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <AlertDialogContent className="bg-gray-900 border-red-500/50 text-white max-w-md mx-4 sm:mx-auto">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-base sm:text-lg">Sair da Conta</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-400 text-xs sm:text-sm">
-              Tem certeza que deseja sair? Você precisará fazer login novamente para acessar sua conta.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="bg-gray-800 border-gray-600 hover:bg-gray-700 text-sm w-full sm:w-auto">
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleLogout}
-              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-sm w-full sm:w-auto"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

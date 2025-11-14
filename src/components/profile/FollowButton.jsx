@@ -4,13 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserMinus, Loader2, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import confetti from "canvas-confetti";
 
 export default function FollowButton({ targetUserId, currentUserId, size = "default" }) {
   const queryClient = useQueryClient();
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Verificar se já está seguindo
   const { data: followData } = useQuery({
     queryKey: ['followStatus', currentUserId, targetUserId],
     queryFn: async () => {
@@ -25,7 +23,6 @@ export default function FollowButton({ targetUserId, currentUserId, size = "defa
 
   const isFollowing = !!followData;
 
-  // Mutation para seguir
   const followMutation = useMutation({
     mutationFn: async () => {
       return await base44.entities.Follow.create({
@@ -38,23 +35,12 @@ export default function FollowButton({ targetUserId, currentUserId, size = "defa
       queryClient.invalidateQueries(['followStatus']);
       queryClient.invalidateQueries(['followers', targetUserId]);
       queryClient.invalidateQueries(['following', currentUserId]);
-      queryClient.invalidateQueries(['followersUsers']);
-      queryClient.invalidateQueries(['followingUsers']);
       
-      // Animação de sucesso
       setShowSuccess(true);
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.6 },
-        colors: ['#06b6d4', '#8b5cf6', '#ec4899']
-      });
-      
       setTimeout(() => setShowSuccess(false), 2000);
     },
   });
 
-  // Mutation para deixar de seguir
   const unfollowMutation = useMutation({
     mutationFn: async () => {
       if (followData) {
@@ -65,8 +51,6 @@ export default function FollowButton({ targetUserId, currentUserId, size = "defa
       queryClient.invalidateQueries(['followStatus']);
       queryClient.invalidateQueries(['followers', targetUserId]);
       queryClient.invalidateQueries(['following', currentUserId]);
-      queryClient.invalidateQueries(['followersUsers']);
-      queryClient.invalidateQueries(['followingUsers']);
     },
   });
 
@@ -82,7 +66,6 @@ export default function FollowButton({ targetUserId, currentUserId, size = "defa
     }
   };
 
-  // Não mostrar botão para o próprio usuário
   if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
     return null;
   }
@@ -91,8 +74,8 @@ export default function FollowButton({ targetUserId, currentUserId, size = "defa
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       className="relative"
     >
       <Button
@@ -102,45 +85,44 @@ export default function FollowButton({ targetUserId, currentUserId, size = "defa
         className={`relative overflow-hidden transition-all duration-300 font-semibold ${
           isFollowing
             ? "bg-gray-800 hover:bg-red-900/20 text-gray-300 hover:text-red-400 border-2 border-gray-700 hover:border-red-500"
-            : "bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-500 hover:via-purple-500 hover:to-pink-500 text-white border-0 shadow-lg shadow-purple-500/50"
+            : "bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-500 hover:via-purple-500 hover:to-pink-500 text-white border-0"
         }`}
+        style={{
+          boxShadow: isFollowing ? 'none' : '0 0 30px rgba(6, 182, 212, 0.5)'
+        }}
       >
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
+          animate={!isFollowing ? { x: ['-100%', '100%'] } : {}}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        />
+        
         {isLoading ? (
           <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            {isFollowing ? "Deixando..." : "Seguindo..."}
+            <Loader2 className="w-4 h-4 mr-2 animate-spin relative z-10" />
+            <span className="relative z-10">{isFollowing ? "Deixando..." : "Seguindo..."}</span>
           </>
         ) : showSuccess ? (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 relative z-10"
           >
             <CheckCircle className="w-4 h-4" />
             Seguindo!
           </motion.div>
         ) : isFollowing ? (
           <>
-            <UserMinus className="w-4 h-4 mr-2" />
-            Seguindo
+            <UserMinus className="w-4 h-4 mr-2 relative z-10" />
+            <span className="relative z-10">Seguindo</span>
           </>
         ) : (
           <>
-            <UserPlus className="w-4 h-4 mr-2" />
-            Seguir
+            <UserPlus className="w-4 h-4 mr-2 relative z-10" />
+            <span className="relative z-10">Seguir</span>
           </>
         )}
       </Button>
-      
-      {/* Efeito de onda ao seguir */}
-      {showSuccess && (
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-md"
-          initial={{ scale: 1, opacity: 0.5 }}
-          animate={{ scale: 2, opacity: 0 }}
-          transition={{ duration: 0.6 }}
-        />
-      )}
     </motion.div>
   );
 }
