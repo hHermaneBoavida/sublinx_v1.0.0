@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -344,17 +345,35 @@ export default function EventDetailsModal({ event, onClose }) {
                 <img
                   src={event.organizer_avatar || "https://i.pravatar.cc/80?u=organizer"}
                   alt={event.organizer}
-                  className="w-12 h-12 rounded-full border-2 border-cyan-500/30"
+                  className="w-12 h-12 rounded-full border-2 border-cyan-500/30 cursor-pointer hover:border-cyan-400/50 transition-colors"
+                  onClick={() => {
+                    if (event.organizer_id) {
+                      navigate(createPageUrl("PerfilUsuario") + `?id=${event.organizer_id}`);
+                    }
+                  }}
                 />
                 <div className="flex-1">
                   <div className="text-xs text-gray-400">Organizado por</div>
-                  <div className="text-sm font-semibold text-white">{event.organizer}</div>
+                  <div 
+                    className="text-sm font-semibold text-white cursor-pointer hover:text-cyan-400 transition-colors"
+                    onClick={() => {
+                      if (event.organizer_id) {
+                        navigate(createPageUrl("PerfilUsuario") + `?id=${event.organizer_id}`);
+                      }
+                    }}
+                  >
+                    {event.organizer}
+                  </div>
                 </div>
                 <Button
                   size="sm"
                   variant="outline"
                   className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-600/10"
-                  onClick={() => navigate(createPageUrl("PerfilUsuario") + `?id=${event.organizer_id}`)}
+                  onClick={() => {
+                    if (event.organizer_id) {
+                      navigate(createPageUrl("PerfilUsuario") + `?id=${event.organizer_id}`);
+                    }
+                  }}
                 >
                   Ver Perfil
                 </Button>

@@ -77,6 +77,14 @@ export default function EventFeedCard({
   const organizerAvatar = organizerData?.avatar_url || event.organizer_avatar || `https://i.pravatar.cc/40?u=${event.organizer_id}`;
   const isEventOrganizer = user?.id === event.organizer_id;
 
+  // CORREÇÃO: Função para navegar ao perfil
+  const handleNavigateToProfile = (e) => {
+    e.stopPropagation();
+    if (event.organizer_id) {
+      navigate(createPageUrl("PerfilUsuario") + `?id=${event.organizer_id}`);
+    }
+  };
+
   useEffect(() => {
     setLikes(initialLikes?.length || 0);
     setComments(initialComments || []);
@@ -231,13 +239,13 @@ export default function EventFeedCard({
                   borderColor: 'rgba(6, 182, 212, 0.5)',
                   boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)'
                 }}
-                onClick={() => navigate(createPageUrl("PerfilUsuario") + `?id=${event.organizer_id}`)}
+                onClick={handleNavigateToProfile}
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
                   <p
                     className="font-semibold text-xs cursor-pointer hover:text-cyan-400 transition-colors truncate"
-                    onClick={() => navigate(createPageUrl("PerfilUsuario") + `?id=${event.organizer_id}`)}
+                    onClick={handleNavigateToProfile}
                   >
                     {organizerName}
                   </p>
