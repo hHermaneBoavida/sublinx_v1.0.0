@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -8,14 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ArrowLeft, Calendar, MapPin, Share2, Crown, 
-  Award, Users, Ticket, Trophy, Zap, Instagram, Twitter
+  ArrowLeft, Calendar, Share2, Crown, Award, 
+  Users, Ticket, Trophy, Instagram, Twitter, CheckCircle, AlertCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import FollowButton from "../components/profile/FollowButton";
 import EventHistoryCard from "../components/profile/EventHistoryCard";
+import ProfileAvatar from "../components/shared/ProfileAvatar";
+import { CACHE_CONFIG } from "../components/shared/helpers";
 
 export default function PerfilUsuario() {
   const location = useLocation();
@@ -34,16 +34,31 @@ export default function PerfilUsuario() {
       }
     },
     retry: false,
+    ...CACHE_CONFIG.STATIC,
   });
 
-  const { data: profileUser, isLoading } = useQuery({
+  const { data: profileUser, isLoading, error } = useQuery({
     queryKey: ['profileUser', userId],
     queryFn: async () => {
-      if (!userId) return null;
-      const users = await base44.entities.User.list("", 1000);
-      return users.find(u => u.id === userId);
+      if (!userId) throw new Error("ID não fornecido");
+      
+      try {
+        // CORREÇÃO: Buscar por ID específico usando filter
+        const users = await base44.entities.User.filter({ id: userId });
+        
+        if (!users || users.length === 0) {
+          throw new Error("Usuário não encontrado");
+        }
+        
+        return users[0];
+      } catch (error) {
+        console.error("Erro ao buscar usuário:", error);
+        throw error;
+      }
     },
     enabled: !!userId,
+    retry: 1,
+    ...CACHE_CONFIG.MEDIUM,
   });
 
   const { data: followers = [] } = useQuery({
@@ -53,6 +68,7 @@ export default function PerfilUsuario() {
       return await base44.entities.Follow.filter({ following_id: userId });
     },
     enabled: !!userId,
+    ...CACHE_CONFIG.SHORT,
   });
 
   const { data: following = [] } = useQuery({
@@ -62,24 +78,37 @@ export default function PerfilUsuario() {
       return await base44.entities.Follow.filter({ follower_id: userId });
     },
     enabled: !!userId,
+    ...CACHE_CONFIG.SHORT,
   });
 
-  const { data: userEvents = [] } = useQuery({
-    queryKey: ['userEvents', userId],
+  const { data: allEvents = [] } = useQuery({
+    queryKey: ['allEventsForProfile'],
+    queryFn: async () => {
+      return await base44.entities.Event.list("-date", 100);
+    },
+    ...CACHE_CONFIG.MEDIUM,
+  });
+
+  const { data: userTickets = [] } = useQuery({
+    queryKey: ['userTickets', userId],
     queryFn: async () => {
       if (!userId) return [];
-      
-      if (profileUser?.is_organizer) {
-        return await base44.entities.Event.filter({ organizer_id: userId }, "-date");
-      } else {
-        const tickets = await base44.entities.Ticket.filter({ user_id: userId });
-        const eventIds = tickets.map(t => t.event_id);
-        const allEvents = await base44.entities.Event.list("-date", 100);
-        return allEvents.filter(e => eventIds.includes(e.id));
-      }
+      return await base44.entities.Ticket.filter({ user_id: userId }, "-created_date");
     },
-    enabled: !!userId && !!profileUser,
+    enabled: !!userId && !!profileUser && !profileUser.is_organizer,
+    ...CACHE_CONFIG.MEDIUM,
   });
+
+  const userEvents = useMemo(() => {
+    if (!profileUser || !allEvents) return [];
+    
+    if (profileUser.is_organizer) {
+      return allEvents.filter(e => e.organizer_id === userId);
+    } else {
+      const eventIds = userTickets.map(t => t.event_id);
+      return allEvents.filter(e => eventIds.includes(e.id));
+    }
+  }, [profileUser, allEvents, userId, userTickets]);
 
   const { data: userBadges = [] } = useQuery({
     queryKey: ['userBadges', userId],
@@ -88,6 +117,7 @@ export default function PerfilUsuario() {
       return await base44.entities.UserBadge.filter({ user_id: userId });
     },
     enabled: !!userId,
+    ...CACHE_CONFIG.LONG,
   });
 
   const handleShareProfile = async () => {
@@ -101,7 +131,8 @@ export default function PerfilUsuario() {
           url: profileUrl
         });
       } catch (err) {
-        console.log('Share cancelled');
+        navigator.clipboard.writeText(profileUrl);
+        alert('Link do perfil copiado!');
       }
     } else {
       navigator.clipboard.writeText(profileUrl);
@@ -110,8 +141,20 @@ export default function PerfilUsuario() {
   };
 
   if (!userId) {
-    navigate(createPageUrl("Mapa"));
-    return null;
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <Card className="bg-gray-900 border-red-500/30">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">ID não fornecido</h2>
+            <p className="text-gray-400 mb-4">Não foi possível identificar o usuário</p>
+            <Button onClick={() => navigate(createPageUrl("Feed"))}>
+              Voltar ao Feed
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (isLoading) {
@@ -126,15 +169,21 @@ export default function PerfilUsuario() {
     );
   }
 
-  if (!profileUser) {
+  if (error || !profileUser) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <Card className="bg-gray-900 border-red-500/30">
           <CardContent className="p-8 text-center">
-            <Users className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Usuário não encontrado</h2>
-            <Button onClick={() => navigate(createPageUrl("Feed"))}>
-              Voltar
+            <p className="text-gray-400 mb-4">
+              {error?.message || "Não foi possível carregar o perfil"}
+            </p>
+            <Button 
+              onClick={() => navigate(createPageUrl("Feed"))}
+              className="bg-gradient-to-r from-cyan-600 to-purple-600"
+            >
+              Voltar ao Feed
             </Button>
           </CardContent>
         </Card>
@@ -159,10 +208,7 @@ export default function PerfilUsuario() {
         <div
           className="absolute inset-0 opacity-20"
           style={{
-            backgroundImage: `
-              linear-gradient(to right, rgba(6, 182, 212, 0.3) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(6, 182, 212, 0.3) 1px, transparent 1px)
-            `,
+            backgroundImage: `linear-gradient(to right, rgba(6, 182, 212, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(6, 182, 212, 0.3) 1px, transparent 1px)`,
             backgroundSize: '40px 40px',
           }}
         />
@@ -194,51 +240,7 @@ export default function PerfilUsuario() {
           animate={{ scale: 1 }}
           className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 z-20"
         >
-          <div className="relative">
-            <motion.div
-              className="absolute inset-0 rounded-full"
-              style={{
-                background: 'radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, transparent 70%)',
-                filter: 'blur(20px)',
-                width: '180px',
-                height: '180px',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-              }}
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.4, 0.7, 0.4]
-              }}
-              transition={{ duration: 3, repeat: Infinity }}
-            />
-
-            <img
-              src={profileUser.avatar_url || "https://i.pravatar.cc/150"}
-              alt={profileUser.full_name}
-              className="w-32 h-32 rounded-full object-cover relative z-10 border-4"
-              style={{
-                borderColor: profileUser.is_organizer ? '#FBBF24' : '#06B6D4',
-                boxShadow: `0 0 40px ${profileUser.is_organizer ? '#FBBF24' : '#06B6D4'}`
-              }}
-            />
-
-            <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-600 border-4 border-black flex items-center justify-center z-20"
-              style={{ boxShadow: '0 0 20px rgba(251, 191, 36, 0.8)' }}
-            >
-              <span className="text-sm font-bold text-white">{stats.level}</span>
-            </div>
-
-            {(profileUser.is_pro_member || profileUser.is_organizer) && (
-              <motion.div
-                className="absolute -top-2 -right-2 z-20"
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <Crown className="w-8 h-8 text-yellow-400" style={{ filter: 'drop-shadow(0 0 10px #FBBF24)' }} />
-              </motion.div>
-            )}
-          </div>
+          <ProfileAvatar user={profileUser} stats={stats} size="lg" />
         </motion.div>
 
         <div className="absolute top-4 left-4 z-10">
@@ -282,12 +284,16 @@ export default function PerfilUsuario() {
             <Badge className={`${
               profileUser.is_organizer 
                 ? 'bg-yellow-600/20 border-yellow-500/50 text-yellow-300'
-                : 'bg-cyan-600/20 border-cyan-500/50 text-cyan-300'
+                : profileUser.is_pro_member
+                ? 'bg-cyan-600/20 border-cyan-500/50 text-cyan-300'
+                : 'bg-gray-700/20 border-gray-500/50 text-gray-400'
             }`}>
+              <Crown className="w-3 h-3 mr-1" />
               {profileUser.is_organizer ? 'Organizador' : profileUser.is_pro_member ? 'Pro Member' : 'Membro'}
             </Badge>
             {profileUser.verified_organizer && (
               <Badge className="bg-blue-600/20 border-blue-500/30 text-blue-300">
+                <CheckCircle className="w-3 h-3 mr-1" />
                 Verificado
               </Badge>
             )}
@@ -314,11 +320,13 @@ export default function PerfilUsuario() {
           )}
 
           {/* Follow Button */}
-          <FollowButton
-            targetUserId={userId}
-            currentUserId={currentUser?.id}
-            size="lg"
-          />
+          {currentUser && currentUser.id !== userId && (
+            <FollowButton
+              targetUserId={userId}
+              currentUserId={currentUser.id}
+              size="lg"
+            />
+          )}
         </motion.div>
 
         {/* Stats */}
@@ -362,11 +370,31 @@ export default function PerfilUsuario() {
           </Card>
         </div>
 
+        {/* XP Bar */}
+        <Card className="bg-gray-900/50 border-gray-700 mb-6 overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-400">Nível {stats.level}</span>
+              <span className="text-sm font-bold text-cyan-400">{stats.xp} XP</span>
+            </div>
+            <div className="w-full h-3 bg-gray-800 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${(stats.xp % 1000) / 10}%` }}
+                className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1 text-right">
+              {1000 - (stats.xp % 1000)} XP para o próximo nível
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Tabs */}
         <Tabs defaultValue="eventos" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-gray-900/80 border border-gray-700">
             <TabsTrigger value="eventos">
-              {profileUser.is_organizer ? 'Eventos' : 'Histórico'}
+              {profileUser.is_organizer ? 'Eventos Criados' : 'Histórico'}
             </TabsTrigger>
             <TabsTrigger value="badges">Badges</TabsTrigger>
           </TabsList>
@@ -383,6 +411,11 @@ export default function PerfilUsuario() {
                   <h3 className="text-xl font-semibold text-gray-400 mb-2">
                     {profileUser.is_organizer ? 'Nenhum evento criado' : 'Nenhum evento participado'}
                   </h3>
+                  <p className="text-gray-500">
+                    {profileUser.is_organizer 
+                      ? 'Este organizador ainda não criou eventos' 
+                      : 'Este usuário ainda não participou de eventos'}
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -409,16 +442,27 @@ export default function PerfilUsuario() {
                       transition={{ delay: index * 0.1 }}
                       whileHover={{ scale: 1.05, y: -5 }}
                     >
-                      <Card className={`bg-gradient-to-br ${config.color}/20 to-gray-900 border-2`}
+                      <Card className={`bg-gradient-to-br ${config.color}/20 to-gray-900 border-2 relative overflow-hidden`}
                         style={{ borderColor: config.glow }}
                       >
-                        <CardContent className="p-6 text-center">
+                        <motion.div
+                          className="absolute inset-0"
+                          style={{
+                            background: `radial-gradient(circle at 50% 0%, ${config.glow}, transparent 70%)`,
+                            filter: 'blur(20px)',
+                          }}
+                          animate={{ opacity: [0.2, 0.4, 0.2] }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                        />
+                        
+                        <CardContent className="p-6 text-center relative z-10">
                           <div className={`w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br ${config.color} flex items-center justify-center`}
                             style={{ boxShadow: `0 0 30px ${config.glow}` }}
                           >
                             <Award className="w-8 h-8 text-white" />
                           </div>
                           <h3 className="font-bold text-white mb-1 text-sm">{badge.badge_name}</h3>
+                          <p className="text-xs text-gray-400 mb-2 line-clamp-2">{badge.badge_description}</p>
                           <Badge className={`bg-gradient-to-r ${config.color} text-white border-0 text-xs`}>
                             {badge.rarity}
                           </Badge>
