@@ -5,14 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import {
   QrCode, Calendar, MapPin, User, Ticket, 
-  CheckCircle, XCircle, Download, Share2
+  CheckCircle, XCircle, Share2, Copy
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import QRCode from "react-qr-code";
 
 export default function TicketCard({ ticket, event }) {
   const [showQR, setShowQR] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (!ticket || !event) return null;
 
@@ -58,6 +58,12 @@ export default function TicketCard({ ticket, event }) {
     }
   };
 
+  const handleCopyQRCode = () => {
+    navigator.clipboard.writeText(ticket.qr_code_data);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -75,8 +81,8 @@ export default function TicketCard({ ticket, event }) {
         />
 
         <CardContent className="p-0 relative z-10">
-          <div className="flex flex-col md:flex-row">
-            {/* Left: Event Info */}
+          <div className="flex flex-col">
+            {/* Main Content */}
             <div className="flex-1 p-6">
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
@@ -121,7 +127,7 @@ export default function TicketCard({ ticket, event }) {
               </div>
 
               {/* Ticket Info */}
-              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 mb-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-gray-400 mb-1">Tipo</p>
@@ -146,15 +152,63 @@ export default function TicketCard({ ticket, event }) {
                 </div>
               </div>
 
+              {/* QR Code Data */}
+              {showQR && ticket.status === 'valid' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-gradient-to-br from-cyan-900/30 to-purple-900/30 border-2 border-cyan-500/30 rounded-xl p-6 mb-4"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <QrCode className="w-5 h-5 text-cyan-400" />
+                      <h4 className="font-bold text-white">Código do Ingresso</h4>
+                    </div>
+                    <Button
+                      onClick={handleCopyQRCode}
+                      size="sm"
+                      variant="ghost"
+                      className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20"
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      {copied ? 'Copiado!' : 'Copiar'}
+                    </Button>
+                  </div>
+
+                  <div className="bg-black/50 rounded-lg p-4 border border-cyan-500/20">
+                    <p className="font-mono text-sm text-cyan-300 break-all text-center">
+                      {ticket.qr_code_data}
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-gray-400 mt-3 text-center">
+                    Apresente este código na entrada do evento
+                  </p>
+
+                  {ticket.checked_in_at && (
+                    <div className="mt-3 flex items-center justify-center gap-2">
+                      <Badge className="bg-green-600 text-white">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Check-in realizado
+                      </Badge>
+                      <span className="text-xs text-gray-400">
+                        {format(new Date(ticket.checked_in_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                      </span>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
               {/* Actions */}
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-2">
                 <Button
                   onClick={() => setShowQR(!showQR)}
                   className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700"
                   disabled={ticket.status !== 'valid'}
                 >
                   <QrCode className="w-4 h-4 mr-2" />
-                  {showQR ? 'Ocultar QR' : 'Mostrar QR Code'}
+                  {showQR ? 'Ocultar Código' : 'Mostrar Código'}
                 </Button>
                 <Button
                   onClick={handleShare}
@@ -165,31 +219,6 @@ export default function TicketCard({ ticket, event }) {
                 </Button>
               </div>
             </div>
-
-            {/* Right: QR Code */}
-            {showQR && ticket.status === 'valid' && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="md:w-64 bg-white p-6 flex flex-col items-center justify-center border-l-2 border-gray-700"
-              >
-                <div className="bg-white p-4 rounded-lg mb-4">
-                  <QRCode
-                    value={ticket.qr_code_data}
-                    size={200}
-                    level="H"
-                  />
-                </div>
-                <p className="text-xs text-center text-gray-800 font-mono">
-                  {ticket.qr_code_data.substring(0, 20)}...
-                </p>
-                {ticket.checked_in_at && (
-                  <Badge className="mt-3 bg-green-600 text-white">
-                    Check-in realizado
-                  </Badge>
-                )}
-              </motion.div>
-            )}
           </div>
         </CardContent>
       </Card>
