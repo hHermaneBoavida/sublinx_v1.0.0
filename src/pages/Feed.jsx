@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, lazy, Suspense } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
 import { CACHE_CONFIG } from "../components/shared/optimizations";
 import { motion, AnimatePresence } from "framer-motion";
+import SocialRecommendations from "../components/recommendations/SocialRecommendations";
 
 // LAZY LOAD COMPONENTS PESADOS
 const EventFeedCard = lazy(() => import("../components/feed/EventFeedCard"));
@@ -317,6 +319,9 @@ export default function Feed() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Social Recommendations */}
+      {!isGuest && <SocialRecommendations user={user} />}
 
       {/* Share Vibe Button */}
       <div className="px-3 sm:px-4 py-2.5 border-b border-gray-800/30">

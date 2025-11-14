@@ -10,24 +10,28 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
-  CreditCard, Loader2, CheckCircle, AlertCircle, 
-  QrCode, Ticket, Clock, DollarSign, Users, Copy
+  Loader2, CheckCircle, AlertCircle, 
+  QrCode, Ticket, Clock, Users, Share2, Calendar
 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import PaymentIntegration from '../components/integrations/PaymentIntegration';
+import SocialShare from '../components/integrations/SocialShare';
+import CalendarIntegration from '../components/integrations/CalendarIntegration';
 
 export default function ComprarIngresso() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  const [processing, setProcessing] = useState(false);
   const [selectedTicketType, setSelectedTicketType] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
   const [generatedTicket, setGeneratedTicket] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
   
   const searchParams = new URLSearchParams(location.search);
   const eventId = searchParams.get('eventId');
@@ -67,7 +71,6 @@ export default function ComprarIngresso() {
       setGeneratedTicket(ticket);
       setPurchaseSuccess(true);
       
-      // Update event attendees count
       if (event) {
         base44.entities.Event.update(eventId, {
           current_attendees: (event.current_attendees || 0) + quantity
@@ -95,59 +98,29 @@ export default function ComprarIngresso() {
     }
   }, [event]);
 
-  const handlePurchase = async (paymentMethod) => {
-    if (!selectedTicketType || !user || !event) {
-      alert("Erro: informações incompletas para a compra.");
-      return;
-    }
+  const handlePaymentSuccess = async (paymentData) => {
+    if (!selectedTicketType || !user || !event) return;
 
-    if (quantity < 1) {
-      alert("Quantidade inválida");
-      return;
-    }
+    const qrCodeData = `SUBLINX:${Date.now()}:${user.id}:${event.id}:${selectedTicketType.id}`;
 
-    // Verificar disponibilidade
-    if (selectedTicketType.quantity_available > 0) {
-      const soldCount = selectedTicketType.quantity_sold || 0;
-      if (soldCount + quantity > selectedTicketType.quantity_available) {
-        alert(`Apenas ${selectedTicketType.quantity_available - soldCount} ingresso(s) disponível(is)`);
-        return;
-      }
-    }
-    
-    setProcessing(true);
-    
-    try {
-      // Simular processamento de pagamento
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const qrCodeData = `SUBLINX:${Date.now()}:${user.id}:${event.id}:${selectedTicketType.id}`;
-
-      await purchaseTicketMutation.mutateAsync({
-        ticketData: {
-          user_id: user.id,
-          event_id: event.id,
-          ticket_type: selectedTicketType.name,
-          price: selectedTicketType.price * quantity,
-          quantity: quantity,
-          qr_code_data: qrCodeData,
-          status: 'valid',
-          payment_method: paymentMethod.toLowerCase().replace(/\s/g, '_'),
-          payment_status: 'confirmed',
-          transaction_id: `TXN-${Date.now()}`,
-          attendee_info: {
-            full_name: user.full_name,
-            email: user.email
-          }
+    await purchaseTicketMutation.mutateAsync({
+      ticketData: {
+        user_id: user.id,
+        event_id: event.id,
+        ticket_type: selectedTicketType.name,
+        price: selectedTicketType.price * quantity,
+        quantity: quantity,
+        qr_code_data: qrCodeData,
+        status: 'valid',
+        payment_method: paymentData.method,
+        payment_status: 'confirmed',
+        transaction_id: `TXN-${Date.now()}`,
+        attendee_info: {
+          full_name: user.full_name || user.display_name,
+          email: user.email
         }
-      });
-
-    } catch (error) {
-      console.error("Erro na compra:", error);
-      alert("Ocorreu um erro ao processar sua compra. Tente novamente.");
-    } finally {
-      setProcessing(false);
-    }
+      }
+    });
   };
 
   const totalAmount = selectedTicketType ? selectedTicketType.price * quantity : 0;
@@ -214,6 +187,25 @@ export default function ComprarIngresso() {
 
               <div className="flex gap-2">
                 <Button
+                  onClick={() => setShowShareModal(true)}
+                  variant="outline"
+                  className="flex-1 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Compartilhar
+                </Button>
+                <Button
+                  onClick={() => setShowCalendarModal(true)}
+                  variant="outline"
+                  className="flex-1 border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Calendário
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
                   onClick={() => navigate(createPageUrl("Perfil"))}
                   className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600"
                 >
@@ -230,6 +222,9 @@ export default function ComprarIngresso() {
               </div>
             </CardContent>
           </Card>
+
+          {showShareModal && <SocialShare event={event} onClose={() => setShowShareModal(false)} />}
+          {showCalendarModal && <CalendarIntegration event={event} onClose={() => setShowCalendarModal(false)} />}
         </motion.div>
       </div>
     );
@@ -365,72 +360,15 @@ export default function ComprarIngresso() {
               {/* Payment */}
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-white">2. Pagamento</h3>
-                <p className="text-sm text-gray-400">
-                  Após confirmar o pagamento, seu(s) ingresso(s) com QR Code será(ão) gerado(s).
-                </p>
-                
-                <Separator className="bg-gray-700" />
-                
-                <div className="text-center bg-gradient-to-r from-green-900/20 to-emerald-900/20 border border-green-700/30 rounded-xl p-4">
-                  <p className="text-sm text-gray-300 mb-1">Total a pagar:</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <DollarSign className="w-6 h-6 text-green-400" />
-                    <p className="text-4xl font-bold text-green-400">
-                      {totalAmount.toFixed(2)}
-                    </p>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {quantity}x {selectedTicketType?.name} • R$ {selectedTicketType?.price.toFixed(2)} cada
-                  </p>
-                </div>
-                
-                <div className="space-y-3">
-                  <Button
-                    onClick={() => handlePurchase('PIX')}
-                    disabled={processing || !selectedTicketType}
-                    className="w-full h-14 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
-                  >
-                    {processing ? <Loader2 className="animate-spin mr-2"/> : null}
-                    Pagar com PIX
-                  </Button>
-                  
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-600">
-                    <h4 className="text-sm font-semibold text-cyan-400 mb-2 flex items-center gap-2">
-                      <QrCode className="w-4 h-4" />
-                      Chave PIX (Celular):
-                    </h4>
-                    <div className="flex items-center justify-between bg-gray-700 rounded px-3 py-2">
-                      <span className="text-sm font-mono">020.091.326-37</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          navigator.clipboard.writeText('020.091.326-37');
-                          alert('Chave PIX copiada!');
-                        }}
-                        className="text-cyan-400 hover:text-cyan-300"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-2">
-                      HERMANE DA GRACA CHANGO DE BOAVIDA
-                    </p>
-                  </div>
-
-                  <Button
-                    onClick={() => handlePurchase('Cartão')}
-                    disabled={processing || !selectedTicketType}
-                    className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
-                  >
-                    {processing ? (
-                      <Loader2 className="animate-spin mr-2"/>
-                    ) : (
-                      <CreditCard className="w-6 h-6 mr-2" />
-                    )}
-                    Pagar com Cartão
-                  </Button>
-                </div>
+                <PaymentIntegration
+                  amount={totalAmount}
+                  onPaymentSuccess={handlePaymentSuccess}
+                  ticketData={{
+                    selectedTicketType,
+                    quantity,
+                    event
+                  }}
+                />
               </div>
             </CardContent>
           </Card>
