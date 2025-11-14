@@ -141,8 +141,8 @@ export default function ChatOrganizadores() {
 
   return (
     <div className="h-screen bg-black text-white flex flex-col">
-      {/* Header */}
-      <div className="border-b border-gray-800 bg-black/95 backdrop-blur-xl p-4">
+      {/* Header - Desktop */}
+      <div className="hidden md:block border-b border-gray-800 bg-black/95 backdrop-blur-xl p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(createPageUrl("Perfil"))}>
@@ -162,18 +162,65 @@ export default function ChatOrganizadores() {
         </div>
       </div>
 
+      {/* Header - Mobile (Conversa Selecionada) */}
+      {selectedChat && (
+        <div className="md:hidden border-b border-gray-800 bg-black/95 backdrop-blur-xl p-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedChat(null)} className="h-9 w-9">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            {(() => {
+              const other = getOtherParticipant(selectedChat);
+              return (
+                <>
+                  <img
+                    src={other?.avatar_url || DEFAULT_AVATAR}
+                    alt={other?.full_name}
+                    className="w-9 h-9 rounded-full object-cover border-2 border-cyan-500/30"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-semibold text-white text-sm truncate">{other?.full_name}</h2>
+                    <p className="text-xs text-gray-400">Organizador</p>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Header - Mobile (Lista de Chats) */}
+      {!selectedChat && (
+        <div className="md:hidden border-b border-gray-800 bg-black/95 backdrop-blur-xl p-3">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => navigate(createPageUrl("Perfil"))} className="h-9 w-9">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <h1 className="text-lg font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
+                Chat Organizadores
+              </h1>
+            </div>
+            <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-xs">
+              <Crown className="w-3 h-3 mr-1" />
+              Exclusivo
+            </Badge>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden max-w-7xl mx-auto w-full">
-        {/* Sidebar */}
-        <div className="w-80 border-r border-gray-800 flex flex-col bg-gray-900/30">
-          <div className="p-4 border-b border-gray-800">
+        {/* Sidebar - Desktop sempre visível, Mobile apenas quando não há chat selecionado */}
+        <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 md:border-r border-gray-800 flex-col bg-gray-900/30`}>
+          <div className="p-3 md:p-4 border-b border-gray-800">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar organizador..."
-                className="pl-10 bg-gray-800 border-gray-700 text-white"
+                className="pl-10 bg-gray-800 border-gray-700 text-white h-10 text-sm"
               />
             </div>
           </div>
@@ -204,10 +251,10 @@ export default function ChatOrganizadores() {
                           <img
                             src={other.avatar_url || DEFAULT_AVATAR}
                             alt={other.full_name}
-                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-700"
+                            className="w-11 h-11 rounded-full object-cover border-2 border-gray-700"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-white truncate">{other.full_name}</p>
+                            <p className="font-semibold text-white text-sm truncate">{other.full_name}</p>
                             <p className="text-xs text-gray-400 truncate">
                               {chat.last_message_at && format(new Date(chat.last_message_at), "HH:mm", { locale: ptBR })}
                             </p>
@@ -227,7 +274,7 @@ export default function ChatOrganizadores() {
 
             {/* Available Organizers */}
             {filteredOrganizers.length > 0 && (
-              <div className="p-4 border-t border-gray-800">
+              <div className="p-3 md:p-4 border-t border-gray-800">
                 <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   Organizadores
@@ -260,12 +307,12 @@ export default function ChatOrganizadores() {
           </div>
         </div>
 
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
+        {/* Chat Area - Desktop sempre visível, Mobile apenas quando há chat selecionado */}
+        <div className={`${selectedChat ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}>
           {selectedChat ? (
             <>
-              {/* Chat Header */}
-              <div className="p-4 border-b border-gray-800 bg-gray-900/50">
+              {/* Chat Header - Desktop apenas */}
+              <div className="hidden md:block p-4 border-b border-gray-800 bg-gray-900/50">
                 <div className="flex items-center gap-3">
                   {(() => {
                     const other = getOtherParticipant(selectedChat);
@@ -287,7 +334,7 @@ export default function ChatOrganizadores() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3">
                 <AnimatePresence>
                   {messages.map((msg) => {
                     const isMe = msg.sender_id === user.id;
@@ -298,7 +345,7 @@ export default function ChatOrganizadores() {
                         animate={{ opacity: 1, y: 0 }}
                         className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                        <div className={`max-w-[75%] md:max-w-xs lg:max-w-md px-3 md:px-4 py-2 rounded-2xl ${
                           isMe 
                             ? 'bg-gradient-to-r from-cyan-600 to-purple-600 text-white' 
                             : 'bg-gray-800 text-white'
@@ -316,21 +363,21 @@ export default function ChatOrganizadores() {
               </div>
 
               {/* Input */}
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-800 bg-gray-900/50">
+              <form onSubmit={handleSendMessage} className="p-3 md:p-4 border-t border-gray-800 bg-gray-900/50">
                 <div className="flex gap-2">
                   <Input
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     placeholder="Digite sua mensagem..."
-                    className="flex-1 bg-gray-800 border-gray-700 text-white"
+                    className="flex-1 bg-gray-800 border-gray-700 text-white h-10 md:h-11 text-sm"
                     disabled={sendMessageMutation.isPending}
                   />
                   <Button
                     type="submit"
                     disabled={!messageText.trim() || sendMessageMutation.isPending}
-                    className="bg-gradient-to-r from-cyan-600 to-purple-600"
+                    className="bg-gradient-to-r from-cyan-600 to-purple-600 h-10 md:h-11 w-10 md:w-11 p-0"
                   >
-                    <Send className="w-5 h-5" />
+                    <Send className="w-4 h-4 md:w-5 md:h-5" />
                   </Button>
                 </div>
               </form>
