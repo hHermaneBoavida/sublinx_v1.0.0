@@ -64,36 +64,38 @@ export default function EditProfileModal({ user, onClose }) {
     setError("");
     
     try {
-      console.log("🔄 Atualizando perfil com:", { full_name: trimmedName });
+      console.log("🔄 Salvando perfil:", { 
+        currentName: user.full_name, 
+        newName: trimmedName 
+      });
       
-      // MÉTODO CORRETO: base44.auth.updateMe
-      await base44.auth.updateMe({
+      // ATUALIZA USANDO base44.auth.updateMe
+      const updateData = {
         full_name: trimmedName,
         bio: formData.bio?.trim() || "",
         avatar_url: formData.avatar_url || "",
         phone: formData.phone?.trim() || "",
         city: formData.city?.trim() || "",
         state: formData.state?.trim() || ""
-      });
+      };
 
-      console.log("✅ Perfil atualizado com sucesso");
+      await base44.auth.updateMe(updateData);
 
-      // Invalida caches
-      await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      await queryClient.invalidateQueries({ queryKey: ['profileUser'] });
+      console.log("✅ Perfil salvo com sucesso");
+
+      // Invalida TODOS os caches relacionados
+      queryClient.removeQueries({ queryKey: ['currentUser'] });
+      queryClient.removeQueries({ queryKey: ['profileUser'] });
       
-      // Refetch imediato
-      await queryClient.refetchQueries({ queryKey: ['currentUser'] });
-
       onClose();
       
-      // Reload após fechar modal
+      // Força reload COMPLETO para garantir atualização
       setTimeout(() => {
         window.location.reload();
-      }, 300);
+      }, 100);
 
     } catch (error) {
-      console.error("❌ Erro ao atualizar perfil:", error);
+      console.error("❌ Erro ao salvar:", error);
       setError(error.message || 'Erro ao salvar. Tente novamente.');
       setLoading(false);
     }
@@ -119,7 +121,6 @@ export default function EditProfileModal({ user, onClose }) {
             </Alert>
           )}
 
-          {/* Avatar */}
           <div className="text-center">
             <label htmlFor="avatar-upload" className="cursor-pointer group relative inline-block">
               <img
@@ -149,7 +150,6 @@ export default function EditProfileModal({ user, onClose }) {
             <p className="text-xs text-gray-500 mt-2">JPG, PNG ou WEBP • Máx 5MB</p>
           </div>
 
-          {/* Nome */}
           <div>
             <label className="text-sm text-gray-400 mb-2 block">Nome Completo *</label>
             <Input
@@ -165,7 +165,6 @@ export default function EditProfileModal({ user, onClose }) {
             />
           </div>
 
-          {/* Bio */}
           <div>
             <label className="text-sm text-gray-400 mb-2 block">Bio</label>
             <Textarea
@@ -179,7 +178,6 @@ export default function EditProfileModal({ user, onClose }) {
             <p className="text-xs text-gray-500 mt-1 text-right">{formData.bio?.length || 0}/200</p>
           </div>
 
-          {/* Contato */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-gray-400 mb-2 block">Telefone</label>
@@ -206,7 +204,6 @@ export default function EditProfileModal({ user, onClose }) {
             </div>
           </div>
 
-          {/* Estado */}
           <div>
             <label className="text-sm text-gray-400 mb-2 block">Estado</label>
             <Input
@@ -235,7 +232,7 @@ export default function EditProfileModal({ user, onClose }) {
                 Salvando...
               </>
             ) : (
-              "Salvar"
+              "Salvar Alterações"
             )}
           </Button>
         </DialogFooter>

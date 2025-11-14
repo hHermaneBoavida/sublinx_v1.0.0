@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,35 +14,38 @@ import {
 } from 'recharts';
 import {
   TrendingUp, Users, DollarSign, Calendar, MessageSquare, Target, Eye, 
-  Clock, Ticket, BarChart3, Heart, Settings, AlertTriangle, TrendingDown,
-  Zap, Crown, Bell, X, CheckCircle, ArrowUpRight, ArrowDownRight, Percent
+  Clock, Ticket, BarChart3, Heart, AlertTriangle, TrendingDown,
+  Zap, Crown, Bell, X, CheckCircle, ArrowUpRight, ArrowDownRight, Percent, Trophy
 } from "lucide-react";
 import { format, subDays, isAfter, isBefore, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
-import { CACHE_CONFIG } from "../components/shared/helpers";
+import { CACHE_CONFIG } from "../components/shared/optimizations"; // Updated import path
 
 const COLORS = ['#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'];
 
 export default function DashboardOrganizador() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient(); // This was present in original, keep it.
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState(new Set());
 
+  // CORRIGIDO: Verifica organizer corretamente
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
       try {
         const userData = await base44.auth.me();
-        if (!userData.is_organizer) {
+        if (!userData?.is_organizer) { // Check for null/undefined userData before accessing is_organizer
+          console.warn("⚠️ Usuário não é organizador, redirecionando...");
           navigate(createPageUrl("Planos"));
-          throw new Error("Não é organizador");
+          return null; // Return null if not an organizer
         }
         return userData;
       } catch (error) {
+        console.error("❌ Erro ao carregar usuário:", error);
         navigate(createPageUrl("BemVindo"));
-        throw error;
+        return null; // Return null on error
       }
     },
     retry: false,
@@ -51,17 +55,17 @@ export default function DashboardOrganizador() {
   const { data: events = [] } = useQuery({
     queryKey: ['organizerEvents', user?.id],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user?.id) return []; // Check for user.id
       return await base44.entities.Event.filter({ organizer_id: user.id }, "-date");
     },
-    enabled: !!user,
+    enabled: !!user?.id, // Enabled only if user.id exists
     ...CACHE_CONFIG.SHORT,
   });
 
   const { data: tickets = [] } = useQuery({
     queryKey: ['organizerTickets', events.length],
     queryFn: async () => {
-      if (!events || events.length === 0) return [];
+      if (!events?.length) return []; // Check for events length
       const eventIds = events.map(e => e.id);
       return await base44.entities.Ticket.filter({ event_id: { $in: eventIds } });
     },
@@ -72,7 +76,7 @@ export default function DashboardOrganizador() {
   const { data: requests = [] } = useQuery({
     queryKey: ['organizerRequests', events.length],
     queryFn: async () => {
-      if (!events || events.length === 0) return [];
+      if (!events?.length) return []; // Check for events length
       const eventIds = events.map(e => e.id);
       return await base44.entities.EventRequest.filter({ event_id: { $in: eventIds } });
     },
@@ -83,7 +87,7 @@ export default function DashboardOrganizador() {
   const { data: interactions = { likes: [], comments: [] } } = useQuery({
     queryKey: ['organizerInteractions', events.length],
     queryFn: async () => {
-      if (!events || events.length === 0) return { likes: [], comments: [] };
+      if (!events?.length) return { likes: [], comments: [] }; // Check for events length
       const eventIds = events.map(e => e.id);
       
       const [likes, comments] = await Promise.all([
@@ -186,7 +190,7 @@ export default function DashboardOrganizador() {
     });
 
     return alertList.filter(alert => !dismissedAlerts.has(alert.id));
-  }, [events, tickets, requests, dismissedAlerts]);
+  }, [events, tickets, requests, dismissedAlerts, navigate]);
 
   // Dados para gráficos
   const chartData = useMemo(() => {
@@ -240,19 +244,19 @@ export default function DashboardOrganizador() {
 
     // Comparação de períodos
     const now = new Date();
-    const last7Days = tickets.filter(t => {
+    const last7DaysTickets = tickets.filter(t => {
       const ticketDate = new Date(t.created_date);
       return isAfter(ticketDate, subDays(now, 7)) && t.status !== 'cancelled';
     });
     
-    const previous7Days = tickets.filter(t => {
+    const previous7DaysTickets = tickets.filter(t => {
       const ticketDate = new Date(t.created_date);
       return isAfter(ticketDate, subDays(now, 14)) && isBefore(ticketDate, subDays(now, 7)) && t.status !== 'cancelled';
     });
 
-    const revenueGrowth = previous7Days.length > 0
-      ? (((last7Days.length - previous7Days.length) / previous7Days.length) * 100).toFixed(1)
-      : last7Days.length > 0 ? 100 : 0;
+    const revenueGrowth = previous7DaysTickets.length > 0
+      ? (((last7DaysTickets.length - previous7DaysTickets.length) / previous7DaysTickets.length) * 100).toFixed(1)
+      : last7DaysTickets.length > 0 ? 100 : 0;
 
     return {
       revenueByEvent,
@@ -272,6 +276,12 @@ export default function DashboardOrganizador() {
         />
       </div>
     );
+  }
+
+  // If user is null after loading, it means they are not an organizer or an error occurred.
+  // The navigation has already handled redirection, so we can return null to avoid rendering dashboard.
+  if (!user) {
+    return null;
   }
 
   return (
@@ -687,8 +697,101 @@ export default function DashboardOrganizador() {
             </Card>
           </TabsContent>
 
-          {/* Vendas */}
+          {/* This TabsContent for "Vendas" was duplicated, renaming it to avoid confusion and adding the original content. */}
+          {/* Renaming the second "Vendas" tab content to "Sales Analysis" to differentiate,
+              as the previous one was already called "sales" and contained "Vendas - Últimos 30 dias"
+              and "Por Tipo de Ingresso" */}
+          {/* The outline suggests two separate "sales" tabs. I will keep one for "sales" as "sales"
+              and rename the second one to "Sales Trends" if it was intended to be separate.
+              Looking at the original code structure, the second `TabsContent value="sales"` seems like
+              an accidental duplication of a `TabsContent` for the same value, but containing different
+              charts. I will assume the outline intended these to be distinct sections under 'sales' tab
+              or that the second one was meant for `performance` if it is a new content.
+              Given the outline, the "Vendas" tab contains two main sections:
+              1. Vendas - Últimos 30 Dias + Por Tipo de Ingresso + Resumo Financeiro (This is current content)
+              2. Evolução de Vendas + Vendas por Tipo (Pie/List) + Insights (This is new content)
+
+              The initial code had `TabsContent value="sales"` twice. I will consolidate the "Sales" tab
+              to contain all relevant sales analysis.
+          */}
           <TabsContent value="sales" className="space-y-4 mt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Vendas nos últimos 30 dias (AreaChart) - from original code*/}
+              <Card className="bg-gray-900/50 border-gray-700 lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-green-400" />
+                    Vendas - Últimos 30 Dias (Área)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={chartData.last30Days}>
+                      <defs>
+                        <linearGradient id="colorSalesArea" x1="0" y1="0" x2="0" y2="1"> {/* Renamed ID to avoid conflict */}
+                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="date" stroke="#9ca3af" fontSize={10} />
+                      <YAxis stroke="#9ca3af" fontSize={11} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
+                      />
+                      <Area type="monotone" dataKey="vendas" stroke="#06b6d4" fillOpacity={1} fill="url(#colorSalesArea)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Distribuição por Tipo (PieChart) - from original code*/}
+              <Card className="bg-gray-900/50 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Ticket className="w-5 h-5 text-cyan-400" />
+                    Distribuição por Tipo de Ingresso
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={chartData.ticketTypesData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
+                        dataKey="vendas"
+                      >
+                        {chartData.ticketTypesData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Resumo Financeiro (FinancialRow list) - from original code*/}
+              <Card className="bg-gray-900/50 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white">Resumo Financeiro Detalhado</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <FinancialRow label="Receita Bruta" value={`R$ ${metrics.totalRevenue.toFixed(2)}`} color="text-green-400" />
+                  <FinancialRow label="Ticket Médio" value={`R$ ${metrics.avgPrice.toFixed(2)}`} color="text-cyan-400" />
+                  <FinancialRow label="Total Vendido" value={metrics.totalSold} color="text-white" />
+                  <FinancialRow label="Taxa Conversão" value={`${metrics.conversionRate}%`} color="text-purple-400" />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* New content for sales tab based on outline. This was originally under a duplicated `TabsContent value="sales"` */}
             <Card className="bg-gray-900/50 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-white">Evolução de Vendas</CardTitle>
@@ -711,11 +814,11 @@ export default function DashboardOrganizador() {
               </CardContent>
             </Card>
 
-            {/* Vendas por Tipo */}
+            {/* Vendas por Tipo (List and Insights) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="bg-gray-900/50 border-gray-700">
                 <CardHeader>
-                  <CardTitle className="text-white">Vendas por Tipo</CardTitle>
+                  <CardTitle className="text-white">Vendas por Tipo de Ingresso (Lista)</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -740,7 +843,7 @@ export default function DashboardOrganizador() {
 
               <Card className="bg-gray-900/50 border-gray-700">
                 <CardHeader>
-                  <CardTitle className="text-white">Insights</CardTitle>
+                  <CardTitle className="text-white">Insights de Vendas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <InsightCard
@@ -752,7 +855,7 @@ export default function DashboardOrganizador() {
                     color="text-yellow-400"
                   />
                   <InsightCard
-                    title="Maior Receita"
+                    title="Maior Receita por Tipo"
                     value={chartData.ticketTypesData.length > 0
                       ? `R$ ${chartData.ticketTypesData.sort((a, b) => b.receita - a.receita)[0].receita.toFixed(2)}`
                       : 'R$ 0'}
@@ -760,7 +863,7 @@ export default function DashboardOrganizador() {
                     color="text-green-400"
                   />
                   <InsightCard
-                    title="Melhor Dia"
+                    title="Melhor Dia de Vendas"
                     value={chartData.last30Days.length > 0
                       ? chartData.last30Days.sort((a, b) => b.vendas - a.vendas)[0].date
                       : 'N/A'}
@@ -770,85 +873,6 @@ export default function DashboardOrganizador() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          {/* Performance */}
-          <TabsContent value="performance" className="space-y-4 mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <PerformanceCard
-                title="Eventos Futuros"
-                value={events.filter(e => isAfter(new Date(e.date), new Date())).length}
-                total={events.length}
-                icon={Calendar}
-                color="cyan"
-              />
-              <PerformanceCard
-                title="Com Ingressos Disponíveis"
-                value={events.filter(e => {
-                  const sold = tickets.filter(t => t.event_id === e.id && t.status !== 'cancelled').length;
-                  return sold < (e.max_capacity || 0);
-                }).length}
-                total={events.length}
-                icon={Ticket}
-                color="purple"
-              />
-              <PerformanceCard
-                title="Alta Performance (>70%)"
-                value={chartData.revenueByEvent.filter(e => e.ocupacao >= 70).length}
-                total={events.length}
-                icon={TrendingUp}
-                color="green"
-              />
-            </div>
-
-            {/* Tabela Detalhada */}
-            <Card className="bg-gray-900/50 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white">Análise Completa de Eventos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-700">
-                        <th className="text-left text-gray-400 text-sm py-3 px-2">Evento</th>
-                        <th className="text-center text-gray-400 text-sm py-3 px-2">Data</th>
-                        <th className="text-center text-gray-400 text-sm py-3 px-2">Vendidos</th>
-                        <th className="text-center text-gray-400 text-sm py-3 px-2">Ocupação</th>
-                        <th className="text-right text-gray-400 text-sm py-3 px-2">Receita</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {chartData.revenueByEvent.map((event, index) => (
-                        <tr key={index} className="border-b border-gray-800 hover:bg-gray-800/30">
-                          <td className="py-3 px-2 text-white text-sm">{event.fullName}</td>
-                          <td className="py-3 px-2 text-center text-gray-300 text-xs">
-                            {events.find(e => e.title === event.fullName)?.date 
-                              ? format(new Date(events.find(e => e.title === event.fullName).date), "dd/MM/yy", { locale: ptBR })
-                              : '-'}
-                          </td>
-                          <td className="py-3 px-2 text-center text-cyan-400 font-semibold">{event.ingressos}</td>
-                          <td className="py-3 px-2 text-center">
-                            <Badge className={
-                              event.ocupacao >= 80 
-                                ? 'bg-green-600/20 text-green-300'
-                                : event.ocupacao >= 50
-                                ? 'bg-yellow-600/20 text-yellow-300'
-                                : 'bg-red-600/20 text-red-300'
-                            }>
-                              {event.ocupacao}%
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-2 text-right text-green-400 font-bold">
-                            R$ {event.receita.toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Participantes */}
@@ -1127,33 +1151,33 @@ function OnboardingModal({ onClose }) {
 
   const steps = [
     {
-      title: "Bem-vindo ao Dashboard! 🎉",
-      description: "Aqui você controla todos os seus eventos em um só lugar",
+      title: "Bem-vindo! 🎉",
+      description: "Aqui você controla todos os seus eventos",
       icon: Crown,
       color: "text-yellow-400"
     },
     {
-      title: "Crie seu Primeiro Evento 🎪",
-      description: "Configure ingressos, local, data e comece a vender",
+      title: "Crie Eventos 🎪",
+      description: "Configure ingressos, local e data",
       icon: Calendar,
       color: "text-cyan-400",
       action: () => navigate(createPageUrl("CriarEvento"))
     },
     {
-      title: "Acompanhe Vendas em Tempo Real 📊",
-      description: "Veja métricas, receita e performance instantaneamente",
+      title: "Acompanhe Vendas 📊",
+      description: "Veja métricas em tempo real",
       icon: BarChart3,
       color: "text-purple-400"
     },
     {
       title: "Gerencie Participantes 👥",
-      description: "Aprove solicitações, faça check-in e comunique-se",
+      description: "Aprove solicitações e check-in",
       icon: Users,
       color: "text-pink-400"
     },
     {
-      title: "Receba Alertas Inteligentes 🔔",
-      description: "Notificações sobre vendas baixas, lotes esgotando e mais",
+      title: "Receba Alertas 🔔",
+      description: "Notificações sobre vendas e lotes",
       icon: Bell,
       color: "text-green-400"
     }
@@ -1169,15 +1193,15 @@ function OnboardingModal({ onClose }) {
       className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4"
     >
       <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
+        initial={{ scale: 0.9 }} // Simplified initial animation
+        animate={{ scale: 1 }}
         className="w-full max-w-lg"
       >
         <Card className="bg-gray-900 border-cyan-500/30">
           <CardContent className="p-8">
             <div className="text-center mb-8">
               <motion.div
-                key={step}
+                key={step} // Keep key for re-render animation
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", duration: 0.6 }}
@@ -1186,24 +1210,14 @@ function OnboardingModal({ onClose }) {
                 <StepIcon className={`w-10 h-10 ${currentStep.color}`} />
               </motion.div>
               
-              <motion.h2
-                key={`title-${step}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-2xl font-bold text-white mb-3"
-              >
+              {/* Removed motion props for text as per outline simplification */}
+              <h2 className="text-2xl font-bold text-white mb-3">
                 {currentStep.title}
-              </motion.h2>
+              </h2>
               
-              <motion.p
-                key={`desc-${step}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-gray-400"
-              >
+              <p className="text-gray-400">
                 {currentStep.description}
-              </motion.p>
+              </p>
             </div>
 
             {/* Progress Dots */}
@@ -1245,7 +1259,7 @@ function OnboardingModal({ onClose }) {
                   }}
                   className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600"
                 >
-                  {currentStep.action ? 'Começar Agora' : 'Próximo'}
+                  {currentStep.action ? 'Começar' : 'Próximo'}
                 </Button>
               ) : (
                 <Button
@@ -1263,7 +1277,7 @@ function OnboardingModal({ onClose }) {
               size="sm"
               className="w-full mt-4 text-gray-500 hover:text-gray-300"
             >
-              Pular tutorial
+              Pular
             </Button>
           </CardContent>
         </Card>
