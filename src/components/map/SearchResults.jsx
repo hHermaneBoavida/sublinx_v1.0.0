@@ -104,14 +104,23 @@ export default function SearchResults({
   }, [filteredResults, sortBy]);
 
   const handleResultClick = (result) => {
+    console.log('🔍 Clicou no resultado:', result);
+    
     if (result.type === 'event') {
       onEventClick && onEventClick(result);
     } else if (result.type === 'artist') {
-      // Redireciona para o perfil do artista/usuário
-      navigate(createPageUrl("PerfilUsuario") + `?id=${result.id}`);
+      // CORREÇÃO: Verifica se tem ID válido antes de navegar
+      if (result.id) {
+        console.log('👤 Navegando para perfil do artista:', result.id);
+        navigate(createPageUrl("PerfilUsuario") + `?id=${result.id}`);
+        onClose(); // Fecha modal de busca
+      } else {
+        console.error('❌ ID de artista inválido:', result);
+        alert('Perfil não disponível');
+      }
     } else if (result.type === 'community') {
-      // Redireciona para a comunidade
       navigate(createPageUrl("Comunidade"));
+      onClose();
     }
   };
 
@@ -218,7 +227,6 @@ export default function SearchResults({
                   exit={{ opacity: 0, height: 0 }}
                   className="bg-gray-900/80 backdrop-blur-xl border border-cyan-500/30 rounded-xl p-4 space-y-4"
                 >
-                  {/* Filtro de Data */}
                   <div>
                     <label className="text-xs text-gray-400 mb-2 flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-purple-400" />
@@ -238,7 +246,6 @@ export default function SearchResults({
                     </Select>
                   </div>
 
-                  {/* Filtro de Preço */}
                   <div>
                     <label className="text-xs text-gray-400 mb-2 flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-yellow-400" />
@@ -258,7 +265,6 @@ export default function SearchResults({
                     </div>
                   </div>
 
-                  {/* Filtro de Gênero */}
                   {availableGenres.length > 2 && (
                     <div>
                       <label className="text-xs text-gray-400 mb-2 flex items-center gap-2">
@@ -281,7 +287,6 @@ export default function SearchResults({
                     </div>
                   )}
 
-                  {/* Clear Filters */}
                   {hasActiveFilters && (
                     <Button
                       onClick={handleClearFilters}
