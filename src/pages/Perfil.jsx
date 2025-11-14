@@ -14,7 +14,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import EditProfileModal from "../components/profile/EditProfileModal";
 import TicketCard from "../components/tickets/TicketCard";
-import { CACHE_CONFIG, DEFAULT_AVATAR } from "../components/shared/helpers";
+import { CACHE_CONFIG } from "../components/shared/helpers";
+import { getUserDisplayName, getUserAvatar } from "../components/shared/userHelpers";
 
 export default function Perfil() {
   const navigate = useNavigate();
@@ -107,7 +108,7 @@ export default function Perfil() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Perfil de ${user.full_name}`,
+          title: `Perfil de ${getUserDisplayName(user)}`,
           text: `Confira meu perfil no SUBLINX!`,
           url: profileUrl
         });
@@ -161,8 +162,8 @@ export default function Perfil() {
         <div className="flex items-start gap-6 mb-6">
           <div className="relative flex-shrink-0">
             <img
-              src={user.avatar_url || DEFAULT_AVATAR}
-              alt={user.full_name}
+              src={getUserAvatar(user)}
+              alt={getUserDisplayName(user)}
               className="w-24 h-24 rounded-full object-cover border-2 border-gray-800"
             />
             {(user.is_pro_member || user.is_organizer) && (
@@ -189,7 +190,7 @@ export default function Perfil() {
             </div>
 
             <div className="mb-4">
-              <p className="font-semibold mb-1">{user.full_name}</p>
+              <p className="font-semibold mb-1">{getUserDisplayName(user)}</p>
               {user.bio && <p className="text-sm text-gray-300">{user.bio}</p>}
               
               <div className="flex items-center gap-2 mt-2">

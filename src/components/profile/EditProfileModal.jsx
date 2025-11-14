@@ -7,11 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, X, Camera, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getUserDisplayName } from "../shared/userHelpers";
 
 export default function EditProfileModal({ user, onClose }) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
-    full_name: user.full_name || "",
+    display_name: getUserDisplayName(user),
     bio: user.bio || "",
     avatar_url: user.avatar_url || "",
     phone: user.phone || "",
@@ -53,7 +54,7 @@ export default function EditProfileModal({ user, onClose }) {
   };
 
   const handleSave = async () => {
-    const trimmedName = formData.full_name.trim();
+    const trimmedName = formData.display_name.trim();
     
     if (!trimmedName || trimmedName.length < 3) {
       setError("Nome deve ter pelo menos 3 caracteres");
@@ -64,14 +65,10 @@ export default function EditProfileModal({ user, onClose }) {
     setError("");
     
     try {
-      console.log("🔄 Salvando perfil:", { 
-        currentName: user.full_name, 
-        newName: trimmedName 
-      });
+      console.log("🔄 Salvando perfil com display_name:", trimmedName);
       
-      // ATUALIZA USANDO base44.auth.updateMe
       const updateData = {
-        full_name: trimmedName,
+        display_name: trimmedName,
         bio: formData.bio?.trim() || "",
         avatar_url: formData.avatar_url || "",
         phone: formData.phone?.trim() || "",
@@ -83,13 +80,13 @@ export default function EditProfileModal({ user, onClose }) {
 
       console.log("✅ Perfil salvo com sucesso");
 
-      // Invalida TODOS os caches relacionados
-      queryClient.removeQueries({ queryKey: ['currentUser'] });
-      queryClient.removeQueries({ queryKey: ['profileUser'] });
+      // Invalida todos os caches
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['profileUser'] });
       
       onClose();
       
-      // Força reload COMPLETO para garantir atualização
+      // Reload para garantir atualização
       setTimeout(() => {
         window.location.reload();
       }, 100);
@@ -151,18 +148,19 @@ export default function EditProfileModal({ user, onClose }) {
           </div>
 
           <div>
-            <label className="text-sm text-gray-400 mb-2 block">Nome Completo *</label>
+            <label className="text-sm text-gray-400 mb-2 block">Nome de Exibição *</label>
             <Input
-              value={formData.full_name}
+              value={formData.display_name}
               onChange={(e) => {
-                setFormData(prev => ({ ...prev, full_name: e.target.value }));
+                setFormData(prev => ({ ...prev, display_name: e.target.value }));
                 setError("");
               }}
               className="bg-gray-800 border-gray-700 text-white focus:border-cyan-500"
-              placeholder="Seu nome completo"
+              placeholder="Como você quer ser chamado"
               maxLength={50}
               disabled={loading || uploading}
             />
+            <p className="text-xs text-gray-500 mt-1">Este é o nome que aparecerá em seu perfil</p>
           </div>
 
           <div>
@@ -223,7 +221,7 @@ export default function EditProfileModal({ user, onClose }) {
           </Button>
           <Button
             onClick={handleSave}
-            disabled={loading || uploading || !formData.full_name || formData.full_name.trim().length < 3}
+            disabled={loading || uploading || !formData.display_name || formData.display_name.trim().length < 3}
             className="bg-cyan-600 hover:bg-cyan-700"
           >
             {loading ? (
