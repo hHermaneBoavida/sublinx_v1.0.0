@@ -1,17 +1,20 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ArrowLeft, Calendar, Share2, Crown, Award, 
-  Users, Ticket, Trophy, Instagram, Twitter, CheckCircle, AlertCircle
+  ArrowLeft, Calendar, Share2, Crown, Award, Users, Ticket, Trophy, Instagram, 
+  Twitter, CheckCircle, AlertCircle, Music, Heart, MessageCircle, Clock, Filter,
+  Play, TrendingUp, Zap, Star, Target, Gift
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { format, isAfter, isBefore } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import FollowButton from "../components/profile/FollowButton";
 import EventHistoryCard from "../components/profile/EventHistoryCard";
 import ProfileAvatar from "../components/shared/ProfileAvatar";
@@ -20,6 +23,8 @@ import { CACHE_CONFIG } from "../components/shared/helpers";
 export default function PerfilUsuario() {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [eventFilter, setEventFilter] = useState('all'); // all, upcoming, past
   
   const searchParams = new URLSearchParams(location.search);
   const userId = searchParams.get('id');
@@ -43,7 +48,6 @@ export default function PerfilUsuario() {
       if (!userId) throw new Error("ID não fornecido");
       
       try {
-        // CORREÇÃO: Buscar por ID específico usando filter
         const users = await base44.entities.User.filter({ id: userId });
         
         if (!users || users.length === 0) {
@@ -99,6 +103,47 @@ export default function PerfilUsuario() {
     ...CACHE_CONFIG.MEDIUM,
   });
 
+  const { data: userBadges = [] } = useQuery({
+    queryKey: ['userBadges', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      return await base44.entities.UserBadge.filter({ user_id: userId });
+    },
+    enabled: !!userId,
+    ...CACHE_CONFIG.LONG,
+  });
+
+  const { data: recentActivity = [] } = useQuery({
+    queryKey: ['userActivity', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      
+      const [likes, comments] = await Promise.all([
+        base44.entities.Like.filter({ user_id: userId }, "-created_date", 10),
+        base44.entities.Comment.filter({ user_id: userId }, "-created_date", 10)
+      ]);
+
+      const activities = [
+        ...likes.map(like => ({
+          type: 'like',
+          data: like,
+          timestamp: like.created_date
+        })),
+        ...comments.map(comment => ({
+          type: 'comment',
+          data: comment,
+          timestamp: comment.created_date
+        }))
+      ];
+
+      return activities
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 15);
+    },
+    enabled: !!userId,
+    ...CACHE_CONFIG.SHORT,
+  });
+
   const userEvents = useMemo(() => {
     if (!profileUser || !allEvents) return [];
     
@@ -110,14 +155,53 @@ export default function PerfilUsuario() {
     }
   }, [profileUser, allEvents, userId, userTickets]);
 
-  const { data: userBadges = [] } = useQuery({
-    queryKey: ['userBadges', userId],
-    queryFn: async () => {
-      if (!userId) return [];
-      return await base44.entities.UserBadge.filter({ user_id: userId });
+  const filteredEvents = useMemo(() => {
+    const now = new Date();
+    
+    switch (eventFilter) {
+      case 'upcoming':
+        return userEvents.filter(e => isAfter(new Date(e.date), now));
+      case 'past':
+        return userEvents.filter(e => isBefore(new Date(e.date), now));
+      default:
+        return userEvents;
+    }
+  }, [userEvents, eventFilter]);
+
+  // Mock de playlists/artistas favoritos
+  const favoriteGenres = useMemo(() => {
+    if (!userEvents || userEvents.length === 0) return [];
+    
+    const genreCounts = userEvents.reduce((acc, event) => {
+      const genre = event.genre || 'outros';
+      acc[genre] = (acc[genre] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(genreCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([genre, count]) => ({ genre, count }));
+  }, [userEvents]);
+
+  const isOwnProfile = currentUser?.id === userId;
+
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      // Será tratado pelo FollowButton, mas vamos notificar
+      if (userId && currentUser) {
+        await base44.entities.Notification.create({
+          user_id: userId,
+          type: 'new_follower',
+          title: '👥 Novo seguidor!',
+          message: `${currentUser.full_name || currentUser.email} começou a seguir você`,
+          is_read: false
+        });
+      }
     },
-    enabled: !!userId,
-    ...CACHE_CONFIG.LONG,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['followers', userId]);
+    }
   });
 
   const handleShareProfile = async () => {
@@ -392,16 +476,48 @@ export default function PerfilUsuario() {
 
         {/* Tabs */}
         <Tabs defaultValue="eventos" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-900/80 border border-gray-700">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-900/80 border border-gray-700">
             <TabsTrigger value="eventos">
-              {profileUser.is_organizer ? 'Eventos Criados' : 'Histórico'}
+              {profileUser.is_organizer ? 'Eventos' : 'Histórico'}
             </TabsTrigger>
-            <TabsTrigger value="badges">Badges</TabsTrigger>
+            <TabsTrigger value="badges">Conquistas</TabsTrigger>
+            <TabsTrigger value="music">Música</TabsTrigger>
+            <TabsTrigger value="activity">Atividade</TabsTrigger>
           </TabsList>
 
+          {/* Eventos Tab */}
           <TabsContent value="eventos" className="space-y-3 mt-4">
-            {userEvents.length > 0 ? (
-              userEvents.map((event, index) => (
+            {/* Filtros */}
+            <div className="flex items-center gap-2 mb-4">
+              <Filter className="w-4 h-4 text-gray-400" />
+              <Button
+                variant={eventFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setEventFilter('all')}
+                className={eventFilter === 'all' ? 'bg-cyan-600' : 'border-gray-600'}
+              >
+                Todos ({userEvents.length})
+              </Button>
+              <Button
+                variant={eventFilter === 'upcoming' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setEventFilter('upcoming')}
+                className={eventFilter === 'upcoming' ? 'bg-green-600' : 'border-gray-600'}
+              >
+                Próximos ({userEvents.filter(e => isAfter(new Date(e.date), new Date())).length})
+              </Button>
+              <Button
+                variant={eventFilter === 'past' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setEventFilter('past')}
+                className={eventFilter === 'past' ? 'bg-purple-600' : 'border-gray-600'}
+              >
+                Passados ({userEvents.filter(e => isBefore(new Date(e.date), new Date())).length})
+              </Button>
+            </div>
+
+            {filteredEvents.length > 0 ? (
+              filteredEvents.map((event, index) => (
                 <EventHistoryCard key={event.id} event={event} index={index} />
               ))
             ) : (
@@ -409,19 +525,44 @@ export default function PerfilUsuario() {
                 <CardContent className="p-12 text-center">
                   <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-gray-400 mb-2">
-                    {profileUser.is_organizer ? 'Nenhum evento criado' : 'Nenhum evento participado'}
+                    Nenhum evento encontrado
                   </h3>
                   <p className="text-gray-500">
-                    {profileUser.is_organizer 
-                      ? 'Este organizador ainda não criou eventos' 
-                      : 'Este usuário ainda não participou de eventos'}
+                    {eventFilter === 'upcoming' 
+                      ? 'Nenhum evento futuro agendado'
+                      : eventFilter === 'past'
+                      ? 'Nenhum evento passado registrado'
+                      : profileUser.is_organizer 
+                        ? 'Este organizador ainda não criou eventos' 
+                        : 'Este usuário ainda não participou de eventos'}
                   </p>
                 </CardContent>
               </Card>
             )}
           </TabsContent>
 
+          {/* Badges Tab */}
           <TabsContent value="badges" className="mt-4">
+            {/* Badge Progress */}
+            <Card className="bg-gradient-to-br from-yellow-900/20 to-orange-900/20 border-yellow-500/30 mb-4">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-yellow-400" />
+                    <span className="font-semibold text-white">Progresso de Conquistas</span>
+                  </div>
+                  <span className="text-yellow-400 font-bold">{stats.badges}/20</span>
+                </div>
+                <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(stats.badges / 20) * 100}%` }}
+                    className="h-full bg-gradient-to-r from-yellow-500 to-orange-500"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             {userBadges.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {userBadges.map((badge, index) => {
@@ -463,9 +604,14 @@ export default function PerfilUsuario() {
                           </div>
                           <h3 className="font-bold text-white mb-1 text-sm">{badge.badge_name}</h3>
                           <p className="text-xs text-gray-400 mb-2 line-clamp-2">{badge.badge_description}</p>
-                          <Badge className={`bg-gradient-to-r ${config.color} text-white border-0 text-xs`}>
+                          <Badge className={`bg-gradient-to-r ${config.color} text-white border-0 text-xs mb-2`}>
                             {badge.rarity}
                           </Badge>
+                          {badge.earned_at && (
+                            <p className="text-[10px] text-gray-500">
+                              {format(new Date(badge.earned_at), "dd/MM/yyyy", { locale: ptBR })}
+                            </p>
+                          )}
                         </CardContent>
                       </Card>
                     </motion.div>
@@ -476,12 +622,174 @@ export default function PerfilUsuario() {
               <Card className="bg-gray-900/50 border-gray-700">
                 <CardContent className="p-12 text-center">
                   <Award className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-400">
-                    Nenhum badge conquistado ainda
+                  <h3 className="text-xl font-semibold text-gray-400 mb-2">
+                    Nenhuma conquista ainda
                   </h3>
+                  <p className="text-gray-500 mb-4">
+                    Participe de eventos e ganhe badges exclusivos!
+                  </p>
+                  <Button
+                    onClick={() => navigate(createPageUrl("Feed"))}
+                    className="bg-gradient-to-r from-cyan-600 to-purple-600"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Explorar Eventos
+                  </Button>
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Music Tab */}
+          <TabsContent value="music" className="mt-4">
+            {/* Gêneros Favoritos */}
+            <Card className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-500/30 mb-4">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Music className="w-5 h-5 text-purple-400" />
+                  <h3 className="font-semibold text-white">Gêneros Favoritos</h3>
+                </div>
+                
+                {favoriteGenres.length > 0 ? (
+                  <div className="space-y-3">
+                    {favoriteGenres.map((item, index) => (
+                      <motion.div
+                        key={item.genre}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className={`w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center ${
+                            index === 0 ? 'from-yellow-500 to-orange-500' :
+                            index === 1 ? 'from-purple-500 to-pink-500' :
+                            'from-cyan-500 to-blue-500'
+                          }`}>
+                            <span className="text-white font-bold text-sm">#{index + 1}</span>
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-white capitalize">{item.genre}</p>
+                            <p className="text-xs text-gray-400">{item.count} evento{item.count !== 1 ? 's' : ''}</p>
+                          </div>
+                        </div>
+                        <div className="w-24">
+                          <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(item.count / userEvents.length) * 100}%` }}
+                              className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm text-center py-4">
+                    Nenhum dado musical disponível ainda
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Estatísticas Musicais */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="bg-gray-900/50 border-gray-700">
+                <CardContent className="p-4 text-center">
+                  <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-400 mb-1">Evento Mais Curtido</p>
+                  <p className="font-bold text-white text-sm">
+                    {userEvents.length > 0 ? userEvents[0]?.genre || 'N/A' : 'N/A'}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-900/50 border-gray-700">
+                <CardContent className="p-4 text-center">
+                  <Star className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-400 mb-1">Gênero #1</p>
+                  <p className="font-bold text-white text-sm capitalize">
+                    {favoriteGenres[0]?.genre || 'N/A'}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Playlists do Usuário (Mock) */}
+            {profileUser.is_organizer && (
+              <Card className="bg-gray-900/50 border-gray-700 mt-4">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-white flex items-center gap-2">
+                      <Play className="w-5 h-5 text-cyan-400" />
+                      Playlists dos Eventos
+                    </h3>
+                  </div>
+                  <p className="text-gray-400 text-sm text-center py-8">
+                    🎵 Playlists disponíveis em breve!
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Activity Tab */}
+          <TabsContent value="activity" className="mt-4">
+            <Card className="bg-gray-900/50 border-gray-700">
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-cyan-400" />
+                  Atividade Recente
+                </h3>
+                
+                {recentActivity.length > 0 ? (
+                  <div className="space-y-3">
+                    {recentActivity.map((activity, index) => (
+                      <motion.div
+                        key={`${activity.type}-${activity.data.id}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700"
+                      >
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          activity.type === 'like' 
+                            ? 'bg-red-600/20' 
+                            : 'bg-blue-600/20'
+                        }`}>
+                          {activity.type === 'like' ? (
+                            <Heart className="w-5 h-5 text-red-400" />
+                          ) : (
+                            <MessageCircle className="w-5 h-5 text-blue-400" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-white text-sm">
+                            {activity.type === 'like' 
+                              ? 'Curtiu um evento'
+                              : 'Comentou em um evento'}
+                          </p>
+                          {activity.type === 'comment' && activity.data.content && (
+                            <p className="text-gray-400 text-xs mt-1 line-clamp-2">
+                              "{activity.data.content}"
+                            </p>
+                          )}
+                          <p className="text-gray-500 text-xs mt-1">
+                            {format(new Date(activity.timestamp), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Clock className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-400">Nenhuma atividade recente</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

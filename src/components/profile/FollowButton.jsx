@@ -1,127 +1,140 @@
-import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { UserPlus, UserMinus, Loader2, CheckCircle } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { UserPlus, UserCheck, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { CACHE_CONFIG } from "../shared/helpers";
 
 export default function FollowButton({ targetUserId, currentUserId, size = "default" }) {
   const queryClient = useQueryClient();
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
-  const { data: followData } = useQuery({
+  const { data: followData, isLoading: checkingFollow } = useQuery({
     queryKey: ['followStatus', currentUserId, targetUserId],
     queryFn: async () => {
+      if (!currentUserId || !targetUserId) return null;
       const follows = await base44.entities.Follow.filter({
         follower_id: currentUserId,
         following_id: targetUserId
       });
-      return follows && follows.length > 0 ? follows[0] : null;
+      return follows?.[0] || null;
     },
-    enabled: !!currentUserId && !!targetUserId && currentUserId !== targetUserId,
+    enabled: !!currentUserId && !!targetUserId,
+    ...CACHE_CONFIG.SHORT,
   });
 
-  const isFollowing = !!followData;
+  useEffect(() => {
+    setIsFollowing(!!followData);
+  }, [followData]);
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch {
+        return null;
+      }
+    },
+    ...CACHE_CONFIG.STATIC,
+  });
+
+  const { data: targetUser } = useQuery({
+    queryKey: ['targetUser', targetUserId],
+    queryFn: async () => {
+      if (!targetUserId) return null;
+      const users = await base44.entities.User.filter({ id: targetUserId });
+      return users?.[0] || null;
+    },
+    enabled: !!targetUserId,
+    ...CACHE_CONFIG.MEDIUM,
+  });
 
   const followMutation = useMutation({
     mutationFn: async () => {
-      return await base44.entities.Follow.create({
-        follower_id: currentUserId,
-        following_id: targetUserId,
-        followed_at: new Date().toISOString()
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['followStatus']);
-      queryClient.invalidateQueries(['followers', targetUserId]);
-      queryClient.invalidateQueries(['following', currentUserId]);
-      
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
-    },
-  });
-
-  const unfollowMutation = useMutation({
-    mutationFn: async () => {
-      if (followData) {
-        await base44.entities.Follow.delete(followData.id);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['followStatus']);
-      queryClient.invalidateQueries(['followers', targetUserId]);
-      queryClient.invalidateQueries(['following', currentUserId]);
-    },
-  });
-
-  const handleToggleFollow = async () => {
-    try {
       if (isFollowing) {
-        await unfollowMutation.mutateAsync();
+        // Unfollow
+        await base44.entities.Follow.delete(followData.id);
+        return 'unfollowed';
       } else {
-        await followMutation.mutateAsync();
+        // Follow
+        await base44.entities.Follow.create({
+          follower_id: currentUserId,
+          following_id: targetUserId
+        });
+
+        // Criar notificação
+        try {
+          await base44.entities.Notification.create({
+            user_id: targetUserId,
+            type: 'new_follower',
+            title: '👥 Novo seguidor!',
+            message: `${currentUser?.full_name || currentUser?.email || 'Alguém'} começou a seguir você`,
+            is_read: false,
+            location_match: false,
+            genre_match: []
+          });
+        } catch (error) {
+          console.log('Erro ao criar notificação:', error);
+        }
+
+        return 'followed';
       }
-    } catch (error) {
-      console.error("Erro ao seguir/deixar de seguir:", error);
+    },
+    onMutate: () => {
+      setIsFollowing(!isFollowing);
+    },
+    onError: (error) => {
+      console.error('Erro ao seguir/deixar de seguir:', error);
+      setIsFollowing(!isFollowing);
+      alert('❌ Erro ao processar ação. Tente novamente.');
+    },
+    onSuccess: (action) => {
+      queryClient.invalidateQueries(['followStatus']);
+      queryClient.invalidateQueries(['followers']);
+      queryClient.invalidateQueries(['following']);
+      
+      if (action === 'followed') {
+        console.log(`✅ Você seguiu ${targetUser?.full_name || 'o usuário'}!`);
+      } else {
+        console.log(`✅ Você deixou de seguir ${targetUser?.full_name || 'o usuário'}!`);
+      }
     }
-  };
+  });
 
   if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
     return null;
   }
 
-  const isLoading = followMutation.isPending || unfollowMutation.isPending;
+  if (checkingFollow) {
+    return (
+      <Button disabled size={size} variant="outline" className="border-gray-600">
+        <Loader2 className="w-4 h-4 animate-spin" />
+      </Button>
+    );
+  }
 
   return (
-    <motion.div
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      className="relative"
-    >
+    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
       <Button
-        onClick={handleToggleFollow}
-        disabled={isLoading}
+        onClick={() => followMutation.mutate()}
+        disabled={followMutation.isPending}
         size={size}
-        className={`relative overflow-hidden transition-all duration-300 font-semibold ${
+        className={
           isFollowing
-            ? "bg-gray-800 hover:bg-red-900/20 text-gray-300 hover:text-red-400 border-2 border-gray-700 hover:border-red-500"
-            : "bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-500 hover:via-purple-500 hover:to-pink-500 text-white border-0"
-        }`}
-        style={{
-          boxShadow: isFollowing ? 'none' : '0 0 30px rgba(6, 182, 212, 0.5)'
-        }}
+            ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
+            : 'bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700'
+        }
       >
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
-          animate={!isFollowing ? { x: ['-100%', '100%'] } : {}}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        />
-        
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin relative z-10" />
-            <span className="relative z-10">{isFollowing ? "Deixando..." : "Seguindo..."}</span>
-          </>
-        ) : showSuccess ? (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="flex items-center gap-2 relative z-10"
-          >
-            <CheckCircle className="w-4 h-4" />
-            Seguindo!
-          </motion.div>
+        {followMutation.isPending ? (
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
         ) : isFollowing ? (
-          <>
-            <UserMinus className="w-4 h-4 mr-2 relative z-10" />
-            <span className="relative z-10">Seguindo</span>
-          </>
+          <UserCheck className="w-4 h-4 mr-2" />
         ) : (
-          <>
-            <UserPlus className="w-4 h-4 mr-2 relative z-10" />
-            <span className="relative z-10">Seguir</span>
-          </>
+          <UserPlus className="w-4 h-4 mr-2" />
         )}
+        {isFollowing ? 'Seguindo' : 'Seguir'}
       </Button>
     </motion.div>
   );
