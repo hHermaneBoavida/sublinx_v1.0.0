@@ -8,11 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Settings, LogOut, Crown, Zap, Calendar, Ticket,
-  Heart, MessageSquare, Users, TrendingUp, Camera,
-  MapPin, Star, Award, Target, BarChart3, Edit2, Share2,
-  UserPlus, Copy, Instagram, Twitter, Mail, Phone, Shield,
-  CreditCard, XCircle, CheckCircle, Sparkles, Trophy
+  LogOut, Crown, Zap, Calendar, Ticket, Users, TrendingUp,
+  Award, BarChart3, Edit2, Share2, UserPlus, Mail, Phone, 
+  Shield, CreditCard, XCircle, CheckCircle, Trophy, Settings, DollarSign
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -142,12 +140,8 @@ export default function Perfil() {
   });
 
   const handleLogout = async () => {
-    try {
-      await base44.auth.logout();
-      navigate(createPageUrl("BemVindo"));
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-    }
+    await base44.auth.logout();
+    navigate(createPageUrl("BemVindo"));
   };
 
   const handleShareProfile = async () => {
@@ -161,7 +155,8 @@ export default function Perfil() {
           url: profileUrl
         });
       } catch (err) {
-        console.log('Share cancelled');
+        navigator.clipboard.writeText(profileUrl);
+        alert('Link do perfil copiado!');
       }
     } else {
       navigator.clipboard.writeText(profileUrl);
@@ -200,22 +195,17 @@ export default function Perfil() {
 
   return (
     <div className="min-h-screen bg-black text-white pb-24 md:pb-8">
-      {/* Hero Header com Avatar */}
+      {/* Hero Header */}
       <div className="relative h-64 overflow-hidden">
-        {/* Background com gradiente cyberpunk */}
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/40 via-purple-900/40 to-pink-900/40" />
         <div
           className="absolute inset-0 opacity-20"
           style={{
-            backgroundImage: `
-              linear-gradient(to right, rgba(6, 182, 212, 0.3) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(6, 182, 212, 0.3) 1px, transparent 1px)
-            `,
+            backgroundImage: `linear-gradient(to right, rgba(6, 182, 212, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(6, 182, 212, 0.3) 1px, transparent 1px)`,
             backgroundSize: '40px 40px',
           }}
         />
         
-        {/* Floating particles */}
         {[...Array(15)].map((_, i) => (
           <motion.div
             key={i}
@@ -239,7 +229,6 @@ export default function Perfil() {
           />
         ))}
 
-        {/* Avatar centralizado */}
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -247,7 +236,6 @@ export default function Perfil() {
           className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 z-20"
         >
           <div className="relative">
-            {/* Glow rings */}
             <motion.div
               className="absolute inset-0 rounded-full"
               style={{
@@ -266,7 +254,6 @@ export default function Perfil() {
               transition={{ duration: 3, repeat: Infinity }}
             />
 
-            {/* Avatar */}
             <motion.img
               src={user.avatar_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/5048ab8ec_perfil.png"}
               alt={user.full_name}
@@ -278,18 +265,14 @@ export default function Perfil() {
               whileHover={{ scale: 1.05, rotate: 5 }}
             />
 
-            {/* Level badge */}
             <motion.div
               className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-600 border-4 border-black flex items-center justify-center z-20"
               whileHover={{ scale: 1.1, rotate: -10 }}
-              style={{
-                boxShadow: '0 0 20px rgba(251, 191, 36, 0.8)'
-              }}
+              style={{ boxShadow: '0 0 20px rgba(251, 191, 36, 0.8)' }}
             >
               <span className="text-sm font-bold text-white">{stats.level}</span>
             </motion.div>
 
-            {/* Pro/Organizer badge */}
             {(user.is_pro_member || user.is_organizer) && (
               <motion.div
                 className="absolute -top-2 -right-2 z-20"
@@ -305,7 +288,6 @@ export default function Perfil() {
           </div>
         </motion.div>
 
-        {/* Top controls */}
         <div className="absolute top-4 right-4 flex gap-2 z-10">
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
             <Button
@@ -330,9 +312,7 @@ export default function Perfil() {
         </div>
       </div>
 
-      {/* Profile Info */}
       <div className="max-w-4xl mx-auto px-4 mt-20">
-        {/* Name & Bio */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -345,7 +325,6 @@ export default function Perfil() {
             <p className="text-gray-400 max-w-md mx-auto mb-3">{user.bio}</p>
           )}
 
-          {/* Plan badge */}
           <div className="flex items-center justify-center gap-3 mb-4">
             <Badge className={`bg-gradient-to-r ${
               user.is_organizer 
@@ -365,86 +344,43 @@ export default function Perfil() {
               </Badge>
             )}
           </div>
-
-          {/* Social links */}
-          {user.social_links && (
-            <div className="flex items-center justify-center gap-3">
-              {user.social_links.instagram && (
-                <a href={user.social_links.instagram} target="_blank" rel="noopener noreferrer">
-                  <Button size="icon" variant="ghost" className="text-pink-400 hover:text-pink-300 hover:bg-pink-900/20">
-                    <Instagram className="w-5 h-5" />
-                  </Button>
-                </a>
-              )}
-              {user.social_links.twitter && (
-                <a href={user.social_links.twitter} target="_blank" rel="noopener noreferrer">
-                  <Button size="icon" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20">
-                    <Twitter className="w-5 h-5" />
-                  </Button>
-                </a>
-              )}
-            </div>
-          )}
         </motion.div>
 
-        {/* Stats Grid - Redesigned */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-4 gap-3 mb-6">
-          <motion.div
-            whileHover={{ scale: 1.05, y: -2 }}
+          <StatCard
+            icon={Users}
+            value={stats.followers}
+            label="Seguidores"
+            color="from-cyan-900/30 to-gray-900 border-cyan-700/50"
+            iconColor="text-cyan-400"
             onClick={() => setShowFollowers(true)}
-            className="cursor-pointer"
-          >
-            <Card className="bg-gradient-to-br from-cyan-900/30 to-gray-900 border-cyan-700/50 text-center">
-              <CardContent className="p-4">
-                <Users className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{stats.followers}</div>
-                <div className="text-xs text-gray-400">Seguidores</div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.05, y: -2 }}
+          />
+          <StatCard
+            icon={UserPlus}
+            value={stats.following}
+            label="Seguindo"
+            color="from-purple-900/30 to-gray-900 border-purple-700/50"
+            iconColor="text-purple-400"
             onClick={() => setShowFollowing(true)}
-            className="cursor-pointer"
-          >
-            <Card className="bg-gradient-to-br from-purple-900/30 to-gray-900 border-purple-700/50 text-center">
-              <CardContent className="p-4">
-                <UserPlus className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{stats.following}</div>
-                <div className="text-xs text-gray-400">Seguindo</div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div whileHover={{ scale: 1.05, y: -2 }}>
-            <Card className="bg-gradient-to-br from-pink-900/30 to-gray-900 border-pink-700/50 text-center">
-              <CardContent className="p-4">
-                {user.is_organizer ? (
-                  <Calendar className="w-6 h-6 text-pink-400 mx-auto mb-2" />
-                ) : (
-                  <Ticket className="w-6 h-6 text-pink-400 mx-auto mb-2" />
-                )}
-                <div className="text-2xl font-bold text-white">{stats.events}</div>
-                <div className="text-xs text-gray-400">
-                  {user.is_organizer ? 'Eventos' : 'Ingressos'}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div whileHover={{ scale: 1.05, y: -2 }}>
-            <Card className="bg-gradient-to-br from-yellow-900/30 to-gray-900 border-yellow-700/50 text-center">
-              <CardContent className="p-4">
-                <Trophy className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{userBadges.length}</div>
-                <div className="text-xs text-gray-400">Badges</div>
-              </CardContent>
-            </Card>
-          </motion.div>
+          />
+          <StatCard
+            icon={user.is_organizer ? Calendar : Ticket}
+            value={stats.events}
+            label={user.is_organizer ? 'Eventos' : 'Ingressos'}
+            color="from-pink-900/30 to-gray-900 border-pink-700/50"
+            iconColor="text-pink-400"
+          />
+          <StatCard
+            icon={Trophy}
+            value={userBadges.length}
+            label="Badges"
+            color="from-yellow-900/30 to-gray-900 border-yellow-700/50"
+            iconColor="text-yellow-400"
+          />
         </div>
 
-        {/* XP Progress Bar */}
+        {/* XP Progress */}
         <Card className="bg-gray-900/50 border-gray-700 mb-6 overflow-hidden">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
@@ -505,12 +441,9 @@ export default function Perfil() {
           />
         </div>
 
-        {/* Active Subscription Card */}
+        {/* Active Subscription */}
         {subscription && subscription.status === 'active' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="bg-gradient-to-br from-yellow-900/20 to-gray-900 border-yellow-700/50 mb-6">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
@@ -571,7 +504,6 @@ export default function Perfil() {
             )}
           </TabsList>
 
-          {/* Tab: Eventos (Organizer) */}
           {user.is_organizer && (
             <TabsContent value="eventos" className="space-y-3 mt-4">
               {myEvents.length > 0 ? (
@@ -590,13 +522,12 @@ export default function Perfil() {
             </TabsContent>
           )}
 
-          {/* Tab: Ingressos (User) */}
           {!user.is_organizer && (
             <TabsContent value="ingressos" className="space-y-3 mt-4">
               {userTickets.length > 0 ? (
                 userTickets
                   .filter(t => t.status === 'valid')
-                  .map((ticket, index) => {
+                  .map((ticket) => {
                     const event = allEvents.find(e => e.id === ticket.event_id);
                     return event ? (
                       <TicketCard key={ticket.id} ticket={ticket} event={event} />
@@ -614,7 +545,6 @@ export default function Perfil() {
             </TabsContent>
           )}
 
-          {/* Tab: Badges */}
           <TabsContent value="badges" className="mt-4">
             {userBadges.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -633,29 +563,28 @@ export default function Perfil() {
             )}
           </TabsContent>
 
-          {/* Tab: Stats (Organizer) */}
           {user.is_organizer && (
             <TabsContent value="stats" className="mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <StatsCard
+                <StatsDetailCard
                   icon={DollarSign}
                   label="Receita Total"
                   value={`R$ ${myEvents.reduce((sum, e) => sum + (e.revenue || 0), 0).toFixed(2)}`}
                   color="from-green-600 to-emerald-600"
                 />
-                <StatsCard
+                <StatsDetailCard
                   icon={Ticket}
                   label="Ingressos Vendidos"
                   value={myEvents.reduce((sum, e) => sum + (e.tickets_sold || 0), 0)}
                   color="from-blue-600 to-indigo-600"
                 />
-                <StatsCard
+                <StatsDetailCard
                   icon={Users}
                   label="Total Participantes"
                   value={myEvents.reduce((sum, e) => sum + (e.current_attendees || 0), 0)}
                   color="from-purple-600 to-pink-600"
                 />
-                <StatsCard
+                <StatsDetailCard
                   icon={TrendingUp}
                   label="Taxa Média Ocupação"
                   value={`${myEvents.length > 0 
@@ -667,7 +596,6 @@ export default function Perfil() {
             </TabsContent>
           )}
 
-          {/* Tab: Conta */}
           <TabsContent value="config" className="space-y-4 mt-4">
             <Card className="bg-gray-900/50 border-gray-700">
               <CardContent className="p-6 space-y-4">
@@ -697,7 +625,7 @@ export default function Perfil() {
 
                 {user.city && (
                   <div className="flex items-center gap-3 pb-4 border-b border-gray-700">
-                    <MapPin className="w-5 h-5 text-pink-400" />
+                    <Badge className="w-5 h-5 text-pink-400" />
                     <div>
                       <p className="text-sm text-gray-400">Localização</p>
                       <p className="text-white font-medium">{user.city}{user.state ? `, ${user.state}` : ''}</p>
@@ -717,7 +645,6 @@ export default function Perfil() {
               </CardContent>
             </Card>
 
-            {/* Actions */}
             <div className="space-y-3">
               <Button
                 onClick={() => navigate(createPageUrl("ConfiguracoesPrivacidade"))}
@@ -754,12 +681,8 @@ export default function Perfil() {
       {/* Modals */}
       <AnimatePresence>
         {showEditModal && (
-          <EditProfileModal
-            user={user}
-            onClose={() => setShowEditModal(false)}
-          />
+          <EditProfileModal user={user} onClose={() => setShowEditModal(false)} />
         )}
-
         {showFollowers && (
           <FollowModal
             title="Seguidores"
@@ -769,7 +692,6 @@ export default function Perfil() {
             type="followers"
           />
         )}
-
         {showFollowing && (
           <FollowModal
             title="Seguindo"
@@ -779,18 +701,14 @@ export default function Perfil() {
             type="following"
           />
         )}
-
         {showCancelPlan && (
           <CancelPlanModal
             subscription={subscription}
-            onCancel={async () => {
-              await cancelPlanMutation.mutateAsync();
-            }}
+            onCancel={() => cancelPlanMutation.mutateAsync()}
             onClose={() => setShowCancelPlan(false)}
             isLoading={cancelPlanMutation.isPending}
           />
         )}
-
         {showLogoutConfirm && (
           <LogoutConfirmModal
             onConfirm={handleLogout}
@@ -799,6 +717,24 @@ export default function Perfil() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function StatCard({ icon: Icon, value, label, color, iconColor, onClick }) {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.05, y: -2 }}
+      onClick={onClick}
+      className={onClick ? "cursor-pointer" : ""}
+    >
+      <Card className={`bg-gradient-to-br ${color} text-center`}>
+        <CardContent className="p-4">
+          <Icon className={`w-6 h-6 ${iconColor} mx-auto mb-2`} />
+          <div className="text-2xl font-bold text-white">{value}</div>
+          <div className="text-xs text-gray-400">{label}</div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
@@ -826,10 +762,10 @@ function QuickActionButton({ icon: Icon, label, onClick, gradient, badge = false
   );
 }
 
-function StatsCard({ icon: Icon, label, value, color }) {
+function StatsDetailCard({ icon: Icon, label, value, color }) {
   return (
     <motion.div whileHover={{ scale: 1.03 }}>
-      <Card className={`bg-gradient-to-br ${color}/20 to-gray-900 border-${color}/50`}>
+      <Card className={`bg-gradient-to-br ${color}/20 to-gray-900`}>
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
             <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${color}/30 flex items-center justify-center`}>
@@ -872,9 +808,7 @@ function BadgeCard({ badge, index }) {
             background: `radial-gradient(circle at 50% 0%, ${config.glow}, transparent 70%)`,
             filter: 'blur(20px)',
           }}
-          animate={{
-            opacity: [0.2, 0.4, 0.2]
-          }}
+          animate={{ opacity: [0.2, 0.4, 0.2] }}
           transition={{ duration: 3, repeat: Infinity }}
         />
         
@@ -914,7 +848,7 @@ function EmptyState({ icon: Icon, title, description, action, actionLabel }) {
 
 function FollowModal({ title, follows, currentUserId, onClose, type }) {
   const { data: users = [] } = useQuery({
-    queryKey: ['followUsers', follows],
+    queryKey: ['followUsers', type, follows.length],
     queryFn: async () => {
       if (!follows || follows.length === 0) return [];
       
@@ -1050,11 +984,7 @@ function CancelPlanModal({ subscription, onCancel, onClose, isLoading }) {
                 className="flex-1 bg-red-600 hover:bg-red-700"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  'Confirmar Cancelamento'
-                )}
+                Confirmar
               </Button>
             </div>
           </CardContent>
@@ -1088,17 +1018,10 @@ function LogoutConfirmModal({ onConfirm, onClose }) {
               Você precisará fazer login novamente
             </p>
             <div className="flex gap-3">
-              <Button
-                onClick={onClose}
-                variant="outline"
-                className="flex-1 border-gray-600"
-              >
+              <Button onClick={onClose} variant="outline" className="flex-1 border-gray-600">
                 Cancelar
               </Button>
-              <Button
-                onClick={onConfirm}
-                className="flex-1 bg-red-600 hover:bg-red-700"
-              >
+              <Button onClick={onConfirm} className="flex-1 bg-red-600 hover:bg-red-700">
                 Sair
               </Button>
             </div>
