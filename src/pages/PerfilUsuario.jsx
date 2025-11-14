@@ -4,17 +4,14 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ArrowLeft, Calendar, Share2, Crown, Award, Users, Ticket, Trophy, 
-  CheckCircle, AlertCircle, Filter, Music, Clock, Heart, MessageCircle
+  ArrowLeft, Calendar, Share2, Crown, Award, Music, Clock, Heart, MessageCircle, CheckCircle, AlertCircle, MapPin, Ticket, Trophy, Users
 } from "lucide-react";
 import { format, isAfter, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import FollowButton from "../components/profile/FollowButton";
-import EventHistoryCard from "../components/profile/EventHistoryCard";
 import { CACHE_CONFIG, DEFAULT_AVATAR } from "../components/shared/helpers";
 
 export default function PerfilUsuario() {
@@ -179,7 +176,7 @@ export default function PerfilUsuario() {
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">ID não fornecido</h2>
-          <Button onClick={() => navigate(createPageUrl("Feed"))} className="mt-4">
+          <Button onClick={() => navigate(createPageUrl("Feed"))} className="mt-4 bg-cyan-600 hover:bg-cyan-700">
             Voltar
           </Button>
         </div>
@@ -201,7 +198,7 @@ export default function PerfilUsuario() {
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Usuário não encontrado</h2>
-          <Button onClick={() => navigate(createPageUrl("Feed"))} className="mt-4">
+          <Button onClick={() => navigate(createPageUrl("Feed"))} className="mt-4 bg-cyan-600 hover:bg-cyan-700">
             Voltar ao Feed
           </Button>
         </div>
@@ -219,8 +216,8 @@ export default function PerfilUsuario() {
 
   return (
     <div className="min-h-screen bg-black text-white pb-24 md:pb-8">
-      {/* Header Clean - Estilo Instagram */}
-      <div className="border-b border-gray-800">
+      {/* Header Clean */}
+      <div className="border-b border-gray-800 sticky top-0 bg-black z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <Button
@@ -246,10 +243,10 @@ export default function PerfilUsuario() {
         </div>
       </div>
 
-      {/* Profile Section - Clean Grid */}
+      {/* Profile Section */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex items-start gap-6 mb-6">
-          {/* Avatar - Simples e Clean */}
+          {/* Avatar Simples */}
           <div className="relative flex-shrink-0">
             <img
               src={profileUser.avatar_url || DEFAULT_AVATAR}
@@ -263,7 +260,7 @@ export default function PerfilUsuario() {
             )}
           </div>
 
-          {/* Stats - Estilo Instagram */}
+          {/* Stats */}
           <div className="flex-1">
             <div className="flex items-center gap-6 mb-4">
               <div className="text-center">
@@ -289,7 +286,7 @@ export default function PerfilUsuario() {
                 <p className="text-sm text-gray-300">{profileUser.bio}</p>
               )}
               
-              {/* Badges Inline */}
+              {/* Badges */}
               <div className="flex items-center gap-2 mt-2">
                 {profileUser.is_organizer && (
                   <Badge variant="outline" className="text-xs border-cyan-500 text-cyan-400">
@@ -314,48 +311,47 @@ export default function PerfilUsuario() {
           </div>
         </div>
 
-        {/* Tabs - Clean Style */}
+        {/* Tabs */}
         <Tabs defaultValue="eventos" className="w-full">
           <TabsList className="w-full grid grid-cols-4 bg-black border-b border-gray-800 rounded-none h-auto p-0">
             <TabsTrigger 
               value="eventos" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3"
             >
               <Calendar className="w-4 h-4 mr-2" />
-              Eventos
+              <span className="hidden sm:inline">Eventos</span>
             </TabsTrigger>
             <TabsTrigger 
               value="badges" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3"
             >
               <Trophy className="w-4 h-4 mr-2" />
-              Badges
+              <span className="hidden sm:inline">Badges</span>
             </TabsTrigger>
             <TabsTrigger 
               value="music" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3"
             >
               <Music className="w-4 h-4 mr-2" />
-              Música
+              <span className="hidden sm:inline">Música</span>
             </TabsTrigger>
             <TabsTrigger 
               value="activity" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3"
             >
               <Clock className="w-4 h-4 mr-2" />
-              Atividade
+              <span className="hidden sm:inline">Atividade</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* Eventos Tab */}
+          {/* Eventos */}
           <TabsContent value="eventos" className="mt-4">
-            {/* Filtros Simples */}
             <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-800">
               <Button
                 variant={eventFilter === 'all' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setEventFilter('all')}
-                className={eventFilter === 'all' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
+                className={eventFilter === 'all' ? 'bg-cyan-600 hover:bg-cyan-700' : 'text-gray-400'}
               >
                 Todos
               </Button>
@@ -363,7 +359,7 @@ export default function PerfilUsuario() {
                 variant={eventFilter === 'upcoming' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setEventFilter('upcoming')}
-                className={eventFilter === 'upcoming' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
+                className={eventFilter === 'upcoming' ? 'bg-cyan-600 hover:bg-cyan-700' : 'text-gray-400'}
               >
                 Próximos
               </Button>
@@ -371,13 +367,12 @@ export default function PerfilUsuario() {
                 variant={eventFilter === 'past' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setEventFilter('past')}
-                className={eventFilter === 'past' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
+                className={eventFilter === 'past' ? 'bg-cyan-600 hover:bg-cyan-700' : 'text-gray-400'}
               >
                 Passados
               </Button>
             </div>
 
-            {/* Grid de Eventos - Estilo Instagram */}
             {filteredEvents.length > 0 ? (
               <div className="grid grid-cols-3 gap-1">
                 {filteredEvents.map((event) => (
@@ -389,7 +384,7 @@ export default function PerfilUsuario() {
                     {event.image_url ? (
                       <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-900 to-purple-900">
+                      <div className="w-full h-full flex items-center justify-center bg-gray-900">
                         <Calendar className="w-8 h-8 text-gray-600" />
                       </div>
                     )}
@@ -399,12 +394,12 @@ export default function PerfilUsuario() {
             ) : (
               <div className="text-center py-12">
                 <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400">Nenhum evento encontrado</p>
+                <p className="text-gray-400 text-sm">Nenhum evento encontrado</p>
               </div>
             )}
           </TabsContent>
 
-          {/* Badges Tab */}
+          {/* Badges */}
           <TabsContent value="badges" className="mt-4">
             {userBadges.length > 0 ? (
               <div className="grid grid-cols-3 gap-4">
@@ -422,8 +417,8 @@ export default function PerfilUsuario() {
                       className={`aspect-square border-2 ${rarityColors[badge.rarity] || 'border-gray-600'} rounded-lg p-4 flex flex-col items-center justify-center bg-gray-900`}
                     >
                       <Award className="w-8 h-8 text-cyan-400 mb-2" />
-                      <p className="text-xs text-center font-semibold text-white">{badge.badge_name}</p>
-                      <Badge variant="outline" className="text-[10px] mt-2 border-gray-700">
+                      <p className="text-xs text-center font-semibold text-white line-clamp-2">{badge.badge_name}</p>
+                      <Badge variant="outline" className="text-[10px] mt-2 border-gray-700 text-gray-400">
                         {badge.rarity}
                       </Badge>
                     </div>
@@ -433,24 +428,24 @@ export default function PerfilUsuario() {
             ) : (
               <div className="text-center py-12">
                 <Award className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400">Nenhum badge conquistado</p>
+                <p className="text-gray-400 text-sm">Nenhum badge conquistado</p>
               </div>
             )}
           </TabsContent>
 
-          {/* Music Tab */}
+          {/* Music */}
           <TabsContent value="music" className="mt-4">
             {favoriteGenres.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {favoriteGenres.map((item, index) => (
                   <div key={item.genre} className="flex items-center justify-between p-3 bg-gray-900 rounded border border-gray-800">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-sm font-bold">
+                      <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
                         {index + 1}
                       </div>
                       <div>
-                        <p className="font-semibold capitalize">{item.genre}</p>
-                        <p className="text-xs text-gray-400">{item.count} evento{item.count !== 1 ? 's' : ''}</p>
+                        <p className="font-semibold capitalize text-sm">{item.genre}</p>
+                        <p className="text-xs text-gray-500">{item.count} evento{item.count !== 1 ? 's' : ''}</p>
                       </div>
                     </div>
                     <div className="text-sm text-gray-400">
@@ -462,21 +457,21 @@ export default function PerfilUsuario() {
             ) : (
               <div className="text-center py-12">
                 <Music className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400">Nenhum dado musical</p>
+                <p className="text-gray-400 text-sm">Nenhum dado musical</p>
               </div>
             )}
           </TabsContent>
 
-          {/* Activity Tab */}
+          {/* Activity */}
           <TabsContent value="activity" className="mt-4">
             {recentActivity.length > 0 ? (
               <div className="space-y-2">
-                {recentActivity.map((activity, index) => (
+                {recentActivity.map((activity) => (
                   <div
                     key={`${activity.type}-${activity.data.id}`}
                     className="flex items-center gap-3 p-3 bg-gray-900 rounded border border-gray-800"
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       activity.type === 'like' ? 'bg-red-600/20' : 'bg-blue-600/20'
                     }`}>
                       {activity.type === 'like' ? (
@@ -499,7 +494,7 @@ export default function PerfilUsuario() {
             ) : (
               <div className="text-center py-12">
                 <Clock className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400">Nenhuma atividade recente</p>
+                <p className="text-gray-400 text-sm">Nenhuma atividade recente</p>
               </div>
             )}
           </TabsContent>
