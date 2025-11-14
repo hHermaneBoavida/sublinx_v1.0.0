@@ -18,8 +18,7 @@ import {
   Loader2,
   Sparkles,
   Globe,
-  Music2,
-  AlertCircle
+  Music2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -28,15 +27,15 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 const SOURCES = [
-  { id: 'google', name: 'Google', icon: Globe, color: '#4285F4', description: 'Eventos públicos indexados' },
-  { id: 'all', name: 'Múltiplas', icon: Sparkles, color: '#06B6D4', description: 'Sympla + Eventbrite + Outras' },
-  { id: 'sympla', name: 'Sympla', icon: Music2, color: '#FF6B35', description: 'Maior plataforma BR' },
-  { id: 'eventbrite', name: 'Eventbrite', icon: Music2, color: '#F05537', description: 'Eventos internacionais' }
+  { id: 'all', name: 'Todas', icon: Globe, color: '#06B6D4' },
+  { id: 'sympla', name: 'Sympla', icon: Music2, color: '#FF6B35' },
+  { id: 'eventbrite', name: 'Eventbrite', icon: Music2, color: '#F05537' },
+  { id: 'facebook', name: 'Facebook', icon: Music2, color: '#1877F2' }
 ];
 
 export default function Descobrir() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSource, setSelectedSource] = useState('google');
+  const [selectedSource, setSelectedSource] = useState('all');
   const [importedEvents, setImportedEvents] = useState(new Set());
   const navigate = useNavigate();
 
@@ -80,35 +79,22 @@ export default function Descobrir() {
     staleTime: 10 * 60 * 1000,
   });
 
-  const { data: externalEventsData, isLoading, refetch } = useQuery({
+  const { data: externalEvents = [], isLoading, refetch } = useQuery({
     queryKey: ['externalEvents', searchQuery, selectedSource, userLocation],
     queryFn: async () => {
-      if (!searchQuery || searchQuery.length < 3) return { events: [], source: null };
+      if (!searchQuery || searchQuery.length < 3) return [];
 
-      // Escolher função baseada na fonte
-      const functionName = selectedSource === 'google' 
-        ? 'searchGoogleEvents' 
-        : 'importExternalEvents';
-
-      const { data } = await base44.functions.invoke(functionName, {
-        source: selectedSource === 'google' ? 'google' : selectedSource,
+      const { data } = await base44.functions.invoke('importExternalEvents', {
+        source: selectedSource,
         query: searchQuery,
         location: userLocation
       });
 
-      return {
-        events: data?.events || [],
-        source: data?.source,
-        message: data?.message
-      };
+      return data?.events || [];
     },
     enabled: searchQuery.length >= 3 && !!userLocation,
     staleTime: 5 * 60 * 1000,
   });
-
-  const externalEvents = externalEventsData?.events || [];
-  const sourceType = externalEventsData?.source;
-  const apiMessage = externalEventsData?.message;
 
   const saveEventMutation = useMutation({
     mutationFn: async (externalEvent) => {
@@ -185,30 +171,9 @@ export default function Descobrir() {
             </h1>
           </div>
           <p className="text-gray-400">
-            Busque eventos via Google, Sympla, Eventbrite e mais plataformas
+            Encontre eventos de múltiplas plataformas em um só lugar
           </p>
         </motion.div>
-
-        {/* API Status Message */}
-        {apiMessage && sourceType === 'mock' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-6 bg-blue-900/20 border border-blue-500/30 rounded-xl p-4"
-          >
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-blue-300 mb-1">
-                  Modo Demonstração
-                </h3>
-                <p className="text-sm text-blue-200/80">
-                  {apiMessage}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
 
         {/* Search Form */}
         <motion.form
@@ -228,35 +193,22 @@ export default function Descobrir() {
           </div>
 
           {/* Source Filter */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {SOURCES.map(source => (
-              <motion.div
+              <Button
                 key={source.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => setSelectedSource(source.id)}
+                variant={selectedSource === source.id ? 'default' : 'outline'}
+                className={`h-12 ${
+                  selectedSource === source.id
+                    ? 'bg-gradient-to-r from-cyan-600 to-purple-600 border-0'
+                    : 'bg-gray-900/50 border-gray-700 hover:bg-gray-800'
+                }`}
               >
-                <Button
-                  type="button"
-                  onClick={() => setSelectedSource(source.id)}
-                  variant={selectedSource === source.id ? 'default' : 'outline'}
-                  className={`w-full h-auto py-3 px-3 flex flex-col items-center gap-2 ${
-                    selectedSource === source.id
-                      ? 'bg-gradient-to-r from-cyan-600 to-purple-600 border-0'
-                      : 'bg-gray-900/50 border-gray-700 hover:bg-gray-800'
-                  }`}
-                >
-                  <source.icon 
-                    className="w-5 h-5" 
-                    style={{ color: selectedSource === source.id ? 'white' : source.color }}
-                  />
-                  <div className="text-center">
-                    <div className="text-xs font-semibold">{source.name}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">
-                      {source.description}
-                    </div>
-                  </div>
-                </Button>
-              </motion.div>
+                <source.icon className="w-4 h-4 mr-2" />
+                {source.name}
+              </Button>
             ))}
           </div>
         </motion.form>
@@ -294,9 +246,6 @@ export default function Descobrir() {
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-cyan-400 mb-4" />
             <p className="text-gray-400">Buscando eventos...</p>
-            <p className="text-sm text-gray-500 mt-2">
-              {selectedSource === 'google' ? 'Pesquisando no Google...' : 'Buscando em múltiplas plataformas...'}
-            </p>
           </div>
         )}
 
@@ -314,8 +263,7 @@ export default function Descobrir() {
                   {externalEvents.length} eventos encontrados
                 </h2>
                 <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300">
-                  {SOURCES.find(s => s.id === selectedSource)?.name}
-                  {sourceType && sourceType !== selectedSource && ` (${sourceType})`}
+                  {selectedSource === 'all' ? 'Todas as fontes' : SOURCES.find(s => s.id === selectedSource)?.name}
                 </Badge>
               </div>
 
@@ -360,10 +308,10 @@ export default function Descobrir() {
           >
             <Globe className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              Descubra Eventos com Google
+              Descubra Eventos Externos
             </h3>
             <p className="text-gray-400 mb-6">
-              Busque eventos via Google, Sympla, Eventbrite e mais
+              Busque eventos do Sympla, Eventbrite, Facebook e mais
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto text-left">
               <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-700">
@@ -390,7 +338,6 @@ export default function Descobrir() {
 
 function ExternalEventCard({ event, index, isImported, isImporting, onImport, canImport }) {
   const sourceColors = {
-    google: 'from-blue-500 to-indigo-500',
     sympla: 'from-orange-500 to-red-500',
     eventbrite: 'from-red-500 to-pink-500',
     facebook: 'from-blue-500 to-indigo-500',
@@ -422,9 +369,6 @@ function ExternalEventCard({ event, index, isImported, isImporting, onImport, ca
               alt={event.title}
               className="w-full h-full object-cover"
               loading="lazy"
-              onError={(e) => {
-                e.target.src = 'https://picsum.photos/800/600?random=' + Math.random();
-              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
           </div>
