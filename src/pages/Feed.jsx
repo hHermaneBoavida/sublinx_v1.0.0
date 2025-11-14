@@ -8,7 +8,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import InfiniteScrollTrigger from "../components/feed/InfiniteScrollTrigger";
 import SortControls, { SORT_OPTIONS } from "../components/feed/SortControls";
-import { Search, MapPin, Heart, RefreshCw, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Search, Heart, RefreshCw, SlidersHorizontal, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
@@ -265,14 +265,6 @@ export default function Feed() {
                 Entrar
               </Button>
             )}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate(createPageUrl("Mapa"))} 
-              className="h-8 w-8 sm:h-9 sm:w-9"
-            >
-              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
-            </Button>
           </div>
         </div>
 
