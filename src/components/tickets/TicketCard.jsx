@@ -72,7 +72,6 @@ export default function TicketCard({ ticket, event }) {
       className="mb-4"
     >
       <Card className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700 overflow-hidden relative">
-        {/* Background Pattern */}
         <div 
           className="absolute inset-0 opacity-5"
           style={{
@@ -82,9 +81,7 @@ export default function TicketCard({ ticket, event }) {
 
         <CardContent className="p-0 relative z-10">
           <div className="flex flex-col">
-            {/* Main Content */}
             <div className="flex-1 p-6">
-              {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-r from-cyan-600 to-purple-600 flex items-center justify-center">
@@ -100,7 +97,6 @@ export default function TicketCard({ ticket, event }) {
                 </div>
               </div>
 
-              {/* Event Details */}
               <div className="space-y-3 mb-4">
                 <div className="flex items-center gap-2 text-gray-300">
                   <Calendar className="w-4 h-4 text-cyan-400" />
@@ -126,7 +122,6 @@ export default function TicketCard({ ticket, event }) {
                 )}
               </div>
 
-              {/* Ticket Info */}
               <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 mb-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -152,7 +147,6 @@ export default function TicketCard({ ticket, event }) {
                 </div>
               </div>
 
-              {/* QR Code Data */}
               {showQR && ticket.status === 'valid' && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -200,7 +194,6 @@ export default function TicketCard({ ticket, event }) {
                 </motion.div>
               )}
 
-              {/* Actions */}
               <div className="flex gap-2">
                 <Button
                   onClick={() => setShowQR(!showQR)}
