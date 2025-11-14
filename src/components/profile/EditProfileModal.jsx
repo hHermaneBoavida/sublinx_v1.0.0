@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, X, Camera } from "lucide-react";
+import { Loader2, X, Camera, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function EditProfileModal({ user, onClose }) {
   const queryClient = useQueryClient();
@@ -19,6 +20,7 @@ export default function EditProfileModal({ user, onClose }) {
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -28,22 +30,23 @@ export default function EditProfileModal({ user, onClose }) {
     const maxSize = 5 * 1024 * 1024;
 
     if (!validTypes.includes(file.type)) {
-      alert("Formato inválido. Use JPG, PNG ou WEBP.");
+      setError("Formato inválido. Use JPG, PNG ou WEBP.");
       return;
     }
 
     if (file.size > maxSize) {
-      alert("Imagem muito grande. Máximo 5MB.");
+      setError("Imagem muito grande. Máximo 5MB.");
       return;
     }
 
     setUploading(true);
+    setError("");
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setFormData(prev => ({ ...prev, avatar_url: file_url }));
     } catch (error) {
       console.error("Erro no upload:", error);
-      alert("❌ Falha no upload da imagem.");
+      setError("Falha no upload da imagem.");
     } finally {
       setUploading(false);
     }
@@ -53,36 +56,45 @@ export default function EditProfileModal({ user, onClose }) {
     const trimmedName = formData.full_name.trim();
     
     if (!trimmedName || trimmedName.length < 3) {
-      alert("Nome deve ter pelo menos 3 caracteres");
+      setError("Nome deve ter pelo menos 3 caracteres");
       return;
     }
 
     setLoading(true);
+    setError("");
+    
     try {
-      // USA base44.auth.updateMe para atualizar o usuário atual
+      console.log("🔄 Atualizando perfil com:", { full_name: trimmedName });
+      
+      // MÉTODO CORRETO: base44.auth.updateMe
       await base44.auth.updateMe({
         full_name: trimmedName,
-        bio: formData.bio?.trim() || null,
-        avatar_url: formData.avatar_url || null,
-        phone: formData.phone?.trim() || null,
-        city: formData.city?.trim() || null,
-        state: formData.state?.trim() || null
+        bio: formData.bio?.trim() || "",
+        avatar_url: formData.avatar_url || "",
+        phone: formData.phone?.trim() || "",
+        city: formData.city?.trim() || "",
+        state: formData.state?.trim() || ""
       });
 
-      // Invalida e refetch todos os caches relacionados
-      queryClient.invalidateQueries(['currentUser']);
-      queryClient.invalidateQueries(['profileUser', user.id]);
+      console.log("✅ Perfil atualizado com sucesso");
+
+      // Invalida caches
+      await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      await queryClient.invalidateQueries({ queryKey: ['profileUser'] });
       
-      // Força reload completo da página após sucesso
+      // Refetch imediato
+      await queryClient.refetchQueries({ queryKey: ['currentUser'] });
+
+      onClose();
+      
+      // Reload após fechar modal
       setTimeout(() => {
         window.location.reload();
-      }, 500);
+      }, 300);
 
-      alert("✅ Perfil atualizado!");
-      onClose();
     } catch (error) {
-      console.error("Erro ao atualizar:", error);
-      alert(`❌ Erro: ${error.message || 'Tente novamente'}`);
+      console.error("❌ Erro ao atualizar perfil:", error);
+      setError(error.message || 'Erro ao salvar. Tente novamente.');
       setLoading(false);
     }
   };
@@ -98,6 +110,15 @@ export default function EditProfileModal({ user, onClose }) {
         </DialogHeader>
 
         <div className="py-4 space-y-4">
+          {error && (
+            <Alert className="bg-red-900/20 border-red-500/50">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <AlertDescription className="text-red-300 text-sm ml-2">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Avatar */}
           <div className="text-center">
             <label htmlFor="avatar-upload" className="cursor-pointer group relative inline-block">
@@ -133,10 +154,14 @@ export default function EditProfileModal({ user, onClose }) {
             <label className="text-sm text-gray-400 mb-2 block">Nome Completo *</label>
             <Input
               value={formData.full_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, full_name: e.target.value }));
+                setError("");
+              }}
               className="bg-gray-800 border-gray-700 text-white focus:border-cyan-500"
               placeholder="Seu nome completo"
               maxLength={50}
+              disabled={loading || uploading}
             />
           </div>
 
@@ -149,6 +174,7 @@ export default function EditProfileModal({ user, onClose }) {
               className="bg-gray-800 border-gray-700 text-white h-20 focus:border-cyan-500"
               placeholder="Sobre você..."
               maxLength={200}
+              disabled={loading || uploading}
             />
             <p className="text-xs text-gray-500 mt-1 text-right">{formData.bio?.length || 0}/200</p>
           </div>
@@ -163,6 +189,7 @@ export default function EditProfileModal({ user, onClose }) {
                 className="bg-gray-800 border-gray-700 text-white focus:border-cyan-500"
                 placeholder="(00) 00000-0000"
                 maxLength={20}
+                disabled={loading || uploading}
               />
             </div>
 
@@ -174,6 +201,7 @@ export default function EditProfileModal({ user, onClose }) {
                 className="bg-gray-800 border-gray-700 text-white focus:border-cyan-500"
                 placeholder="São Paulo"
                 maxLength={50}
+                disabled={loading || uploading}
               />
             </div>
           </div>
@@ -187,6 +215,7 @@ export default function EditProfileModal({ user, onClose }) {
               className="bg-gray-800 border-gray-700 text-white focus:border-cyan-500"
               placeholder="SP"
               maxLength={2}
+              disabled={loading || uploading}
             />
           </div>
         </div>
@@ -197,7 +226,7 @@ export default function EditProfileModal({ user, onClose }) {
           </Button>
           <Button
             onClick={handleSave}
-            disabled={loading || uploading || !formData.full_name}
+            disabled={loading || uploading || !formData.full_name || formData.full_name.trim().length < 3}
             className="bg-cyan-600 hover:bg-cyan-700"
           >
             {loading ? (
