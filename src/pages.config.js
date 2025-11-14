@@ -11,7 +11,6 @@ import Comunidade from './pages/Comunidade';
 import Chat from './pages/Chat';
 import Feed from './pages/Feed';
 import Documentacao from './pages/Documentacao';
-import Descobrir from './pages/Descobrir';
 import ListaEspera from './pages/ListaEspera';
 import Onboarding from './pages/Onboarding';
 import ConfiguracoesPrivacidade from './pages/ConfiguracoesPrivacidade';
@@ -41,7 +40,6 @@ export const PAGES = {
     "Chat": Chat,
     "Feed": Feed,
     "Documentacao": Documentacao,
-    "Descobrir": Descobrir,
     "ListaEspera": ListaEspera,
     "Onboarding": Onboarding,
     "ConfiguracoesPrivacidade": ConfiguracoesPrivacidade,

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle, Globe } from "lucide-react";
+import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -89,11 +89,6 @@ export default function Layout({ children, currentPageName }) {
         return [
             ...baseItems,
             {
-                title: "Descobrir",
-                url: createPageUrl("Descobrir"),
-                icon: Globe,
-            },
-            {
                 title: "Perfil",
                 url: createPageUrl("BemVindo"),
                 icon: UserIcon,
@@ -104,11 +99,6 @@ export default function Layout({ children, currentPageName }) {
     if (currentUser?.is_organizer) {
       return [
         ...baseItems,
-        {
-          title: "Descobrir",
-          url: createPageUrl("Descobrir"),
-          icon: Globe,
-        },
         {
           title: "Chat",
           url: createPageUrl("Chat"),
@@ -123,11 +113,6 @@ export default function Layout({ children, currentPageName }) {
     } else {
       return [
         ...baseItems,
-        {
-          title: "Descobrir",
-          url: createPageUrl("Descobrir"),
-          icon: Globe,
-        },
         {
           title: "Comunidade",
           url: createPageUrl("Comunidade"),
@@ -581,7 +566,7 @@ export default function Layout({ children, currentPageName }) {
             boxShadow: '0 -5px 30px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(6, 182, 212, 0.2)'
           }}
         >
-          <div className="grid grid-cols-5 h-16 sm:h-18">
+          <div className="grid grid-cols-4 h-16 sm:h-18">
             {navigationItems.map((item) => (
               <motion.div
                 key={item.title}
