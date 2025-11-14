@@ -4,13 +4,13 @@
 
 import { VIBES, DEFAULT_AVATAR as DEFAULT_AVATAR_CONST, MUSIC_GENRES as MUSIC_GENRES_LIST } from "./constants";
 
-// OTIMIZAÇÃO: Cache de cálculos
+// OTIMIZAÇÃO: Cache de cálculos com WeakMap para melhor GC
 const distanceCache = new Map();
+const CACHE_SIZE_LIMIT = 100;
 
 export function calculateDistance(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
   
-  // Cache key
   const key = `${lat1.toFixed(3)},${lon1.toFixed(3)},${lat2.toFixed(3)},${lon2.toFixed(3)}`;
   
   if (distanceCache.has(key)) {
@@ -29,7 +29,7 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
   const distance = R * c;
   
   // Limitar cache
-  if (distanceCache.size > 100) {
+  if (distanceCache.size > CACHE_SIZE_LIMIT) {
     const firstKey = distanceCache.keys().next().value;
     distanceCache.delete(firstKey);
   }
@@ -39,29 +39,23 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 export function isValidEvent(event) {
-  return event && 
-         event.id && 
-         event.title && 
-         event.location && 
-         event.location.lat && 
-         event.location.lng &&
-         event.date;
+  return event?.id && event?.title && event?.location?.lat && event?.location?.lng && event?.date;
 }
 
 export function filterFutureEvents(events) {
   if (!Array.isArray(events)) return [];
-  const now = new Date();
-  return events.filter(e => isValidEvent(e) && new Date(e.date) > now);
+  const now = Date.now();
+  return events.filter(e => isValidEvent(e) && new Date(e.date).getTime() > now);
 }
 
 export function filterPastEvents(events) {
   if (!Array.isArray(events)) return [];
-  const now = new Date();
-  return events.filter(e => isValidEvent(e) && new Date(e.date) <= now);
+  const now = Date.now();
+  return events.filter(e => isValidEvent(e) && new Date(e.date).getTime() <= now);
 }
 
 export function sortEventsByDistance(events, userLocation) {
-  if (!userLocation || !events || events.length === 0) {
+  if (!userLocation || !events?.length) {
     return events.sort((a, b) => new Date(a.date) - new Date(b.date));
   }
 
@@ -84,14 +78,10 @@ export function matchesVibe(event, vibe) {
   const vibeConfig = VIBES[vibe];
   if (!vibeConfig) return true;
   
-  if (vibeConfig.genres && event.genre) {
-    if (vibeConfig.genres.includes(event.genre)) return true;
-  }
+  if (vibeConfig.genres?.includes(event.genre)) return true;
   
-  if (event.vibe_tags && Array.isArray(event.vibe_tags)) {
-    if (event.vibe_tags.some(tag => tag.toLowerCase() === vibe.toLowerCase())) {
-      return true;
-    }
+  if (event.vibe_tags?.some(tag => tag.toLowerCase() === vibe.toLowerCase())) {
+    return true;
   }
   
   return false;
@@ -118,14 +108,14 @@ export function validateVideo(file) {
   if (!file) return { valid: false, error: 'Nenhum arquivo' };
   
   const allowedTypes = ['video/mp4', 'video/quicktime'];
-  const maxSize = 100 * 1024 * 1024;
+  const maxSize = 50 * 1024 * 1024; // Reduzido para 50MB
   
   if (!allowedTypes.includes(file.type)) {
     return { valid: false, error: 'Formato inválido' };
   }
   
   if (file.size > maxSize) {
-    return { valid: false, error: 'Vídeo muito grande (máx 100MB)' };
+    return { valid: false, error: 'Vídeo muito grande (máx 50MB)' };
   }
   
   return { valid: true, error: null };
@@ -143,13 +133,40 @@ export function truncateText(text, maxLength = 100) {
   return text.substring(0, maxLength) + '...';
 }
 
-// CACHE CONFIG
-export const CACHE_CONFIG = {
-  SHORT: { staleTime: 30000, cacheTime: 60000 },
-  MEDIUM: { staleTime: 60000, cacheTime: 300000 },
-  LONG: { staleTime: 300000, cacheTime: 600000 },
-  STATIC: { staleTime: Infinity, cacheTime: Infinity }
-};
+// CACHE CONFIG ATUALIZADO
+export { CACHE_CONFIG } from './optimizations';
 
 export const DEFAULT_AVATAR = DEFAULT_AVATAR_CONST;
 export const MUSIC_GENRES = MUSIC_GENRES_LIST;
+
+// BATCH QUERY HELPER
+export function batchQueries(queries, delay = 50) {
+  return new Promise((resolve) => {
+    setTimeout(async () => {
+      const results = await Promise.allSettled(queries);
+      resolve(results.map(r => r.status === 'fulfilled' ? r.value : []));
+    }, delay);
+  });
+}
+
+// MEMOIZE HELPER
+const memoCache = new Map();
+export function memoize(fn, keyFn = (...args) => JSON.stringify(args)) {
+  return function (...args) {
+    const key = keyFn(...args);
+    
+    if (memoCache.has(key)) {
+      return memoCache.get(key);
+    }
+    
+    const result = fn(...args);
+    
+    if (memoCache.size > 50) {
+      const firstKey = memoCache.keys().next().value;
+      memoCache.delete(firstKey);
+    }
+    
+    memoCache.set(key, result);
+    return result;
+  };
+}

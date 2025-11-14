@@ -1,20 +1,23 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, lazy, Suspense } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import EventFeedCard from "../components/feed/EventFeedCard";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
-import ShareVibeModal from "../components/feed/ShareVibeModal";
 import InfiniteScrollTrigger from "../components/feed/InfiniteScrollTrigger";
 import SortControls, { SORT_OPTIONS } from "../components/feed/SortControls";
-import { Search, MapPin, Heart, RefreshCw, ExternalLink, TrendingUp, Sparkles, Crown, Zap, SlidersHorizontal } from "lucide-react";
+import { Search, MapPin, Heart, RefreshCw, SlidersHorizontal, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { filterFutureEvents, sortEventsByDistance, CACHE_CONFIG } from "../components/shared/helpers";
+import { Card, CardContent } from "@/components/ui/card";
+import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
+import { CACHE_CONFIG } from "../components/shared/optimizations";
 import { motion, AnimatePresence } from "framer-motion";
+
+// LAZY LOAD COMPONENTS PESADOS
+const EventFeedCard = lazy(() => import("../components/feed/EventFeedCard"));
+const ShareVibeModal = lazy(() => import("../components/feed/ShareVibeModal"));
 
 const EVENTS_PER_PAGE = 15;
 
@@ -52,8 +55,6 @@ export default function Feed() {
     queryKey: ['feedEventsInfinite', sortBy],
     queryFn: async ({ pageParam = 0 }) => {
       const offset = pageParam * EVENTS_PER_PAGE;
-      
-      // OTIMIZADO: Buscar apenas necessário
       const limit = EVENTS_PER_PAGE;
       const data = await base44.entities.Event.list("-date", limit + offset);
       
@@ -68,10 +69,7 @@ export default function Feed() {
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 0,
-    staleTime: 5 * 60 * 1000, // 5min
-    cacheTime: 15 * 60 * 1000, // 15min
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    ...CACHE_CONFIG.SHORT,
   });
 
   const events = useMemo(() => {
@@ -96,16 +94,15 @@ export default function Feed() {
           if (ad.end_date && now > new Date(ad.end_date)) return false;
           return true;
         });
-      } catch (error) {
+      } catch {
         return [];
       }
     },
-    staleTime: 30 * 60 * 1000, // 30min
-    cacheTime: 60 * 60 * 1000, // 1h
+    ...CACHE_CONFIG.LONG,
     initialData: [],
   });
 
-  // OTIMIZADO: Interações carregam sob demanda
+  // OTIMIZADO: Interações carregam sob demanda apenas se usuário logado
   const { data: interactions = { likes: {}, comments: {}, requests: {} } } = useQuery({
     queryKey: ['feedInteractions', user?.id, events.length],
     queryFn: async () => {
@@ -141,14 +138,12 @@ export default function Feed() {
       };
     },
     enabled: !!user && events.length > 0,
-    staleTime: 2 * 60 * 1000, // 2min
-    cacheTime: 10 * 60 * 1000, // 10min
-    refetchOnWindowFocus: false,
+    ...CACHE_CONFIG.REALTIME,
     initialData: { likes: {}, comments: {}, requests: {} },
   });
 
   const sortedEvents = useMemo(() => {
-    if (!events || events.length === 0) return [];
+    if (!events?.length) return [];
 
     let sorted = [...events];
 
@@ -156,19 +151,15 @@ export default function Feed() {
       case 'distance':
         sorted = sortEventsByDistance(sorted, user?.location);
         break;
-      
       case 'date_asc':
         sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
         break;
-      
       case 'date_desc':
         sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
         break;
-      
       case 'popularity':
         sorted.sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0));
         break;
-      
       case 'likes':
         sorted.sort((a, b) => {
           const likesA = interactions.likes[a.id]?.length || 0;
@@ -176,7 +167,6 @@ export default function Feed() {
           return likesB - likesA;
         });
         break;
-      
       case 'price_asc':
         sorted.sort((a, b) => {
           const priceA = a.price || a.ticket_types?.[0]?.price || 0;
@@ -184,7 +174,6 @@ export default function Feed() {
           return priceA - priceB;
         });
         break;
-      
       case 'price_desc':
         sorted.sort((a, b) => {
           const priceA = a.price || a.ticket_types?.[0]?.price || 0;
@@ -192,11 +181,6 @@ export default function Feed() {
           return priceB - priceA;
         });
         break;
-      
-      case 'capacity':
-        sorted.sort((a, b) => (b.max_capacity || 0) - (a.max_capacity || 0));
-        break;
-      
       default:
         sorted = sortEventsByDistance(sorted, user?.location);
     }
@@ -218,7 +202,7 @@ export default function Feed() {
   }, [sortedEvents, searchTerm]);
 
   const feedWithAds = useMemo(() => {
-    if (!advertisements || advertisements.length === 0) {
+    if (!advertisements?.length) {
       return filteredEvents.map(event => ({ type: 'event', data: event, key: `event-${event.id}` }));
     }
 
@@ -365,7 +349,7 @@ export default function Feed() {
             <LoadingSkeleton />
           </>
         ) : feedWithAds.length > 0 ? (
-          <>
+          <Suspense fallback={<LoadingSkeleton />}>
             {feedWithAds.map((item, index) => {
               if (!item?.data?.id && item.type !== 'ad') return null;
               
@@ -412,7 +396,7 @@ export default function Feed() {
                 </div>
               </motion.div>
             )}
-          </>
+          </Suspense>
         ) : (
           <div className="text-center py-12 sm:py-16 bg-gray-900/50 rounded-lg border border-gray-700 mx-3 sm:mx-4 mt-4">
             <Search className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
@@ -436,15 +420,18 @@ export default function Feed() {
       </div>
 
       {showShareVibe && (
-        <ShareVibeModal
-          onClose={() => setShowShareVibe(false)}
-          user={user}
-        />
+        <Suspense fallback={null}>
+          <ShareVibeModal
+            onClose={() => setShowShareVibe(false)}
+            user={user}
+          />
+        </Suspense>
       )}
     </div>
   );
 }
 
+// SPONSORED AD CARD (inline para evitar outro lazy load)
 function SponsoredAdCard({ ad, featured = false }) {
   if (!ad?.id) return null;
 
@@ -472,35 +459,6 @@ function SponsoredAdCard({ ad, featured = false }) {
       }`}
       onClick={handleAdClick}
     >
-      <div className="absolute top-2 left-2 z-10">
-        <Badge className={`backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold flex items-center gap-1 shadow-lg ${
-          featured 
-            ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-black border-2 border-yellow-300 animate-pulse' 
-            : 'bg-purple-600/90 text-white'
-        }`}>
-          {featured ? (
-            <>
-              <Sparkles className="w-3 h-3" />
-              DESTAQUE
-            </>
-          ) : (
-            <>
-              <TrendingUp className="w-3 h-3" />
-              PATROCINADO
-            </>
-          )}
-        </Badge>
-      </div>
-
-      {ad.impressions > 0 && (
-        <div className="absolute top-2 right-2 z-10">
-          <Badge className="bg-black/60 backdrop-blur-sm text-white text-[9px] px-1.5 py-0.5">
-            <Zap className="w-2.5 h-2.5 mr-0.5" />
-            {ad.impressions > 999 ? `${Math.floor(ad.impressions / 1000)}k` : ad.impressions} views
-          </Badge>
-        </div>
-      )}
-
       {ad.image_url && (
         <div className={`relative w-full overflow-hidden ${featured ? 'h-64' : 'h-48'}`}>
           <img
@@ -509,58 +467,16 @@ function SponsoredAdCard({ ad, featured = false }) {
             className={`w-full h-full object-cover ${featured ? 'scale-105' : ''} transition-transform duration-500 hover:scale-110`}
             loading="lazy"
           />
-          <div className={`absolute inset-0 ${
-            featured 
-              ? 'bg-gradient-to-t from-yellow-900/80 via-purple-900/40 to-transparent' 
-              : 'bg-gradient-to-t from-black/60 via-transparent to-transparent'
-          }`} />
-          
-          {featured && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <Crown className="w-16 h-16 text-yellow-400 opacity-20 animate-pulse" />
-            </div>
-          )}
         </div>
       )}
 
       <CardContent className={`${featured ? 'p-5' : 'p-4'}`}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <h3 className={`font-bold mb-2 ${featured ? 'text-xl text-yellow-300' : 'text-lg'}`}>
-              {ad.title || 'Anúncio Patrocinado'}
-            </h3>
-            <p className={`text-gray-300 mb-3 ${featured ? 'text-base line-clamp-3' : 'text-sm line-clamp-2'}`}>
-              {ad.description || ''}
-            </p>
-            
-            {ad.target_audience && (ad.target_audience.genres?.length > 0 || ad.target_audience.cities?.length > 0) && (
-              <div className="flex flex-wrap gap-1 mb-3">
-                {ad.target_audience.genres?.slice(0, 3).map(genre => (
-                  <Badge key={genre} className="bg-purple-600/20 border-purple-500/30 text-purple-300 text-[9px]">
-                    {genre}
-                  </Badge>
-                ))}
-                {ad.target_audience.cities?.slice(0, 2).map(city => (
-                  <Badge key={city} className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-[9px]">
-                    📍 {city}
-                  </Badge>
-                ))}
-              </div>
-            )}
-            
-            <div className="flex items-center gap-3 text-xs">
-              <span className={featured ? 'text-yellow-400 font-semibold' : 'text-gray-400'}>
-                {ad.advertiser_name || 'Anunciante'}
-              </span>
-              {ad.link_url && (
-                <div className={`flex items-center gap-1 ${featured ? 'text-yellow-400' : 'text-cyan-400'}`}>
-                  <ExternalLink className="w-3 h-3" />
-                  <span className="font-semibold">Saiba mais</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <h3 className={`font-bold mb-2 ${featured ? 'text-xl text-yellow-300' : 'text-lg'}`}>
+          {ad.title || 'Anúncio Patrocinado'}
+        </h3>
+        <p className={`text-gray-300 mb-3 ${featured ? 'text-base line-clamp-3' : 'text-sm line-clamp-2'}`}>
+          {ad.description || ''}
+        </p>
       </CardContent>
     </Card>
   );
