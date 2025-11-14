@@ -59,31 +59,30 @@ export default function EditProfileModal({ user, onClose }) {
 
     setLoading(true);
     try {
-      // Atualiza via base44.entities.User.update para garantir persistência
-      await base44.entities.User.update(user.id, {
+      // USA base44.auth.updateMe para atualizar o usuário atual
+      await base44.auth.updateMe({
         full_name: trimmedName,
-        bio: formData.bio?.trim() || "",
-        avatar_url: formData.avatar_url || "",
-        phone: formData.phone?.trim() || "",
-        city: formData.city?.trim() || "",
-        state: formData.state?.trim() || ""
+        bio: formData.bio?.trim() || null,
+        avatar_url: formData.avatar_url || null,
+        phone: formData.phone?.trim() || null,
+        city: formData.city?.trim() || null,
+        state: formData.state?.trim() || null
       });
 
-      // Invalida caches
-      await queryClient.invalidateQueries(['currentUser']);
-      await queryClient.invalidateQueries(['profileUser']);
-      await queryClient.invalidateQueries(['followers']);
-      await queryClient.invalidateQueries(['following']);
-
-      // Refetch forçado
-      await queryClient.refetchQueries(['currentUser']);
+      // Invalida e refetch todos os caches relacionados
+      queryClient.invalidateQueries(['currentUser']);
+      queryClient.invalidateQueries(['profileUser', user.id]);
+      
+      // Força reload completo da página após sucesso
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
 
       alert("✅ Perfil atualizado!");
       onClose();
     } catch (error) {
       console.error("Erro ao atualizar:", error);
       alert(`❌ Erro: ${error.message || 'Tente novamente'}`);
-    } finally {
       setLoading(false);
     }
   };
