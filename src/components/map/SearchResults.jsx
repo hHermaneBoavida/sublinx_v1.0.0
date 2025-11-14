@@ -1,17 +1,13 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Music, TrendingUp, X, SlidersHorizontal, Calendar, DollarSign } from "lucide-react";
 import SearchSortControls from "../search/SearchSortControls";
 import SearchResultCard from "../search/SearchResultCard";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 
 export default function SearchResults({ 
@@ -21,6 +17,7 @@ export default function SearchResults({
   isLoading,
   userLocation
 }) {
+  const navigate = useNavigate();
   const [sortBy, setSortBy] = useState('relevance');
   const [showFilters, setShowFilters] = useState(false);
   const [dateFilter, setDateFilter] = useState('all');
@@ -105,6 +102,18 @@ export default function SearchResults({
         return sorted.sort((a, b) => (b._score || b._fuzzyScore || 0) - (a._score || a._fuzzyScore || 0));
     }
   }, [filteredResults, sortBy]);
+
+  const handleResultClick = (result) => {
+    if (result.type === 'event') {
+      onEventClick && onEventClick(result);
+    } else if (result.type === 'artist') {
+      // Redireciona para o perfil do artista/usuário
+      navigate(createPageUrl("PerfilUsuario") + `?id=${result.id}`);
+    } else if (result.type === 'community') {
+      // Redireciona para a comunidade
+      navigate(createPageUrl("Comunidade"));
+    }
+  };
 
   const handleClearFilters = () => {
     setDateFilter('all');
@@ -289,7 +298,7 @@ export default function SearchResults({
           </div>
         )}
 
-        {/* Suggestions - MELHORADO */}
+        {/* Suggestions */}
         {!isLoading && suggestions && suggestions.length > 0 && sortedResults.length > 0 && (
           <div className="mb-4 bg-purple-900/20 border border-purple-500/30 rounded-xl p-3">
             <p className="text-xs font-semibold text-purple-300 mb-2">💡 Sugestões:</p>
@@ -311,7 +320,7 @@ export default function SearchResults({
                 key={`${result.type}-${result.id}`}
                 result={result}
                 index={index}
-                onClick={() => onEventClick && result.type === 'event' && onEventClick(result)}
+                onClick={() => handleResultClick(result)}
               />
             ))}
           </div>
