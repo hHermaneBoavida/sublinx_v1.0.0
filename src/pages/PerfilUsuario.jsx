@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,22 +9,23 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft, Calendar, Share2, Crown, Award, Users, Ticket, Trophy, Instagram, 
-  Twitter, CheckCircle, AlertCircle, Music, Heart, MessageCircle, Clock, Filter,
-  Play, TrendingUp, Zap, Star, Target, Gift
+  Twitter, CheckCircle, AlertCircle, Filter, Target, Zap
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { format, isAfter, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import FollowButton from "../components/profile/FollowButton";
 import EventHistoryCard from "../components/profile/EventHistoryCard";
 import ProfileAvatar from "../components/shared/ProfileAvatar";
+import MusicSection from "../components/profile/MusicSection";
+import ActivityTimeline from "../components/profile/ActivityTimeline";
 import { CACHE_CONFIG } from "../components/shared/helpers";
 
 export default function PerfilUsuario() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [eventFilter, setEventFilter] = useState('all'); // all, upcoming, past
+  const [eventFilter, setEventFilter] = useState('all');
   
   const searchParams = new URLSearchParams(location.search);
   const userId = searchParams.get('id');
@@ -168,7 +169,6 @@ export default function PerfilUsuario() {
     }
   }, [userEvents, eventFilter]);
 
-  // Mock de playlists/artistas favoritos
   const favoriteGenres = useMemo(() => {
     if (!userEvents || userEvents.length === 0) return [];
     
@@ -183,26 +183,6 @@ export default function PerfilUsuario() {
       .slice(0, 5)
       .map(([genre, count]) => ({ genre, count }));
   }, [userEvents]);
-
-  const isOwnProfile = currentUser?.id === userId;
-
-  const followMutation = useMutation({
-    mutationFn: async () => {
-      // Será tratado pelo FollowButton, mas vamos notificar
-      if (userId && currentUser) {
-        await base44.entities.Notification.create({
-          user_id: userId,
-          type: 'new_follower',
-          title: '👥 Novo seguidor!',
-          message: `${currentUser.full_name || currentUser.email} começou a seguir você`,
-          is_read: false
-        });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['followers', userId]);
-    }
-  });
 
   const handleShareProfile = async () => {
     const profileUrl = window.location.href;
@@ -494,7 +474,7 @@ export default function PerfilUsuario() {
                 variant={eventFilter === 'all' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setEventFilter('all')}
-                className={eventFilter === 'all' ? 'bg-cyan-600' : 'border-gray-600'}
+                className={eventFilter === 'all' ? 'bg-cyan-600' : 'border-gray-600 text-gray-300'}
               >
                 Todos ({userEvents.length})
               </Button>
@@ -502,7 +482,7 @@ export default function PerfilUsuario() {
                 variant={eventFilter === 'upcoming' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setEventFilter('upcoming')}
-                className={eventFilter === 'upcoming' ? 'bg-green-600' : 'border-gray-600'}
+                className={eventFilter === 'upcoming' ? 'bg-green-600' : 'border-gray-600 text-gray-300'}
               >
                 Próximos ({userEvents.filter(e => isAfter(new Date(e.date), new Date())).length})
               </Button>
@@ -510,7 +490,7 @@ export default function PerfilUsuario() {
                 variant={eventFilter === 'past' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setEventFilter('past')}
-                className={eventFilter === 'past' ? 'bg-purple-600' : 'border-gray-600'}
+                className={eventFilter === 'past' ? 'bg-purple-600' : 'border-gray-600 text-gray-300'}
               >
                 Passados ({userEvents.filter(e => isBefore(new Date(e.date), new Date())).length})
               </Button>
@@ -527,7 +507,7 @@ export default function PerfilUsuario() {
                   <h3 className="text-xl font-semibold text-gray-400 mb-2">
                     Nenhum evento encontrado
                   </h3>
-                  <p className="text-gray-500">
+                  <p className="text-gray-500 mb-4">
                     {eventFilter === 'upcoming' 
                       ? 'Nenhum evento futuro agendado'
                       : eventFilter === 'past'
@@ -536,6 +516,15 @@ export default function PerfilUsuario() {
                         ? 'Este organizador ainda não criou eventos' 
                         : 'Este usuário ainda não participou de eventos'}
                   </p>
+                  {currentUser?.id === userId && (
+                    <Button
+                      onClick={() => navigate(createPageUrl("Feed"))}
+                      className="bg-gradient-to-r from-cyan-600 to-purple-600"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      Explorar Eventos
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -626,15 +615,19 @@ export default function PerfilUsuario() {
                     Nenhuma conquista ainda
                   </h3>
                   <p className="text-gray-500 mb-4">
-                    Participe de eventos e ganhe badges exclusivos!
+                    {currentUser?.id === userId 
+                      ? 'Participe de eventos e ganhe badges exclusivos!'
+                      : 'Este usuário ainda não conquistou badges'}
                   </p>
-                  <Button
-                    onClick={() => navigate(createPageUrl("Feed"))}
-                    className="bg-gradient-to-r from-cyan-600 to-purple-600"
-                  >
-                    <Zap className="w-4 h-4 mr-2" />
-                    Explorar Eventos
-                  </Button>
+                  {currentUser?.id === userId && (
+                    <Button
+                      onClick={() => navigate(createPageUrl("Feed"))}
+                      className="bg-gradient-to-r from-cyan-600 to-purple-600"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      Explorar Eventos
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -642,154 +635,16 @@ export default function PerfilUsuario() {
 
           {/* Music Tab */}
           <TabsContent value="music" className="mt-4">
-            {/* Gêneros Favoritos */}
-            <Card className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-500/30 mb-4">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Music className="w-5 h-5 text-purple-400" />
-                  <h3 className="font-semibold text-white">Gêneros Favoritos</h3>
-                </div>
-                
-                {favoriteGenres.length > 0 ? (
-                  <div className="space-y-3">
-                    {favoriteGenres.map((item, index) => (
-                      <motion.div
-                        key={item.genre}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className={`w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center ${
-                            index === 0 ? 'from-yellow-500 to-orange-500' :
-                            index === 1 ? 'from-purple-500 to-pink-500' :
-                            'from-cyan-500 to-blue-500'
-                          }`}>
-                            <span className="text-white font-bold text-sm">#{index + 1}</span>
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-semibold text-white capitalize">{item.genre}</p>
-                            <p className="text-xs text-gray-400">{item.count} evento{item.count !== 1 ? 's' : ''}</p>
-                          </div>
-                        </div>
-                        <div className="w-24">
-                          <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${(item.count / userEvents.length) * 100}%` }}
-                              className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
-                            />
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-sm text-center py-4">
-                    Nenhum dado musical disponível ainda
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Estatísticas Musicais */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-gray-900/50 border-gray-700">
-                <CardContent className="p-4 text-center">
-                  <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                  <p className="text-xs text-gray-400 mb-1">Evento Mais Curtido</p>
-                  <p className="font-bold text-white text-sm">
-                    {userEvents.length > 0 ? userEvents[0]?.genre || 'N/A' : 'N/A'}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gray-900/50 border-gray-700">
-                <CardContent className="p-4 text-center">
-                  <Star className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                  <p className="text-xs text-gray-400 mb-1">Gênero #1</p>
-                  <p className="font-bold text-white text-sm capitalize">
-                    {favoriteGenres[0]?.genre || 'N/A'}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Playlists do Usuário (Mock) */}
-            {profileUser.is_organizer && (
-              <Card className="bg-gray-900/50 border-gray-700 mt-4">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-white flex items-center gap-2">
-                      <Play className="w-5 h-5 text-cyan-400" />
-                      Playlists dos Eventos
-                    </h3>
-                  </div>
-                  <p className="text-gray-400 text-sm text-center py-8">
-                    🎵 Playlists disponíveis em breve!
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            <MusicSection 
+              favoriteGenres={favoriteGenres}
+              totalEvents={userEvents.length}
+              isOrganizer={profileUser.is_organizer}
+            />
           </TabsContent>
 
           {/* Activity Tab */}
           <TabsContent value="activity" className="mt-4">
-            <Card className="bg-gray-900/50 border-gray-700">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-cyan-400" />
-                  Atividade Recente
-                </h3>
-                
-                {recentActivity.length > 0 ? (
-                  <div className="space-y-3">
-                    {recentActivity.map((activity, index) => (
-                      <motion.div
-                        key={`${activity.type}-${activity.data.id}`}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700"
-                      >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          activity.type === 'like' 
-                            ? 'bg-red-600/20' 
-                            : 'bg-blue-600/20'
-                        }`}>
-                          {activity.type === 'like' ? (
-                            <Heart className="w-5 h-5 text-red-400" />
-                          ) : (
-                            <MessageCircle className="w-5 h-5 text-blue-400" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-white text-sm">
-                            {activity.type === 'like' 
-                              ? 'Curtiu um evento'
-                              : 'Comentou em um evento'}
-                          </p>
-                          {activity.type === 'comment' && activity.data.content && (
-                            <p className="text-gray-400 text-xs mt-1 line-clamp-2">
-                              "{activity.data.content}"
-                            </p>
-                          )}
-                          <p className="text-gray-500 text-xs mt-1">
-                            {format(new Date(activity.timestamp), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Clock className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-400">Nenhuma atividade recente</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ActivityTimeline activities={recentActivity} />
           </TabsContent>
         </Tabs>
       </div>
