@@ -23,6 +23,7 @@ import EventoAoVivo from './pages/EventoAoVivo';
 import IntegracoesIngressos from './pages/IntegracoesIngressos';
 import PerfilUsuario from './pages/PerfilUsuario';
 import Recomendacoes from './pages/Recomendacoes';
+import GerenciarIngressos from './pages/GerenciarIngressos';
 import Layout from './Layout.jsx';
 
 
@@ -52,6 +53,7 @@ export const PAGES = {
     "IntegracoesIngressos": IntegracoesIngressos,
     "PerfilUsuario": PerfilUsuario,
     "Recomendacoes": Recomendacoes,
+    "GerenciarIngressos": GerenciarIngressos,
 }
 
 export const pagesConfig = {
