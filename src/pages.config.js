@@ -24,6 +24,7 @@ import IntegracoesIngressos from './pages/IntegracoesIngressos';
 import PerfilUsuario from './pages/PerfilUsuario';
 import Recomendacoes from './pages/Recomendacoes';
 import GerenciarIngressos from './pages/GerenciarIngressos';
+import ChatOrganizadores from './pages/ChatOrganizadores';
 import Layout from './Layout.jsx';
 
 
@@ -54,6 +55,7 @@ export const PAGES = {
     "PerfilUsuario": PerfilUsuario,
     "Recomendacoes": Recomendacoes,
     "GerenciarIngressos": GerenciarIngressos,
+    "ChatOrganizadores": ChatOrganizadores,
 }
 
 export const pagesConfig = {

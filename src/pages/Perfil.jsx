@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Crown, Calendar, Ticket, Award, Edit2, Share2, CheckCircle, 
-  Settings, Shield, Music, Trophy, BarChart3
+  Settings, Shield, Music, Trophy, BarChart3, MessageCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -204,10 +204,16 @@ export default function Perfil() {
             </div>
 
             {user.is_organizer && (
-              <Button onClick={() => navigate(createPageUrl("DashboardOrganizador"))} className="w-full bg-cyan-600 hover:bg-cyan-700">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Ver Dashboard
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => navigate(createPageUrl("DashboardOrganizador"))} className="flex-1 bg-cyan-600 hover:bg-cyan-700">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
+                <Button onClick={() => navigate(createPageUrl("ChatOrganizadores"))} className="flex-1 bg-purple-600 hover:bg-purple-700">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Chat
+                </Button>
+              </div>
             )}
           </div>
         </div>
