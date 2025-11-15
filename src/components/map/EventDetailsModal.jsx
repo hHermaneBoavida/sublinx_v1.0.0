@@ -7,24 +7,57 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   X, MapPin, Calendar, Users, DollarSign,
   Navigation, Share2, Zap, CalendarPlus, MessageSquare,
-  Music2, ExternalLink, User, Instagram, Twitter
+  Music2, ExternalLink, User, Instagram, Twitter, Star
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { GenreBadge } from "../shared/EventBadge";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import useCurrentUser from "../shared/useCurrentUser";
+import EventRatingDisplay from "../reviews/EventRatingDisplay";
+import ReviewsList from "../reviews/ReviewsList";
+import AddReviewModal from "../reviews/AddReviewModal";
 
 export default function EventDetailsModal({ event, onClose }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [shareComment, setShareComment] = useState("");
   const [showShareComment, setShowShareComment] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
+  const [showAddReview, setShowAddReview] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
+
+  const { data: eventReviews = [] } = useQuery({
+    queryKey: ['eventReviews', event.id],
+    queryFn: () => base44.entities.EventReview.filter({ event_id: event.id }),
+  });
+
+  const { data: reviewUsers = [] } = useQuery({
+    queryKey: ['reviewUsers', eventReviews.length],
+    queryFn: async () => {
+      if (eventReviews.length === 0) return [];
+      const userIds = [...new Set(eventReviews.map(r => r.user_id))];
+      return await base44.entities.User.filter({ id: { $in: userIds } });
+    },
+    enabled: eventReviews.length > 0,
+  });
+
+  const { data: userTickets = [] } = useQuery({
+    queryKey: ['userTickets', user?.id, event.id],
+    queryFn: () => base44.entities.Ticket.filter({
+      user_id: user.id,
+      event_id: event.id,
+      status: 'valid'
+    }),
+    enabled: !!user?.id,
+  });
+
+  const hasTicket = userTickets.length > 0;
+  const hasReviewed = eventReviews.some(r => r.user_id === user?.id);
 
   // Mock DJs/Artists (em produção, viria do evento)
   const artists = event.artists || [
@@ -58,7 +91,7 @@ export default function EventDetailsModal({ event, onClose }) {
   // Integração Google Maps
   const handleGetDirections = () => {
     if (!event.location?.lat || !event.location?.lng) return;
-    
+
     const url = `https://www.google.com/maps/dir/?api=1&destination=${event.location.lat},${event.location.lng}&travelmode=driving`;
     window.open(url, '_blank');
   };
@@ -66,7 +99,7 @@ export default function EventDetailsModal({ event, onClose }) {
   // Visualizar no Waze
   const handleOpenWaze = () => {
     if (!event.location?.lat || !event.location?.lng) return;
-    
+
     const url = `https://waze.com/ul?ll=${event.location.lat},${event.location.lng}&navigate=yes`;
     window.open(url, '_blank');
   };
@@ -75,24 +108,24 @@ export default function EventDetailsModal({ event, onClose }) {
   const handleAddToCalendar = () => {
     const startDate = new Date(event.date);
     const endDate = new Date(startDate.getTime() + (event.duration_hours || 4) * 60 * 60 * 1000);
-    
+
     const formatGoogleDate = (date) => {
       return date.toISOString().replace(/-|:|\.\d+/g, '');
     };
 
     const details = `${event.description || ''}\n\nLocal: ${event.location?.venue_name || 'A definir'}\nOrganizador: ${event.organizer}`;
-    
+
     const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(event.location?.address || event.location?.venue_name || '')}&sf=true&output=xml`;
-    
+
     window.open(googleCalendarUrl, '_blank');
   };
 
   // Compartilhamento avançado
   const handleShare = async () => {
-    const shareText = shareComment 
-      ? `${shareComment}\n\n${event.title}` 
+    const shareText = shareComment
+      ? `${shareComment}\n\n${event.title}`
       : `Confira esse evento: ${event.title}`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -112,11 +145,11 @@ export default function EventDetailsModal({ event, onClose }) {
     }
   };
 
-  const occupancy = event.max_capacity > 0 
-    ? (event.current_attendees / event.max_capacity) * 100 
+  const occupancy = event.max_capacity > 0
+    ? (event.current_attendees / event.max_capacity) * 100
     : 0;
 
-  const occupancyColor = 
+  const occupancyColor =
     occupancy >= 90 ? 'text-red-400' :
     occupancy >= 70 ? 'text-yellow-400' :
     'text-green-400';
@@ -150,7 +183,7 @@ export default function EventDetailsModal({ event, onClose }) {
                 onLoad={() => setImageLoaded(true)}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-              
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -179,6 +212,38 @@ export default function EventDetailsModal({ event, onClose }) {
             </div>
 
             <CardContent className="p-6 space-y-6">
+              {/* Reviews Section */}
+              {eventReviews.length > 0 && (
+                <div>
+                  <EventRatingDisplay reviews={eventReviews} />
+
+                  <Button
+                    onClick={() => setShowReviews(!showReviews)}
+                    variant="outline"
+                    className="w-full mt-3 border-yellow-500/30 text-yellow-400 hover:bg-yellow-600/10"
+                  >
+                    <Star className="w-4 h-4 mr-2" />
+                    {showReviews ? 'Ocultar' : 'Ver'} Avaliações ({eventReviews.length})
+                  </Button>
+
+                  {showReviews && (
+                    <div className="mt-4">
+                      <ReviewsList reviews={eventReviews} users={reviewUsers} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {hasTicket && !hasReviewed && (
+                <Button
+                  onClick={() => setShowAddReview(true)}
+                  className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700"
+                >
+                  <Star className="w-4 h-4 mr-2" />
+                  Avaliar Este Evento
+                </Button>
+              )}
+
               {/* Quick Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
@@ -237,7 +302,7 @@ export default function EventDetailsModal({ event, onClose }) {
                         </div>
                         <div className="flex gap-2">
                           {artist.instagram && (
-                            <a 
+                            <a
                               href={`https://instagram.com/${artist.instagram.replace('@', '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -247,7 +312,7 @@ export default function EventDetailsModal({ event, onClose }) {
                             </a>
                           )}
                           {artist.twitter && (
-                            <a 
+                            <a
                               href={`https://twitter.com/${artist.twitter.replace('@', '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -274,7 +339,7 @@ export default function EventDetailsModal({ event, onClose }) {
                     {occupancy.toFixed(0)}%
                   </span>
                 </div>
-                
+
                 <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
@@ -295,7 +360,7 @@ export default function EventDetailsModal({ event, onClose }) {
                     />
                   </motion.div>
                 </div>
-                
+
                 <div className="flex justify-between mt-2 text-xs text-gray-400">
                   <span>{event.current_attendees || 0} confirmados</span>
                   <span>{event.max_capacity || 0} max</span>
@@ -317,7 +382,7 @@ export default function EventDetailsModal({ event, onClose }) {
                         </div>
                       </div>
                     </div>
-                    
+
                     {event.ticket_types && event.ticket_types.length > 1 && (
                       <Badge className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-xs">
                         +{event.ticket_types.length - 1} tipo{event.ticket_types.length > 2 ? 's' : ''}
@@ -354,7 +419,7 @@ export default function EventDetailsModal({ event, onClose }) {
                 />
                 <div className="flex-1">
                   <div className="text-xs text-gray-400">Organizado por</div>
-                  <div 
+                  <div
                     className="text-sm font-semibold text-white cursor-pointer hover:text-cyan-400 transition-colors"
                     onClick={() => {
                       if (event.organizer_id) {
@@ -486,6 +551,17 @@ export default function EventDetailsModal({ event, onClose }) {
           </Card>
         </motion.div>
       </div>
+      {showAddReview && (
+        <AddReviewModal
+          event={event}
+          user={user}
+          onClose={() => {
+            setShowAddReview(false);
+            queryClient.invalidateQueries(['eventReviews', event.id]);
+            queryClient.invalidateQueries(['feedInteractions']); // To update event rating on feed
+          }}
+        />
+      )}
     </motion.div>
   );
 }

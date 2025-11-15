@@ -23,6 +23,7 @@ import { CACHE_CONFIG } from "../shared/helpers";
 import LazyImage from "./LazyImage";
 import useRealtimeEvent from "../events/useRealtimeEvent";
 import AttendeeCounter from "../events/AttendeeCounter";
+import EventRatingDisplay from "../reviews/EventRatingDisplay";
 
 export default function EventFeedCard({
   event,
@@ -71,6 +72,14 @@ export default function EventFeedCard({
     ...CACHE_CONFIG.SHORT,
     initialData: null,
     enabled: !!event.organizer_id,
+  });
+
+  const { data: eventReviews = [] } = useQuery({
+    queryKey: ['eventReviews', event.id],
+    queryFn: () => base44.entities.EventReview.filter({ event_id: event.id }),
+    enabled: !!event.id,
+    ...CACHE_CONFIG.LONG,
+    initialData: [],
   });
 
   const organizerName = organizerData?.full_name || event.organizer;
@@ -342,6 +351,12 @@ export default function EventFeedCard({
           </LazyImage>
 
           <CardContent className="p-2.5 pt-1.5 space-y-1.5 relative z-10">
+            {eventReviews.length > 0 && (
+              <div className="mb-1.5">
+                <EventRatingDisplay reviews={eventReviews} compact={true} />
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" className="hover:text-red-500 h-7 px-1.5" onClick={handleLike}>

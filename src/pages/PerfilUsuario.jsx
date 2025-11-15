@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -13,6 +14,7 @@ import { format, isAfter, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import FollowButton from "../components/profile/FollowButton";
 import { CACHE_CONFIG, DEFAULT_AVATAR } from "../components/shared/helpers";
+import OrganizerRating from "../components/reviews/OrganizerRating";
 
 export default function PerfilUsuario() {
   const location = useLocation();
@@ -310,6 +312,12 @@ export default function PerfilUsuario() {
             )}
           </div>
         </div>
+
+        {profileUser.is_organizer && (
+          <div className="mb-6">
+            <OrganizerRating organizerId={profileUser.id} />
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs defaultValue="eventos" className="w-full">
