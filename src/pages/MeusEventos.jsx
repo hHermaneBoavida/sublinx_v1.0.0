@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -8,16 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Calendar, MapPin, Users, DollarSign, Edit, 
-  Ticket, TrendingUp, Search, Plus, Settings, BarChart3
+  Calendar, MapPin, Users, DollarSign, Edit,
+  Ticket, TrendingUp, Search, Plus, Settings, BarChart3, Crown
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import GuestListManager from "../components/guestlist/GuestListManager";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function MeusEventos() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showGuestList, setShowGuestList] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -119,18 +124,21 @@ export default function MeusEventos() {
         {/* Future Events */}
         {futureEvents.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-cyan-400" />
-              Próximos Eventos ({futureEvents.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h2 className="text-xl font-bold mb-4 text-cyan-400">Eventos Futuros</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {futureEvents.map((event, index) => (
                 <EventManagementCard
                   key={event.id}
                   event={event}
-                  tickets={allTickets.filter(t => t.event_id === event.id && t.status !== 'cancelled')}
+                  allTickets={allTickets}
                   navigate={navigate}
                   index={index}
+                  onManageTickets={() => navigate(createPageUrl("GerenciarIngressos") + `?eventId=${event.id}`)}
+                  onEditEvent={() => navigate(createPageUrl("EditarEvento") + `?id=${event.id}`)}
+                  onManageGuestList={() => {
+                    setSelectedEvent(event);
+                    setShowGuestList(true);
+                  }}
                 />
               ))}
             </div>
@@ -143,15 +151,21 @@ export default function MeusEventos() {
             <h2 className="text-xl font-semibold text-gray-400 mb-4">
               Eventos Passados ({pastEvents.length})
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {pastEvents.map((event, index) => (
                 <EventManagementCard
                   key={event.id}
                   event={event}
-                  tickets={allTickets.filter(t => t.event_id === event.id && t.status !== 'cancelled')}
+                  allTickets={allTickets}
                   navigate={navigate}
                   index={index}
                   isPast
+                  onManageTickets={() => navigate(createPageUrl("GerenciarIngressos") + `?eventId=${event.id}`)}
+                  onEditEvent={() => navigate(createPageUrl("EditarEvento") + `?id=${event.id}`)}
+                  onManageGuestList={() => {
+                    setSelectedEvent(event);
+                    setShowGuestList(true);
+                  }}
                 />
               ))}
             </div>
@@ -180,11 +194,24 @@ export default function MeusEventos() {
           </div>
         )}
       </div>
+
+      {/* Guest List Modal */}
+      {showGuestList && selectedEvent && (
+        <Dialog open={showGuestList} onOpenChange={setShowGuestList}>
+          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-3xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">{selectedEvent.title}</DialogTitle>
+            </DialogHeader>
+            <GuestListManager event={selectedEvent} user={user} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
 
-function EventManagementCard({ event, tickets, navigate, index, isPast = false }) {
+function EventManagementCard({ event, allTickets, navigate, index, isPast = false, onManageTickets, onEditEvent, onManageGuestList }) {
+  const tickets = allTickets.filter(t => t.event_id === event.id && t.status !== 'cancelled');
   const revenue = tickets.reduce((sum, t) => sum + (t.price || 0), 0);
   const occupancy = event.max_capacity > 0 ? (tickets.length / event.max_capacity) * 100 : 0;
 
@@ -194,7 +221,7 @@ function EventManagementCard({ event, tickets, navigate, index, isPast = false }
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
     >
-      <Card className={`bg-gray-900/80 border-gray-700 hover:border-cyan-500/50 transition-colors ${isPast ? 'opacity-70' : ''}`}>
+      <Card className={`bg-gray-900/80 border-gray-700 overflow-hidden ${isPast ? 'opacity-70' : ''} hover:border-cyan-500/30 transition-all`}>
         <CardHeader className="pb-3">
           <div className="flex items-start gap-4">
             <img
@@ -217,7 +244,7 @@ function EventManagementCard({ event, tickets, navigate, index, isPast = false }
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-4 space-y-3">
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-gray-800/50 rounded-lg p-3 text-center">
@@ -238,24 +265,31 @@ function EventManagementCard({ event, tickets, navigate, index, isPast = false }
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Button
-              onClick={() => navigate(createPageUrl("GerenciarIngressos") + `?eventId=${event.id}`)}
-              className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700"
+              onClick={onManageTickets}
+              variant="outline"
               size="sm"
+              className="border-cyan-500/30 text-cyan-400"
             >
               <Ticket className="w-4 h-4 mr-2" />
               Ingressos
             </Button>
             <Button
-              onClick={() => navigate(createPageUrl("EditarEvento") + `?id=${event.id}`)}
+              onClick={onManageGuestList}
               variant="outline"
-              className="border-gray-600"
               size="sm"
+              className="border-purple-500/30 text-purple-400"
             >
-              <Edit className="w-4 h-4" />
+              <Crown className="w-4 h-4 mr-2" />
+              Guest List
             </Button>
           </div>
+
+          <Button onClick={onEditEvent} variant="outline" size="sm" className="w-full border-gray-600">
+            <Edit className="w-4 h-4 mr-2" />
+            Editar Evento
+          </Button>
         </CardContent>
       </Card>
     </motion.div>

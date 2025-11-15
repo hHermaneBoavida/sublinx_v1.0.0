@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
@@ -11,7 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
   Loader2, CheckCircle, AlertCircle, 
-  QrCode, Ticket, Clock, Users, Share2, Calendar
+  QrCode, Ticket, Clock, Users, Share2, Calendar,
+  Crown, Gift, DollarSign
 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
@@ -35,6 +37,7 @@ export default function ComprarIngresso() {
   
   const searchParams = new URLSearchParams(location.search);
   const eventId = searchParams.get('eventId');
+  const isGuestList = searchParams.get('guestList') === 'true';
 
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ['currentUser'],
@@ -60,6 +63,22 @@ export default function ComprarIngresso() {
     },
     enabled: !!eventId,
   });
+
+  const { data: guestStatus } = useQuery({
+    queryKey: ['guestStatus', eventId, user?.id],
+    queryFn: async () => {
+      if (!user || !eventId) return null;
+      const guests = await base44.entities.GuestList.filter({
+        event_id: eventId,
+        guest_user_id: user.id
+      });
+      return guests[0] || null;
+    },
+    enabled: !!user && !!eventId && isGuestList,
+  });
+
+  const isVipGuest = guestStatus?.status === 'accepted';
+  const vipDiscount = isVipGuest ? (guestStatus.discount_percentage || 100) : 0;
 
   const purchaseTicketMutation = useMutation({
     mutationFn: async ({ ticketData }) => {
@@ -102,13 +121,16 @@ export default function ComprarIngresso() {
     if (!selectedTicketType || !user || !event) return;
 
     const qrCodeData = `SUBLINX:${Date.now()}:${user.id}:${event.id}:${selectedTicketType.id}`;
+    const finalPrice = isVipGuest 
+      ? (selectedTicketType.price * quantity * (1 - vipDiscount / 100))
+      : (selectedTicketType.price * quantity);
 
     await purchaseTicketMutation.mutateAsync({
       ticketData: {
         user_id: user.id,
         event_id: event.id,
-        ticket_type: selectedTicketType.name,
-        price: selectedTicketType.price * quantity,
+        ticket_type: selectedTicketType.name + (isVipGuest ? ' (VIP)' : ''),
+        price: finalPrice,
         quantity: quantity,
         qr_code_data: qrCodeData,
         status: 'valid',
@@ -121,9 +143,21 @@ export default function ComprarIngresso() {
         }
       }
     });
+
+    // Marcar guest list como usada
+    if (isVipGuest && guestStatus && guestStatus.status === 'accepted') {
+      await base44.entities.GuestList.update(guestStatus.id, {
+        status: 'used',
+        used_at: new Date().toISOString()
+      });
+    }
   };
 
-  const totalAmount = selectedTicketType ? selectedTicketType.price * quantity : 0;
+  const totalAmount = selectedTicketType 
+    ? isVipGuest 
+      ? (selectedTicketType.price * quantity * (1 - vipDiscount / 100))
+      : (selectedTicketType.price * quantity)
+    : 0;
 
   if (loadingUser || loadingEvent) {
     return (
@@ -360,15 +394,66 @@ export default function ComprarIngresso() {
               {/* Payment */}
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-white">2. Pagamento</h3>
-                <PaymentIntegration
-                  amount={totalAmount}
-                  onPaymentSuccess={handlePaymentSuccess}
-                  ticketData={{
-                    selectedTicketType,
-                    quantity,
-                    event
-                  }}
-                />
+                
+                {isVipGuest && vipDiscount > 0 && (
+                  <Card className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border-purple-500/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Crown className="w-8 h-8 text-yellow-400" />
+                        <div>
+                          <p className="font-bold text-white">Guest List VIP</p>
+                          <p className="text-sm text-purple-300">{vipDiscount}% de desconto aplicado!</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {isVipGuest && vipDiscount === 100 ? (
+                  <Card className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 border-green-500/50">
+                    <CardContent className="p-6 text-center">
+                      <Gift className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                      <p className="text-2xl font-bold text-green-400 mb-2">Entrada Gratuita!</p>
+                      <p className="text-sm text-gray-300">Você está na Guest List VIP</p>
+                      <Button
+                        onClick={() => handlePaymentSuccess({ method: 'vip_free' })}
+                        className="w-full mt-4 bg-gradient-to-r from-green-600 to-emerald-600"
+                      >
+                        Confirmar Presença VIP
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    <div className="text-center bg-gradient-to-r from-green-900/20 to-emerald-900/20 border border-green-700/30 rounded-xl p-4">
+                      <p className="text-sm text-gray-300 mb-1">Total a pagar:</p>
+                      {isVipGuest && vipDiscount > 0 && selectedTicketType && (
+                        <p className="text-sm text-gray-500 line-through">
+                          R$ {(selectedTicketType.price * quantity).toFixed(2)}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-center gap-2">
+                        <DollarSign className="w-6 h-6 text-green-400" />
+                        <p className="text-4xl font-bold text-green-400">
+                          {totalAmount.toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">
+                        {quantity}x {selectedTicketType?.name} • R$ {(totalAmount / quantity).toFixed(2)} cada
+                      </p>
+                    </div>
+                    
+                    <PaymentIntegration
+                      amount={totalAmount}
+                      onPaymentSuccess={handlePaymentSuccess}
+                      ticketData={{
+                        selectedTicketType,
+                        quantity,
+                        event
+                      }}
+                    />
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

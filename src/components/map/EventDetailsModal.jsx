@@ -20,6 +20,7 @@ import useCurrentUser from "../shared/useCurrentUser";
 import EventRatingDisplay from "../reviews/EventRatingDisplay";
 import ReviewsList from "../reviews/ReviewsList";
 import AddReviewModal from "../reviews/AddReviewModal";
+import GuestListStatus from "../guestlist/GuestListStatus";
 
 export default function EventDetailsModal({ event, onClose }) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -212,6 +213,9 @@ export default function EventDetailsModal({ event, onClose }) {
             </div>
 
             <CardContent className="p-6 space-y-6">
+              {/* Guest List Status */}
+              <GuestListStatus event={event} user={user} />
+
               {/* Reviews Section */}
               {eventReviews.length > 0 && (
                 <div>
@@ -350,7 +354,7 @@ export default function EventDetailsModal({ event, onClose }) {
                     <motion.div
                       className="absolute inset-0 bg-white/30"
                       animate={{
-                        x: ['-100%', '100%']
+                        x: ['-100%', '200%']
                       }}
                       transition={{
                         duration: 2,
