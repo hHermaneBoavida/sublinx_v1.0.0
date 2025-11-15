@@ -17,7 +17,8 @@ export default function EditProfileModal({ user, onClose }) {
     avatar_url: user.avatar_url || "",
     phone: user.phone || "",
     city: user.city || "",
-    state: user.state || ""
+    state: user.state || "",
+    birth_date: user.birth_date || ""
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -65,28 +66,23 @@ export default function EditProfileModal({ user, onClose }) {
     setError("");
     
     try {
-      console.log("🔄 Salvando perfil com display_name:", trimmedName);
-      
       const updateData = {
         display_name: trimmedName,
         bio: formData.bio?.trim() || "",
         avatar_url: formData.avatar_url || "",
         phone: formData.phone?.trim() || "",
         city: formData.city?.trim() || "",
-        state: formData.state?.trim() || ""
+        state: formData.state?.trim() || "",
+        birth_date: formData.birth_date || ""
       };
 
       await base44.auth.updateMe(updateData);
 
-      console.log("✅ Perfil salvo com sucesso");
-
-      // Invalida todos os caches
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       queryClient.invalidateQueries({ queryKey: ['profileUser'] });
       
       onClose();
       
-      // Reload para garantir atualização
       setTimeout(() => {
         window.location.reload();
       }, 100);
@@ -174,6 +170,18 @@ export default function EditProfileModal({ user, onClose }) {
               disabled={loading || uploading}
             />
             <p className="text-xs text-gray-500 mt-1 text-right">{formData.bio?.length || 0}/200</p>
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-400 mb-2 block">Data de Nascimento</label>
+            <Input
+              type="date"
+              value={formData.birth_date}
+              onChange={(e) => setFormData(prev => ({ ...prev, birth_date: e.target.value }))}
+              className="bg-gray-800 border-gray-700 text-white focus:border-cyan-500"
+              disabled={loading || uploading}
+            />
+            <p className="text-xs text-gray-500 mt-1">🎁 Ganhe um presente especial no seu aniversário!</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

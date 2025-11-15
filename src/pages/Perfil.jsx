@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +15,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import EditProfileModal from "../components/profile/EditProfileModal";
 import TicketCard from "../components/tickets/TicketCard";
+import BirthdayBanner from "../components/profile/BirthdayBanner";
+import CalendarIntegration from "../components/integrations/CalendarIntegration";
 import { CACHE_CONFIG } from "../components/shared/helpers";
 import { getUserDisplayName, getUserAvatar } from "../components/shared/userHelpers";
 
@@ -21,6 +24,7 @@ export default function Perfil() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -97,6 +101,27 @@ export default function Perfil() {
       .map(([genre, count]) => ({ genre, count }));
   }, [myEvents, attendedEvents, user?.is_organizer]);
 
+  // Verificar aniversário
+  const birthdayInfo = useMemo(() => {
+    if (!user?.birth_date) return { isBirthday: false, daysUntil: 999 };
+
+    const today = new Date();
+    const birthDate = new Date(user.birth_date);
+    const thisYearBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+    
+    const isBirthday = 
+      today.getDate() === birthDate.getDate() && 
+      today.getMonth() === birthDate.getMonth();
+
+    if (thisYearBirthday < today) {
+      thisYearBirthday.setFullYear(today.getFullYear() + 1);
+    }
+
+    const daysUntil = Math.ceil((thisYearBirthday - today) / (1000 * 60 * 60 * 24));
+
+    return { isBirthday, daysUntil };
+  }, [user?.birth_date]);
+
   const handleLogout = () => {
     base44.auth.logout();
     navigate(createPageUrl("BemVindo"));
@@ -140,16 +165,25 @@ export default function Perfil() {
   return (
     <div className="min-h-screen bg-black text-white pb-24 md:pb-8">
       {/* Header */}
-      <div className="border-b border-gray-800 sticky top-0 bg-black z-10">
+      <div className="border-b border-gray-800 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold">Perfil</h1>
             
             <div className="flex items-center gap-2">
+              <Button 
+                onClick={handleLogout} 
+                variant="ghost" 
+                size="sm"
+                className="text-red-400 hover:bg-red-500/10 hover:text-red-300 border border-red-500/30"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
               <Button onClick={handleShareProfile} variant="ghost" size="icon" className="text-white hover:bg-gray-900">
                 <Share2 className="w-5 h-5" />
               </Button>
-              <Button onClick={() => setShowEditModal(true)} variant="ghost" size="icon" className="text-white hover:bg-gray-900">
+              <Button onClick={() => setShowEditModal(true)} variant="ghost" size="icon" className="text-cyan-400 hover:bg-cyan-500/10">
                 <Edit2 className="w-5 h-5" />
               </Button>
             </div>
@@ -159,6 +193,13 @@ export default function Perfil() {
 
       {/* Profile */}
       <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Birthday Banner */}
+        <BirthdayBanner 
+          user={user} 
+          isBirthday={birthdayInfo.isBirthday} 
+          daysUntilBirthday={birthdayInfo.daysUntil} 
+        />
+
         <div className="flex items-start gap-6 mb-6">
           <div className="relative flex-shrink-0">
             <img
@@ -193,7 +234,7 @@ export default function Perfil() {
               <p className="font-semibold mb-1">{getUserDisplayName(user)}</p>
               {user.bio && <p className="text-sm text-gray-300">{user.bio}</p>}
               
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 {user.is_organizer && (
                   <Badge variant="outline" className="text-xs border-cyan-500 text-cyan-400">
                     Organizador
@@ -201,6 +242,11 @@ export default function Perfil() {
                 )}
                 {user.verified_organizer && <CheckCircle className="w-4 h-4 text-blue-500" />}
                 <span className="text-xs text-gray-500">Nível {stats.level}</span>
+                {user.birth_date && (
+                  <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-400">
+                    🎂 {format(new Date(user.birth_date), "dd/MM")}
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -349,6 +395,28 @@ export default function Perfil() {
                 </div>
               )}
 
+              {user.birth_date && (
+                <div className="pb-4 border-b border-gray-800">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Aniversário</p>
+                      <p className="text-white font-medium text-sm">
+                        {format(new Date(user.birth_date), "dd 'de' MMMM", { locale: ptBR })}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setShowCalendarModal(true)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-cyan-400 hover:bg-cyan-500/10"
+                    >
+                      <Calendar className="w-4 h-4 mr-1" />
+                      Adicionar
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <p className="text-sm text-gray-400">Membro desde</p>
                 <p className="text-white font-medium text-sm">
@@ -366,16 +434,23 @@ export default function Perfil() {
               <Crown className="w-4 h-4 mr-2" />
               {user.is_pro_member || user.is_organizer ? 'Gerenciar Plano' : 'Tornar-se Pro'}
             </Button>
-
-            <Button onClick={handleLogout} variant="outline" className="w-full border-red-500/30 text-red-400 hover:bg-red-900/20">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
-            </Button>
           </TabsContent>
         </Tabs>
       </div>
 
       {showEditModal && <EditProfileModal user={user} onClose={() => setShowEditModal(false)} />}
+      {showCalendarModal && user.birth_date && (
+        <CalendarIntegration 
+          event={{
+            title: `🎂 Aniversário de ${getUserDisplayName(user)}`,
+            date: new Date(new Date().getFullYear(), new Date(user.birth_date).getMonth(), new Date(user.birth_date).getDate()),
+            description: "Aniversário - Lembre-se de comemorar!",
+            location: { venue_name: "", address: "" },
+            duration_hours: 24
+          }} 
+          onClose={() => setShowCalendarModal(false)} 
+        />
+      )}
     </div>
   );
 }
