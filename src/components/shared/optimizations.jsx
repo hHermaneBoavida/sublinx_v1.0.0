@@ -1,52 +1,89 @@
-/**
- * OTIMIZAÇÕES GLOBAIS
- */
+// ====================================
+// CONFIGURAÇÕES DE CACHE OTIMIZADAS
+// ====================================
 
-// CACHE CONFIGS OTIMIZADOS
 export const CACHE_CONFIG = {
-  // Dados que mudam frequentemente (likes, comments)
-  REALTIME: { 
-    staleTime: 10000, // 10s
-    cacheTime: 30000, // 30s
+  // Dados em tempo real (30s)
+  REALTIME: {
+    staleTime: 30000,
+    cacheTime: 60000,
     refetchOnWindowFocus: true,
-    refetchOnMount: false
+    refetchInterval: 30000,
   },
   
-  // Dados que mudam ocasionalmente (eventos, tickets)
-  SHORT: { 
-    staleTime: 60000, // 1min
-    cacheTime: 300000, // 5min
+  // Dados que mudam frequentemente (2min)
+  SHORT: {
+    staleTime: 120000,
+    cacheTime: 300000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false
+    refetchInterval: false,
   },
   
-  // Dados que mudam raramente (badges, histórico)
-  MEDIUM: { 
-    staleTime: 300000, // 5min
-    cacheTime: 600000, // 10min
+  // Dados moderados (5min)
+  MEDIUM: {
+    staleTime: 300000,
+    cacheTime: 600000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false
+    refetchInterval: false,
   },
   
-  // Dados que quase nunca mudam (user info, planos)
-  LONG: { 
-    staleTime: 600000, // 10min
-    cacheTime: 1800000, // 30min
+  // Dados que raramente mudam (15min)
+  LONG: {
+    staleTime: 900000,
+    cacheTime: 1800000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false
+    refetchInterval: false,
   },
   
-  // Dados estáticos
-  STATIC: { 
-    staleTime: Infinity, 
-    cacheTime: Infinity,
+  // Dados estáticos (1h)
+  STATIC: {
+    staleTime: 3600000,
+    cacheTime: 7200000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false
+    refetchInterval: false,
   }
 };
 
-// DEBOUNCE HELPER
-export function debounce(func, wait) {
+// ====================================
+// QUERY KEYS PADRONIZADOS
+// ====================================
+
+export const queryKeys = {
+  // User
+  currentUser: () => ['currentUser'],
+  profileUser: (userId) => ['profileUser', userId],
+  userTickets: (userId) => ['userTickets', userId],
+  organizerStats: (userId) => ['organizerStats', userId],
+  
+  // Events
+  events: () => ['events'],
+  event: (eventId) => ['event', eventId],
+  eventsByOrganizer: (organizerId) => ['eventsByOrganizer', organizerId],
+  futureEvents: () => ['futureEvents'],
+  
+  // Interactions
+  feedInteractions: (userId, eventIds) => ['feedInteractions', userId, eventIds?.length],
+  likes: (eventId) => ['likes', eventId],
+  comments: (eventId) => ['comments', eventId],
+  
+  // Reviews
+  eventReviews: (eventId) => ['eventReviews', eventId],
+  reviewUsers: (count) => ['reviewUsers', count],
+  
+  // Guest List
+  guestList: (eventId) => ['guestList', eventId],
+  guestStatus: (eventId, userId) => ['guestStatus', eventId, userId],
+  
+  // Notifications
+  notifications: (userId) => ['notifications', userId],
+  unreadCount: (userId) => ['unreadCount', userId],
+};
+
+// ====================================
+// DEBOUNCE E THROTTLE
+// ====================================
+
+export function debounce(func, wait = 300) {
   let timeout;
   return function executedFunction(...args) {
     const later = () => {
@@ -58,164 +95,220 @@ export function debounce(func, wait) {
   };
 }
 
-// THROTTLE HELPER
-export function throttle(func, limit) {
+export function throttle(func, limit = 100) {
   let inThrottle;
-  return function executedFunction(...args) {
+  return function(...args) {
     if (!inThrottle) {
-      func(...args);
+      func.apply(this, args);
       inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
+      setTimeout(() => inThrottle = false, limit);
     }
   };
 }
 
-// BATCH PROCESSOR - Agrupa múltiplas requisições
+// ====================================
+// BATCH PROCESSOR
+// ====================================
+
 export class BatchProcessor {
-  constructor(processFn, delay = 100) {
-    this.processFn = processFn;
+  constructor(batchSize = 10, delay = 50) {
+    this.batchSize = batchSize;
     this.delay = delay;
     this.queue = [];
-    this.timer = null;
+    this.processing = false;
   }
 
   add(item) {
     this.queue.push(item);
-    
-    if (this.timer) {
-      clearTimeout(this.timer);
-    }
-
-    this.timer = setTimeout(() => {
+    if (!this.processing) {
       this.process();
-    }, this.delay);
+    }
   }
 
   async process() {
-    if (this.queue.length === 0) return;
-
-    const items = [...this.queue];
-    this.queue = [];
-
-    try {
-      await this.processFn(items);
-    } catch (error) {
-      console.error('Batch processing error:', error);
+    this.processing = true;
+    
+    while (this.queue.length > 0) {
+      const batch = this.queue.splice(0, this.batchSize);
+      
+      try {
+        await Promise.all(batch.map(item => 
+          typeof item === 'function' ? item() : item
+        ));
+      } catch (error) {
+        console.error('Batch processing error:', error);
+      }
+      
+      if (this.queue.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, this.delay));
+      }
     }
+    
+    this.processing = false;
   }
 }
 
-// VIRTUAL SCROLLING HELPER
-export function useVirtualization(items = [], itemHeight = 100, containerHeight = 600) {
-  const [scrollTop, setScrollTop] = React.useState(0);
+// ====================================
+// LAZY IMAGE LOADING
+// ====================================
 
-  const visibleRange = React.useMemo(() => {
-    const start = Math.max(0, Math.floor(scrollTop / itemHeight) - 2);
-    const end = Math.min(
-      items.length,
-      Math.ceil((scrollTop + containerHeight) / itemHeight) + 2
-    );
-    return { start, end };
-  }, [scrollTop, items.length, itemHeight, containerHeight]);
-
-  const visibleItems = React.useMemo(() => {
-    return items.slice(visibleRange.start, visibleRange.end).map((item, index) => ({
-      ...item,
-      index: visibleRange.start + index,
-      offsetTop: (visibleRange.start + index) * itemHeight
-    }));
-  }, [items, visibleRange, itemHeight]);
-
-  return { visibleItems, setScrollTop, totalHeight: items.length * itemHeight };
+export function preloadImages(urls) {
+  return Promise.all(
+    urls.map(url => new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(url);
+      img.onerror = () => reject(url);
+      img.src = url;
+    }))
+  );
 }
 
-// MEMORY CLEANUP
-export function useMemoryCleanup(cleanupFn, dependencies = []) {
-  React.useEffect(() => {
-    return () => {
-      cleanupFn();
-    };
-  }, dependencies);
-}
-
-// IMAGE PRELOADER
-export function preloadImages(urls = []) {
-  urls.forEach(url => {
-    const img = new Image();
-    img.src = url;
-  });
-}
-
+// ====================================
 // LOCAL STORAGE COM LIMITE
-export const SafeStorage = {
-  setItem(key, value, maxSize = 5 * 1024 * 1024) { // 5MB default
-    try {
-      const serialized = JSON.stringify(value);
-      
-      if (serialized.length > maxSize) {
-        console.warn(`Item ${key} exceeds size limit`);
-        return false;
-      }
+// ====================================
 
-      localStorage.setItem(key, serialized);
-      return true;
+export const SafeStorage = {
+  set(key, value, maxAge = 86400000) { // 24h default
+    try {
+      const item = {
+        value,
+        timestamp: Date.now(),
+        maxAge
+      };
+      localStorage.setItem(key, JSON.stringify(item));
+      
+      // Limpar items expirados
+      this.cleanup();
     } catch (e) {
-      if (e.name === 'QuotaExceededError') {
-        // Limpar itens antigos
-        this.clearOldest();
-        try {
-          localStorage.setItem(key, JSON.stringify(value));
-          return true;
-        } catch {
-          return false;
-        }
+      console.warn('LocalStorage full, clearing old items');
+      this.cleanup(true);
+      try {
+        localStorage.setItem(key, JSON.stringify({ value, timestamp: Date.now(), maxAge }));
+      } catch (err) {
+        console.error('Failed to save to localStorage');
       }
-      return false;
     }
   },
-
-  getItem(key) {
+  
+  get(key) {
     try {
       const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : null;
-    } catch {
+      if (!item) return null;
+      
+      const { value, timestamp, maxAge } = JSON.parse(item);
+      
+      if (Date.now() - timestamp > maxAge) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      
+      return value;
+    } catch (e) {
       return null;
     }
   },
-
-  clearOldest() {
-    const items = Object.keys(localStorage)
-      .filter(key => key.startsWith('sublinx_'))
-      .sort();
+  
+  cleanup(force = false) {
+    const keys = Object.keys(localStorage);
+    const now = Date.now();
     
-    // Remove oldest 25%
-    const toRemove = Math.floor(items.length * 0.25);
-    items.slice(0, toRemove).forEach(key => localStorage.removeItem(key));
+    keys.forEach(key => {
+      try {
+        const item = JSON.parse(localStorage.getItem(key));
+        if (force || (item.timestamp && now - item.timestamp > item.maxAge)) {
+          localStorage.removeItem(key);
+        }
+      } catch (e) {
+        // Item inválido, remover
+        localStorage.removeItem(key);
+      }
+    });
   }
 };
 
+// ====================================
 // PERFORMANCE MONITOR
-export function measurePerformance(label, fn) {
+// ====================================
+
+export function measurePerformance(name, fn) {
   const start = performance.now();
   const result = fn();
   const end = performance.now();
   
-  if (end - start > 100) {
-    console.warn(`⚠️ Slow operation: ${label} took ${Math.round(end - start)}ms`);
+  if (end - start > 16) { // Mais de 1 frame (60fps)
+    console.warn(`⚠️ Slow operation: ${name} took ${(end - start).toFixed(2)}ms`);
   }
   
   return result;
 }
 
-// QUERY KEY FACTORY - Evita duplicação de queries
-export const queryKeys = {
-  user: (id) => ['user', id],
-  event: (id) => ['event', id],
-  events: (filters) => ['events', filters],
-  tickets: (userId) => ['tickets', userId],
-  likes: (eventId) => ['likes', eventId],
-  comments: (eventId) => ['comments', eventId],
-  notifications: (userId) => ['notifications', userId],
-  followers: (userId) => ['followers', userId],
-  following: (userId) => ['following', userId]
+// ====================================
+// INTERSECTION OBSERVER HOOK
+// ====================================
+
+export function createIntersectionObserver(callback, options = {}) {
+  const defaultOptions = {
+    root: null,
+    rootMargin: '50px',
+    threshold: 0.1,
+    ...options
+  };
+  
+  return new IntersectionObserver(callback, defaultOptions);
+}
+
+// ====================================
+// MEMORY CLEANUP
+// ====================================
+
+export function useMemoryCleanup(callback, deps = []) {
+  React.useEffect(() => {
+    return () => {
+      if (typeof callback === 'function') {
+        callback();
+      }
+    };
+  }, deps);
+}
+
+// ====================================
+// VIRTUALIZATION HELPER
+// ====================================
+
+export function useVirtualization(items, containerHeight, itemHeight) {
+  const [scrollTop, setScrollTop] = React.useState(0);
+  
+  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - 5);
+  const endIndex = Math.min(
+    items.length - 1,
+    Math.ceil((scrollTop + containerHeight) / itemHeight) + 5
+  );
+  
+  const visibleItems = items.slice(startIndex, endIndex + 1);
+  const offsetY = startIndex * itemHeight;
+  
+  return {
+    visibleItems,
+    offsetY,
+    totalHeight: items.length * itemHeight,
+    onScroll: (e) => setScrollTop(e.target.scrollTop)
+  };
+}
+
+// ====================================
+// EXPORTS
+// ====================================
+
+export default {
+  CACHE_CONFIG,
+  queryKeys,
+  debounce,
+  throttle,
+  BatchProcessor,
+  preloadImages,
+  SafeStorage,
+  measurePerformance,
+  createIntersectionObserver,
+  useMemoryCleanup,
+  useVirtualization
 };

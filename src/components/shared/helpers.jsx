@@ -4,14 +4,14 @@
 
 import { VIBES, DEFAULT_AVATAR as DEFAULT_AVATAR_CONST, MUSIC_GENRES as MUSIC_GENRES_LIST } from "./constants";
 
-// OTIMIZAÇÃO: Cache de cálculos com WeakMap para melhor GC
+// CACHE DE DISTÂNCIAS COM MAP
 const distanceCache = new Map();
-const CACHE_SIZE_LIMIT = 100;
+const CACHE_SIZE_LIMIT = 200;
 
 export function calculateDistance(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
   
-  const key = `${lat1.toFixed(3)},${lon1.toFixed(3)},${lat2.toFixed(3)},${lon2.toFixed(3)}`;
+  const key = `${lat1.toFixed(4)},${lon1.toFixed(4)},${lat2.toFixed(4)},${lon2.toFixed(4)}`;
   
   if (distanceCache.has(key)) {
     return distanceCache.get(key);
@@ -28,7 +28,6 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   const distance = R * c;
   
-  // Limitar cache
   if (distanceCache.size > CACHE_SIZE_LIMIT) {
     const firstKey = distanceCache.keys().next().value;
     distanceCache.delete(firstKey);
@@ -39,7 +38,13 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 export function isValidEvent(event) {
-  return event?.id && event?.title && event?.location?.lat && event?.location?.lng && event?.date;
+  return Boolean(
+    event?.id && 
+    event?.title && 
+    event?.location?.lat && 
+    event?.location?.lng && 
+    event?.date
+  );
 }
 
 export function filterFutureEvents(events) {
@@ -108,7 +113,7 @@ export function validateVideo(file) {
   if (!file) return { valid: false, error: 'Nenhum arquivo' };
   
   const allowedTypes = ['video/mp4', 'video/quicktime'];
-  const maxSize = 50 * 1024 * 1024; // Reduzido para 50MB
+  const maxSize = 50 * 1024 * 1024;
   
   if (!allowedTypes.includes(file.type)) {
     return { valid: false, error: 'Formato inválido' };
@@ -133,7 +138,6 @@ export function truncateText(text, maxLength = 100) {
   return text.substring(0, maxLength) + '...';
 }
 
-// CACHE CONFIG ATUALIZADO
 export { CACHE_CONFIG } from './optimizations';
 
 export const DEFAULT_AVATAR = DEFAULT_AVATAR_CONST;
@@ -151,6 +155,8 @@ export function batchQueries(queries, delay = 50) {
 
 // MEMOIZE HELPER
 const memoCache = new Map();
+const MEMO_CACHE_LIMIT = 100;
+
 export function memoize(fn, keyFn = (...args) => JSON.stringify(args)) {
   return function (...args) {
     const key = keyFn(...args);
@@ -161,7 +167,7 @@ export function memoize(fn, keyFn = (...args) => JSON.stringify(args)) {
     
     const result = fn(...args);
     
-    if (memoCache.size > 50) {
+    if (memoCache.size > MEMO_CACHE_LIMIT) {
       const firstKey = memoCache.keys().next().value;
       memoCache.delete(firstKey);
     }
@@ -169,4 +175,46 @@ export function memoize(fn, keyFn = (...args) => JSON.stringify(args)) {
     memoCache.set(key, result);
     return result;
   };
+}
+
+// DEBOUNCED SEARCH
+export function createDebouncedSearch(searchFn, delay = 300) {
+  let timeoutId;
+  return function(...args) {
+    clearTimeout(timeoutId);
+    return new Promise((resolve) => {
+      timeoutId = setTimeout(async () => {
+        const result = await searchFn(...args);
+        resolve(result);
+      }, delay);
+    });
+  };
+}
+
+// OPTIMIZED ARRAY OPERATIONS
+export function uniqueById(array) {
+  const seen = new Set();
+  return array.filter(item => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
+
+export function groupBy(array, key) {
+  return array.reduce((result, item) => {
+    const group = item[key];
+    if (!result[group]) result[group] = [];
+    result[group].push(item);
+    return result;
+  }, {});
+}
+
+// CLEAR CACHE HELPER
+export function clearDistanceCache() {
+  distanceCache.clear();
+}
+
+export function clearMemoCache() {
+  memoCache.clear();
 }

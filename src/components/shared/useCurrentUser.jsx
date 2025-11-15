@@ -1,23 +1,41 @@
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { CACHE_CONFIG } from "./helpers";
+import { queryKeys, CACHE_CONFIG } from "./optimizations";
 
 /**
- * Hook centralizado para acessar o usuário logado
- * Elimina duplicação de código em 10+ arquivos
- * Cache infinito para evitar re-fetches desnecessários
+ * Hook otimizado para obter usuário atual
+ * Usa cache agressivo e não recarrega desnecessariamente
  */
 export default function useCurrentUser() {
   return useQuery({
-    queryKey: ['currentUser'],
+    queryKey: queryKeys.currentUser(),
     queryFn: async () => {
       try {
-        return await base44.auth.me();
+        const user = await base44.auth.me();
+        return user;
       } catch (error) {
         return null;
       }
     },
     retry: false,
     ...CACHE_CONFIG.STATIC,
+    // Manter dados do usuário em cache por mais tempo
+    staleTime: Infinity,
+    cacheTime: Infinity,
+    // Não refetch automaticamente
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
+}
+
+/**
+ * Hook para forçar revalidação do usuário
+ */
+export function useRevalidateUser() {
+  const queryClient = useQueryClient();
+  
+  return React.useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.currentUser() });
+  }, [queryClient]);
 }

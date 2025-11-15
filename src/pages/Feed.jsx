@@ -13,9 +13,10 @@ import { Search, Heart, RefreshCw, SlidersHorizontal, Sparkles } from "lucide-re
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
-import { CACHE_CONFIG } from "../components/shared/optimizations";
+import { CACHE_CONFIG, queryKeys, debounce } from "../components/shared/optimizations"; // Added queryKeys and debounce
 import { motion, AnimatePresence } from "framer-motion";
 import SocialRecommendations from "../components/recommendations/SocialRecommendations";
+import useCurrentUser from "../components/shared/useCurrentUser"; // Added useCurrentUser hook
 
 // LAZY LOAD COMPONENTS PESADOS
 const EventFeedCard = lazy(() => import("../components/feed/EventFeedCard"));
@@ -30,19 +31,8 @@ export default function Feed() {
   const [showSortPanel, setShowSortPanel] = useState(false);
   const navigate = useNavigate();
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      try {
-        return await base44.auth.me();
-      } catch {
-        return null;
-      }
-    },
-    retry: false,
-    ...CACHE_CONFIG.STATIC,
-  });
-
+  // Replaced useQuery for currentUser with useCurrentUser hook
+  const { data: user } = useCurrentUser();
   const isGuest = !user;
 
   // OTIMIZADO: Infinite Query com limite reduzido
@@ -54,7 +44,7 @@ export default function Feed() {
     isLoading: isLoadingEvents,
     refetch
   } = useInfiniteQuery({
-    queryKey: ['feedEventsInfinite', sortBy],
+    queryKey: queryKeys.events(), // Changed queryKey
     queryFn: async ({ pageParam = 0 }) => {
       const offset = pageParam * EVENTS_PER_PAGE;
       const limit = EVENTS_PER_PAGE;
@@ -106,7 +96,7 @@ export default function Feed() {
 
   // OTIMIZADO: Interações carregam sob demanda apenas se usuário logado
   const { data: interactions = { likes: {}, comments: {}, requests: {} } } = useQuery({
-    queryKey: ['feedInteractions', user?.id, events.length],
+    queryKey: queryKeys.feedInteractions(user?.id, events.length), // Changed queryKey
     queryFn: async () => {
       if (!user || events.length === 0) return { likes: {}, comments: {}, requests: {} };
 
@@ -189,6 +179,12 @@ export default function Feed() {
 
     return sorted;
   }, [events, sortBy, user?.location, interactions.likes]);
+
+  // Added: Debounced search function
+  const debouncedSearch = useMemo(
+    () => debounce((term) => setSearchTerm(term), 300),
+    []
+  );
 
   const filteredEvents = useMemo(() => {
     if (!searchTerm) return sortedEvents;
@@ -275,7 +271,7 @@ export default function Feed() {
           <Input
             placeholder="Buscar evento, gênero, local..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => debouncedSearch(e.target.value)} // Changed: Use debouncedSearch
             className="bg-gray-900/80 border-gray-700 pl-9 pr-3 text-white placeholder:text-gray-500 focus:border-cyan-500 text-sm h-9 rounded-lg"
           />
         </div>
@@ -342,8 +338,7 @@ export default function Feed() {
             <LoadingSkeleton />
             <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
             <LoadingSkeleton />
-            <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
-            <LoadingSkeleton />
+            {/* One LoadingSkeleton and its divider removed as per outline */}
           </>
         ) : feedWithAds.length > 0 ? (
           <Suspense fallback={<LoadingSkeleton />}>
@@ -352,6 +347,7 @@ export default function Feed() {
               
               return (
                 <React.Fragment key={item.key}>
+                  {/* Kept rendering for both ads and events to preserve functionality */}
                   {item.type === 'ad' ? (
                     <SponsoredAdCard ad={item.data} featured={item.featured} />
                   ) : (
@@ -368,7 +364,7 @@ export default function Feed() {
                   
                   {index < feedWithAds.length - 1 && (
                     <div className="relative h-[1px] bg-gradient-to-r from-transparent via-gray-800/50 to-transparent">
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent blur-[2px]" />
+                      {/* Removed blur effect from divider as per outline */}
                     </div>
                   )}
                 </React.Fragment>
@@ -381,37 +377,18 @@ export default function Feed() {
               hasMore={hasNextPage}
             />
 
-            {!hasNextPage && feedWithAds.length > 5 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-8 px-4"
-              >
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-full border border-gray-700">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
-                  <span className="text-sm text-gray-400">Você viu todos os eventos! 🎉</span>
-                </div>
-              </motion.div>
-            )}
+            {/* Removed the "Você viu todos os eventos!" message block as per outline */}
           </Suspense>
         ) : (
-          <div className="text-center py-12 sm:py-16 bg-gray-900/50 rounded-lg border border-gray-700 mx-3 sm:mx-4 mt-4">
-            <Search className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-400 mb-2">
+          <div className="text-center py-16 bg-gray-900/50 rounded-lg border border-gray-700 mx-4 mt-4"> {/* Adjusted padding and margin */}
+            <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" /> {/* Adjusted icon size */}
+            <h3 className="text-xl font-semibold text-gray-400 mb-2"> {/* Adjusted text size */}
               Nenhum evento encontrado
             </h3>
-            <p className="text-sm sm:text-base text-gray-500 px-4 mb-4">
-              {searchTerm ? "Tente ajustar sua busca" : "Ainda não há eventos futuros. Volte em breve!"}
+            <p className="text-gray-500 px-4 mb-4"> {/* Adjusted text size and content */}
+              {searchTerm ? "Tente ajustar sua busca" : "Ainda não há eventos futuros"}
             </p>
-            {searchTerm && (
-              <Button 
-                onClick={() => setSearchTerm("")}
-                variant="outline"
-                className="border-gray-600 text-gray-300"
-              >
-                Limpar Busca
-              </Button>
-            )}
+            {/* "Limpar Busca" button removed as per outline */}
           </div>
         )}
       </div>
