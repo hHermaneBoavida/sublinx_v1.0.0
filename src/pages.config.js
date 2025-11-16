@@ -25,7 +25,7 @@ import PerfilUsuario from './pages/PerfilUsuario';
 import Recomendacoes from './pages/Recomendacoes';
 import GerenciarIngressos from './pages/GerenciarIngressos';
 import ChatOrganizadores from './pages/ChatOrganizadores';
-import Layout from './Layout.jsx';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -61,5 +61,5 @@ export const PAGES = {
 export const pagesConfig = {
     mainPage: "Mapa",
     Pages: PAGES,
-    Layout: Layout,
+    Layout: __Layout,
 };
