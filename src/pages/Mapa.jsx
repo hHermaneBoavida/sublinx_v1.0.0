@@ -11,7 +11,6 @@ import { base44 } from "@/api/base44Client";
 import { matchesVibe } from "../components/shared/helpers";
 import { isWithinInterval, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 
-// Função para calcular distância
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -89,7 +88,6 @@ export default function Mapa() {
     queryFn: async () => {
       const allEvents = await base44.entities.Event.list("-date", 100);
       
-      // Filtrar eventos futuros
       const futureEvents = allEvents.filter(e => {
         const eventDate = new Date(e.date);
         return eventDate > new Date();
@@ -114,19 +112,16 @@ export default function Mapa() {
     initialData: [],
   });
 
-  // Filtros avançados em tempo real
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
     
     let filtered = events.filter(event => {
       if (!event?.location) return false;
       
-      // Filtros básicos
       const genreMatch = filters.genre === 'all' || event.genre === filters.genre;
       const typeMatch = filters.type === 'all' || event.type === filters.type;
       const vibeMatch = matchesVibe(event, activeVibe);
 
-      // Filtro de distância
       let distanceMatch = true;
       if (userLocation) {
         const distance = calculateDistance(
@@ -138,10 +133,8 @@ export default function Mapa() {
         distanceMatch = distance <= filters.maxDistance;
       }
 
-      // Filtro de participantes
       const attendeesMatch = (event.current_attendees || 0) >= filters.minAttendees;
 
-      // Filtro de data
       let dateMatch = true;
       if (filters.dateRange !== 'all') {
         const eventDate = new Date(event.date);
@@ -170,7 +163,6 @@ export default function Mapa() {
         }
       }
 
-      // Busca por texto
       if (searchTerm) {
         const lower = searchTerm.toLowerCase();
         const searchMatch = 
@@ -184,7 +176,6 @@ export default function Mapa() {
       return genreMatch && typeMatch && vibeMatch && distanceMatch && attendeesMatch && dateMatch;
     });
 
-    // Ordenação
     if (filters.sortBy === 'distance' && userLocation) {
       filtered.sort((a, b) => {
         const distA = calculateDistance(userLocation.lat, userLocation.lng, a.location.lat, a.location.lng);
@@ -308,9 +299,9 @@ export default function Mapa() {
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               activeVibe={activeVibe}
+              suggestedEvents={[]}
             />
 
-            {/* Botão Reels Imersivo */}
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -323,17 +314,14 @@ export default function Mapa() {
                 onClick={handleOpenReels}
                 className="relative group"
               >
-                {/* Glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full blur-2xl opacity-75 group-hover:opacity-100 animate-pulse" />
                 
-                {/* Button */}
                 <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full px-8 py-4 flex items-center gap-3 shadow-2xl border-2 border-white/20">
                   <Play className="w-6 h-6 text-white fill-white" />
                   <span className="text-white font-bold text-lg">Ver Reels</span>
                   <Sparkles className="w-5 h-5 text-white animate-spin" style={{ animationDuration: '3s' }} />
                 </div>
 
-                {/* Indicator */}
                 <motion.div
                   animate={{ y: [-5, 5, -5] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
