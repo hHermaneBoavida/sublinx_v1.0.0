@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, lazy, Suspense } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -98,6 +97,7 @@ export default function Feed() {
     initialData: [],
   });
 
+  // OTIMIZADO: Usa backend function para interações
   const { data: interactions = { likes: {}, comments: {}, requests: {} } } = useQuery({
     queryKey: queryKeys.feedInteractions(user?.id, events.length),
     queryFn: async () => {
@@ -105,32 +105,11 @@ export default function Feed() {
 
       const eventIds = events.map(e => e.id);
       
-      const [likesRes, commentsRes, requestsRes] = await Promise.allSettled([
-        base44.entities.Like.filter({ event_id: { $in: eventIds } }),
-        base44.entities.Comment.filter({ event_id: { $in: eventIds } }),
-        base44.entities.EventRequest.filter({ user_id: user.id, event_id: { $in: eventIds } })
-      ]);
+      const response = await base44.functions.invoke('getFeedInteractions', {
+        event_ids: eventIds
+      });
 
-      const likesData = likesRes.status === 'fulfilled' ? likesRes.value : [];
-      const commentsData = commentsRes.status === 'fulfilled' ? commentsRes.value : [];
-      const requestsData = requestsRes.status === 'fulfilled' ? requestsRes.value : [];
-
-      return {
-        likes: likesData.reduce((acc, like) => {
-          if (!acc[like.event_id]) acc[like.event_id] = [];
-          acc[like.event_id].push(like);
-          return acc;
-        }, {}),
-        comments: commentsData.reduce((acc, comment) => {
-          if (!acc[comment.event_id]) acc[comment.event_id] = [];
-          acc[comment.event_id].push(comment);
-          return acc;
-        }, {}),
-        requests: requestsData.reduce((acc, request) => {
-          acc[request.event_id] = request.status;
-          return acc;
-        }, {})
-      };
+      return response.data;
     },
     enabled: !!user && events.length > 0,
     ...CACHE_CONFIG.REALTIME,
