@@ -3,12 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import MapView from "../components/map/MapView";
 import ReelsView from "../components/reels/ReelsView";
-import AdvancedFilters from "../components/map/AdvancedFilters";
 import VibeSelector from "../components/map/VibeSelector";
 import UploadReelModal from "../components/reels/UploadReelModal";
 import EventDetailsModal from "../components/map/EventDetailsModal";
 import { Loader2, MapPin, Sparkles, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { matchesVibe } from "../components/shared/helpers";
 import { isWithinInterval, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
@@ -30,7 +28,6 @@ export default function Mapa() {
   const [viewMode, setViewMode] = useState("map");
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [selectedEventForDetails, setSelectedEventForDetails] = useState(null);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showVibeSelector, setShowVibeSelector] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState(false);
@@ -232,10 +229,6 @@ export default function Mapa() {
     queryClient.invalidateQueries(["mapReels"]);
   }, [queryClient]);
 
-  const handleFiltersChange = useCallback((newFilters) => {
-    setFilters(newFilters);
-  }, []);
-
   if (loadingLocation) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900/20">
@@ -266,13 +259,13 @@ export default function Mapa() {
           <p className="text-gray-300 mb-6">
             Permita acesso à localização para descobrir eventos próximos
           </p>
-          <Button 
+          <button 
             onClick={() => window.location.reload()}
-            className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 h-12 text-lg"
+            className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 h-12 text-lg rounded-lg text-white font-semibold"
           >
-            <MapPin className="w-5 h-5 mr-2" />
+            <MapPin className="w-5 h-5 mr-2 inline" />
             Tentar Novamente
-          </Button>
+          </button>
         </motion.div>
       </div>
     );
@@ -309,8 +302,7 @@ export default function Mapa() {
               userLocation={userLocation}
               onPinClick={handlePinClick} 
               onPinDetailsClick={handlePinDetailsClick}
-              onSwipeUp={handleOpenReels}
-              onOpenFilters={() => setShowAdvancedFilters(true)}
+              onOpenFilters={() => {}}
               onOpenVibe={() => setShowVibeSelector(true)}
               onOpenUpload={() => setShowUploadModal(true)}
               searchTerm={searchTerm}
@@ -372,16 +364,6 @@ export default function Mapa() {
               onClose={handleCloseReels}
             />
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showAdvancedFilters && (
-          <AdvancedFilters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            onClose={() => setShowAdvancedFilters(false)}
-          />
         )}
       </AnimatePresence>
 
