@@ -1,30 +1,34 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, TrendingUp, MapPin, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { X, Calendar, MapPin, TrendingUp, DollarSign } from 'lucide-react';
 
-export default function AdvancedFilters({ filters, onChange, onClose, eventsCount }) {
+export default function AdvancedFilters({ 
+  filters, 
+  onFiltersChange, 
+  onClose,
+  eventStats 
+}) {
   const [localFilters, setLocalFilters] = useState(filters);
 
   const handleApply = () => {
-    onChange(localFilters);
+    onFiltersChange(localFilters);
     onClose();
   };
 
   const handleReset = () => {
     const resetFilters = {
-      genre: "all",
-      type: "all",
-      dateRange: "all",
+      genre: 'all',
+      type: 'all',
+      dateRange: 'all',
       maxDistance: 50,
-      minPopularity: 0,
-      sortBy: "distance"
+      minAttendees: 0,
+      maxPrice: 500
     };
     setLocalFilters(resetFilters);
-    onChange(resetFilters);
+    onFiltersChange(resetFilters);
   };
 
   return (
@@ -32,121 +36,134 @@ export default function AdvancedFilters({ filters, onChange, onClose, eventsCoun
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[2000] flex items-end md:items-center justify-center"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[2000] flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
       <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        initial={{ y: '100%', opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: '100%', opacity: 0 }}
+        transition={{ type: 'spring', damping: 25 }}
+        className="bg-gray-900 w-full sm:max-w-lg sm:rounded-2xl border-t sm:border border-gray-700 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
-        className="bg-gray-900 border-t border-gray-700 md:border md:rounded-2xl w-full md:max-w-md max-h-[90vh] overflow-y-auto"
       >
-        <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex items-center justify-between z-10">
+        {/* Header */}
+        <div className="sticky top-0 bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Filtros Avançados</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-5 h-5 text-gray-400" />
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-400">
+            <X className="w-5 h-5" />
           </Button>
         </div>
 
-        <div className="p-4 space-y-6">
-          {/* Data */}
-          <div>
-            <label className="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-cyan-400" />
-              Período
-            </label>
-            <Select 
-              value={localFilters.dateRange} 
-              onValueChange={(value) => setLocalFilters({...localFilters, dateRange: value})}
-            >
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="all">Todos os períodos</SelectItem>
-                <SelectItem value="today">Hoje</SelectItem>
-                <SelectItem value="week">Esta semana</SelectItem>
-                <SelectItem value="month">Este mês</SelectItem>
-                <SelectItem value="weekend">Fim de semana</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
+        <div className="p-6 space-y-6">
           {/* Distância */}
           <div>
-            <label className="text-sm font-semibold text-gray-300 mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-2">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-green-400" />
-                Distância Máxima
-              </span>
-              <span className="text-cyan-400">{localFilters.maxDistance}km</span>
-            </label>
+                <label className="text-sm font-semibold text-white">Distância Máxima</label>
+              </div>
+              <Badge className="bg-green-600">{localFilters.maxDistance} km</Badge>
+            </div>
             <Slider
               value={[localFilters.maxDistance]}
-              onValueChange={(value) => setLocalFilters({...localFilters, maxDistance: value[0]})}
+              onValueChange={(value) => setLocalFilters({ ...localFilters, maxDistance: value[0] })}
               min={1}
-              max={50}
+              max={100}
               step={1}
-              className="py-4"
+              className="w-full"
             />
+          </div>
+
+          {/* Data */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4 text-cyan-400" />
+              <label className="text-sm font-semibold text-white">Período</label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: 'all', label: 'Todos' },
+                { value: 'today', label: 'Hoje' },
+                { value: 'week', label: 'Esta Semana' },
+                { value: 'month', label: 'Este Mês' }
+              ].map((option) => (
+                <Button
+                  key={option.value}
+                  variant={localFilters.dateRange === option.value ? 'default' : 'outline'}
+                  onClick={() => setLocalFilters({ ...localFilters, dateRange: option.value })}
+                  className={localFilters.dateRange === option.value ? 'bg-cyan-600' : 'border-gray-700'}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {/* Popularidade */}
           <div>
-            <label className="text-sm font-semibold text-gray-300 mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-2">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-purple-400" />
-                Popularidade Mínima
-              </span>
-              <span className="text-cyan-400">{localFilters.minPopularity}</span>
-            </label>
+                <label className="text-sm font-semibold text-white">Participantes Mínimos</label>
+              </div>
+              <Badge className="bg-purple-600">{localFilters.minAttendees}+</Badge>
+            </div>
             <Slider
-              value={[localFilters.minPopularity]}
-              onValueChange={(value) => setLocalFilters({...localFilters, minPopularity: value[0]})}
+              value={[localFilters.minAttendees]}
+              onValueChange={(value) => setLocalFilters({ ...localFilters, minAttendees: value[0] })}
               min={0}
-              max={100}
-              step={5}
-              className="py-4"
+              max={500}
+              step={10}
+              className="w-full"
             />
           </div>
 
-          {/* Ordenação */}
+          {/* Preço */}
           <div>
-            <label className="text-sm font-semibold text-gray-300 mb-2 block">
-              Ordenar por
-            </label>
-            <Select 
-              value={localFilters.sortBy} 
-              onValueChange={(value) => setLocalFilters({...localFilters, sortBy: value})}
-            >
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="distance">Distância</SelectItem>
-                <SelectItem value="date">Data</SelectItem>
-                <SelectItem value="popularity">Popularidade</SelectItem>
-                <SelectItem value="price">Preço</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-yellow-400" />
+                <label className="text-sm font-semibold text-white">Preço Máximo</label>
+              </div>
+              <Badge className="bg-yellow-600">
+                {localFilters.maxPrice === 500 ? 'Sem limite' : `R$ ${localFilters.maxPrice}`}
+              </Badge>
+            </div>
+            <Slider
+              value={[localFilters.maxPrice]}
+              onValueChange={(value) => setLocalFilters({ ...localFilters, maxPrice: value[0] })}
+              min={0}
+              max={500}
+              step={10}
+              className="w-full"
+            />
           </div>
 
-          {/* Resultados */}
-          <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3 flex items-center justify-between">
-            <span className="text-sm text-cyan-300">Eventos encontrados:</span>
-            <Badge className="bg-cyan-600">{eventsCount}</Badge>
-          </div>
+          {/* Stats */}
+          {eventStats && (
+            <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+              <p className="text-sm text-gray-400 mb-2">Eventos encontrados:</p>
+              <p className="text-2xl font-bold text-cyan-400">{eventStats.filtered}</p>
+              <p className="text-xs text-gray-500">de {eventStats.total} eventos</p>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
-        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 p-4 flex gap-2">
-          <Button onClick={handleReset} variant="outline" className="flex-1 border-gray-700 text-gray-300">
+        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-800 p-4 flex gap-3">
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            className="flex-1 border-gray-700 text-gray-300"
+          >
             Limpar
           </Button>
-          <Button onClick={handleApply} className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600">
-            Aplicar
+          <Button
+            onClick={handleApply}
+            className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600"
+          >
+            Aplicar Filtros
           </Button>
         </div>
       </motion.div>
