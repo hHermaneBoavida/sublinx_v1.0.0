@@ -1,15 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Calendar, MapPin, Users, Search, SlidersHorizontal, Sparkles, Upload, Menu, X } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Search, SlidersHorizontal, Sparkles, Upload, Menu, X, Filter } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { useNavigate } from 'react-router-dom';
+import MarkerCluster from './MarkerCluster';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -28,13 +26,28 @@ function MapUpdater({ center, zoom }) {
   return null;
 }
 
+function BoundsTracker({ onBoundsChange }) {
+  const map = useMapEvents({
+    moveend: () => {
+      const bounds = map.getBounds();
+      onBoundsChange({
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
+      });
+    }
+  });
+  return null;
+}
+
 export default function MapView({ 
   events, 
   userLocation, 
-  onPinClick, 
   onPinDetailsClick,
   onSwipeUp,
   onOpenFilters,
+  onOpenAdvancedFilters,
   onOpenVibe,
   onOpenUpload,
   searchTerm,
@@ -46,11 +59,12 @@ export default function MapView({
   const navigate = useNavigate();
   const [mapReady, setMapReady] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [visibleBounds, setVisibleBounds] = useState(null);
 
   const center = userLocation ? [userLocation.lat, userLocation.lng] : [-23.5505, -46.6333];
   const zoom = userLocation ? 13 : 11;
 
-  const getGenreColor = (genre) => {
+  const getGenreColor = useCallback((genre) => {
     const colors = {
       techno: '#06b6d4', house: '#10b981', trance: '#8b5cf6',
       drum_bass: '#f59e0b', minimal: '#ec4899', progressive: '#84cc16',
@@ -58,28 +72,11 @@ export default function MapView({
       trap: '#eab308', hip_hop: '#a855f7', reggae: '#22c55e'
     };
     return colors[genre] || '#a855f7';
-  };
+  }, []);
 
-  const createCustomIcon = (event) => {
-    const color = getGenreColor(event.genre);
-    const isSuggested = suggestedEvents.some(s => s.id === event.id);
-    
-    return L.divIcon({
-      className: 'custom-marker',
-      html: `
-        <div class="relative flex flex-col items-center">
-          <div class="w-6 h-6 rounded-full border-2 border-white shadow-lg transition-all duration-300 hover:scale-125 ${isSuggested ? 'animate-pulse' : ''}" 
-               style="background-color: ${color}; box-shadow: 0 0 15px ${color}">
-          </div>
-          <div class="w-px h-3 bg-white/30"></div>
-          ${isSuggested ? `<div class="absolute inset-0 -m-1 rounded-full animate-ping" style="background-color: ${color}; opacity: 0.5"></div>` : ''}
-        </div>
-      `,
-      iconSize: [26, 39],
-      iconAnchor: [13, 39],
-      popupAnchor: [0, -39]
-    });
-  };
+  const handleBoundsChange = useCallback((bounds) => {
+    setVisibleBounds(bounds);
+  }, []);
 
   return (
     <div className="w-full h-full relative">
@@ -94,6 +91,13 @@ export default function MapView({
             className="pl-10 bg-black/80 backdrop-blur-xl border-gray-700 text-white placeholder:text-gray-500"
           />
         </div>
+        <Button
+          size="icon"
+          onClick={onOpenAdvancedFilters}
+          className="bg-black/80 backdrop-blur-xl border border-gray-700 hover:bg-gray-900"
+        >
+          <Filter className="w-5 h-5 text-cyan-400" />
+        </Button>
         <Button
           size="icon"
           onClick={() => setShowMenu(!showMenu)}
@@ -115,7 +119,7 @@ export default function MapView({
             className="w-full justify-start text-white hover:bg-gray-800"
           >
             <SlidersHorizontal className="w-4 h-4 mr-2" />
-            Filtros
+            Filtros Básicos
           </Button>
           <Button
             variant="ghost"
@@ -157,16 +161,6 @@ export default function MapView({
         </div>
       )}
 
-      {/* Active Vibe Badge */}
-      {activeVibe && activeVibe !== 'all' && (
-        <div className="absolute top-20 left-4 z-[1000]">
-          <Badge className="bg-purple-600/90 backdrop-blur-xl border-purple-500/50 text-white">
-            <Sparkles className="w-3 h-3 mr-1" />
-            {activeVibe}
-          </Badge>
-        </div>
-      )}
-
       {/* Swipe Up Indicator */}
       <div 
         className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[999] cursor-pointer"
@@ -194,6 +188,7 @@ export default function MapView({
         
         <ZoomControl position="bottomright" />
         <MapUpdater center={center} zoom={zoom} />
+        <BoundsTracker onBoundsChange={handleBoundsChange} />
 
         {userLocation && (
           <Marker
@@ -218,69 +213,12 @@ export default function MapView({
           </Marker>
         )}
 
-        {events.map((event) => {
-          if (!event.location?.lat || !event.location?.lng) return null;
-
-          return (
-            <Marker
-              key={event.id}
-              position={[event.location.lat, event.location.lng]}
-              icon={createCustomIcon(event)}
-              eventHandlers={{
-                click: () => onPinDetailsClick(event)
-              }}
-            >
-              <Popup>
-                <div className="min-w-[200px] max-w-[280px]">
-                  {event.image_url && (
-                    <img 
-                      src={event.image_url} 
-                      alt={event.title}
-                      className="w-full h-32 object-cover rounded-lg mb-2"
-                    />
-                  )}
-                  <h3 className="font-bold text-base mb-1">{event.title}</h3>
-                  
-                  <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
-                    <Calendar className="w-3 h-3" />
-                    <span>{format(new Date(event.date), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
-                  </div>
-
-                  <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
-                    <MapPin className="w-3 h-3" />
-                    <span>{event.location.venue_name || event.location.address}</span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    <Badge className="text-[9px]" style={{ backgroundColor: getGenreColor(event.genre) }}>
-                      {event.genre}
-                    </Badge>
-                    {event.type && (
-                      <Badge variant="outline" className="text-[9px]">
-                        {event.type}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {event.current_attendees !== undefined && (
-                    <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
-                      <Users className="w-3 h-3" />
-                      <span>{event.current_attendees} participantes</span>
-                    </div>
-                  )}
-
-                  <Button 
-                    onClick={() => onPinClick(event.id)}
-                    size="sm"
-                    className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 text-xs"
-                  >
-                    Ver Reels
-                  </Button>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+        <MarkerCluster
+          events={events}
+          onEventClick={onPinDetailsClick}
+          getGenreColor={getGenreColor}
+          visibleBounds={visibleBounds}
+        />
       </MapContainer>
 
       {events.length === 0 && (
@@ -293,7 +231,7 @@ export default function MapView({
       )}
 
       <style>{`
-        .custom-marker {
+        .custom-marker, .custom-cluster {
           background: none;
           border: none;
         }

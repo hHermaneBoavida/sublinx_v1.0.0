@@ -7,8 +7,10 @@ import FilterPanel from "../components/map/FilterPanel";
 import VibeSelector from "../components/map/VibeSelector";
 import UploadReelModal from "../components/reels/UploadReelModal";
 import EventDetailsModal from "../components/map/EventDetailsModal";
-import { Loader2, MapPin } from "lucide-react";
+import AdvancedFilters from "../components/map/AdvancedFilters";
+import { Loader2, MapPin, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
 import { matchesVibe } from "../components/shared/helpers";
 
@@ -17,18 +19,25 @@ export default function Mapa() {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [selectedEventForDetails, setSelectedEventForDetails] = useState(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showVibeSelector, setShowVibeSelector] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(true);
-  const [filters, setFilters] = useState({ genre: "all", type: "all" });
   const [searchTerm, setSearchTerm] = useState("");
   const [activeVibe, setActiveVibe] = useState('all');
+  const [filters, setFilters] = useState({ 
+    genre: "all", 
+    type: "all",
+    dateRange: "all",
+    maxDistance: 50,
+    minPopularity: 0,
+    sortBy: "distance"
+  });
   const queryClient = useQueryClient();
 
-  // Geolocalização
   useEffect(() => {
     let isMounted = true;
     
@@ -67,29 +76,26 @@ export default function Mapa() {
     return () => { isMounted = false; };
   }, []);
 
-  // OTIMIZADO: Usa backend function para busca por raio
-  const { data: eventsData, isLoading: isLoadingEvents, error: eventsError } = useQuery({
-    queryKey: ['nearbyEvents', userLocation?.lat, userLocation?.lng],
+  const { data: eventsData, isLoading: isLoadingEvents } = useQuery({
+    queryKey: ['nearbyEvents', userLocation?.lat, userLocation?.lng, filters.maxDistance],
     queryFn: async () => {
       const response = await base44.functions.invoke('searchEventsByRadius', {
         lat: userLocation.lat,
         lng: userLocation.lng,
-        radius_km: 20,
-        limit: 50
+        radius_km: filters.maxDistance,
+        limit: 100
       });
       return response.data;
     },
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    staleTime: 3 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
     enabled: !!userLocation,
     retry: 2
   });
 
   const events = eventsData?.events || [];
 
-  // OTIMIZADO: Fetch reels com cache
   const { data: reels = [], isLoading: isLoadingReels } = useQuery({
     queryKey: ['mapReels'],
     queryFn: async () => {
@@ -99,21 +105,45 @@ export default function Mapa() {
     staleTime: 15 * 60 * 1000,
     cacheTime: 45 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
     initialData: [],
   });
 
-  // Filtros
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
     
-    return events.filter(event => {
+    let filtered = events.filter(event => {
       if (!event?.location) return false;
       
+      // Filtros básicos
       const genreMatch = filters.genre === 'all' || event.genre === filters.genre;
       const typeMatch = filters.type === 'all' || event.type === filters.type;
       const vibeMatch = matchesVibe(event, activeVibe);
       
+      // Filtro de data
+      let dateMatch = true;
+      if (filters.dateRange !== 'all') {
+        const eventDate = new Date(event.date);
+        const now = new Date();
+        
+        if (filters.dateRange === 'today') {
+          dateMatch = eventDate.toDateString() === now.toDateString();
+        } else if (filters.dateRange === 'week') {
+          const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+          dateMatch = eventDate >= now && eventDate <= weekFromNow;
+        } else if (filters.dateRange === 'month') {
+          const monthFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          dateMatch = eventDate >= now && eventDate <= monthFromNow;
+        } else if (filters.dateRange === 'weekend') {
+          const day = eventDate.getDay();
+          dateMatch = day === 0 || day === 5 || day === 6;
+        }
+      }
+      
+      // Filtro de popularidade
+      const popularity = event.current_attendees || 0;
+      const popularityMatch = popularity >= filters.minPopularity;
+      
+      // Busca por texto
       if (searchTerm) {
         const lower = searchTerm.toLowerCase();
         const searchMatch = 
@@ -121,12 +151,23 @@ export default function Mapa() {
           event.location?.venue_name?.toLowerCase().includes(lower) ||
           event.genre?.toLowerCase().includes(lower);
         
-        return genreMatch && typeMatch && searchMatch && vibeMatch;
+        return genreMatch && typeMatch && searchMatch && vibeMatch && dateMatch && popularityMatch;
       }
       
-      return genreMatch && typeMatch && vibeMatch;
+      return genreMatch && typeMatch && vibeMatch && dateMatch && popularityMatch;
     });
-  }, [events, filters.genre, filters.type, searchTerm, activeVibe]);
+
+    // Ordenação
+    if (filters.sortBy === 'date') {
+      filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+    } else if (filters.sortBy === 'popularity') {
+      filtered.sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0));
+    } else if (filters.sortBy === 'price') {
+      filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+    }
+
+    return filtered;
+  }, [events, filters, searchTerm, activeVibe]);
 
   const handlePinClick = useCallback((eventId) => {
     setSelectedEventId(eventId);
@@ -148,11 +189,7 @@ export default function Mapa() {
   }, []);
   
   const handleApplyFilters = useCallback((newFilters) => {
-    setFilters(prev => ({
-      genre: newFilters.genre || prev.genre,
-      type: newFilters.type || prev.type
-    }));
-    setShowFilterPanel(false);
+    setFilters(prev => ({ ...prev, ...newFilters }));
   }, []);
 
   const handleVibeSelect = useCallback((vibe) => {
@@ -209,8 +246,45 @@ export default function Mapa() {
     );
   }
 
+  const activeFiltersCount = [
+    filters.genre !== 'all',
+    filters.type !== 'all',
+    filters.dateRange !== 'all',
+    filters.maxDistance !== 50,
+    filters.minPopularity > 0,
+    activeVibe !== 'all'
+  ].filter(Boolean).length;
+
   return (
     <div className="w-full h-screen bg-black overflow-hidden relative">
+      {/* Active Filters Badge */}
+      {activeFiltersCount > 0 && (
+        <div className="absolute top-20 left-4 z-[999] flex gap-2">
+          <Badge className="bg-purple-600/90 backdrop-blur-xl flex items-center gap-2">
+            <SlidersHorizontal className="w-3 h-3" />
+            {activeFiltersCount} filtro{activeFiltersCount !== 1 ? 's' : ''} ativo{activeFiltersCount !== 1 ? 's' : ''}
+          </Badge>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setFilters({
+                genre: "all",
+                type: "all",
+                dateRange: "all",
+                maxDistance: 50,
+                minPopularity: 0,
+                sortBy: "distance"
+              });
+              setActiveVibe('all');
+            }}
+            className="h-6 px-2 text-xs text-red-400 hover:bg-red-500/10"
+          >
+            Limpar
+          </Button>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         {viewMode === "map" && (
           <motion.div
@@ -228,6 +302,7 @@ export default function Mapa() {
               onPinDetailsClick={handlePinDetailsClick}
               onSwipeUp={handleOpenReels}
               onOpenFilters={() => setShowFilterPanel(true)}
+              onOpenAdvancedFilters={() => setShowAdvancedFilters(true)}
               onOpenVibe={() => setShowVibeSelector(true)}
               onOpenUpload={() => setShowUploadModal(true)}
               searchTerm={searchTerm}
@@ -263,6 +338,17 @@ export default function Mapa() {
           <FilterPanel 
             onClose={() => setShowFilterPanel(false)}
             onApplyFilters={handleApplyFilters}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAdvancedFilters && (
+          <AdvancedFilters
+            filters={filters}
+            onChange={handleApplyFilters}
+            onClose={() => setShowAdvancedFilters(false)}
+            eventsCount={filteredEvents.length}
           />
         )}
       </AnimatePresence>
