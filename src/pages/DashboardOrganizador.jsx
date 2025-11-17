@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -193,7 +194,16 @@ export default function DashboardOrganizador() {
             </h1>
             <p className="text-gray-400">Analise e otimize seus eventos em tempo real</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              onClick={() => navigate(createPageUrl("AnalyticsOrganizador"))}
+              variant="outline"
+              size="sm"
+              className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-900/20"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
+            </Button>
             <Button
               onClick={() => setShowSettings(true)}
               variant="outline"

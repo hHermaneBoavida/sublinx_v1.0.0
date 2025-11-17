@@ -25,6 +25,7 @@ import PerfilUsuario from './pages/PerfilUsuario';
 import Recomendacoes from './pages/Recomendacoes';
 import GerenciarIngressos from './pages/GerenciarIngressos';
 import ChatOrganizadores from './pages/ChatOrganizadores';
+import AnalyticsOrganizador from './pages/AnalyticsOrganizador';
 import __Layout from './Layout.jsx';
 
 
@@ -56,6 +57,7 @@ export const PAGES = {
     "Recomendacoes": Recomendacoes,
     "GerenciarIngressos": GerenciarIngressos,
     "ChatOrganizadores": ChatOrganizadores,
+    "AnalyticsOrganizador": AnalyticsOrganizador,
 }
 
 export const pagesConfig = {

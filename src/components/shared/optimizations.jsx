@@ -1,9 +1,9 @@
 // ====================================
-// CONFIGURAÇÕES DE CACHE OTIMIZADAS
+// CONFIGURAÇÕES DE CACHE OTIMIZADAS - V2
 // ====================================
 
 export const CACHE_CONFIG = {
-  // Dados em tempo real (30s)
+  // Dados em tempo real (30s) - Eventos ao vivo, notificações
   REALTIME: {
     staleTime: 30000,
     cacheTime: 60000,
@@ -11,7 +11,7 @@ export const CACHE_CONFIG = {
     refetchInterval: 30000,
   },
   
-  // Dados que mudam frequentemente (2min)
+  // Dados que mudam frequentemente (2min) - Feed, interactions
   SHORT: {
     staleTime: 120000,
     cacheTime: 300000,
@@ -19,7 +19,7 @@ export const CACHE_CONFIG = {
     refetchInterval: false,
   },
   
-  // Dados moderados (5min)
+  // Dados moderados (5min) - Eventos, tickets
   MEDIUM: {
     staleTime: 300000,
     cacheTime: 600000,
@@ -27,7 +27,7 @@ export const CACHE_CONFIG = {
     refetchInterval: false,
   },
   
-  // Dados que raramente mudam (15min)
+  // Dados que raramente mudam (15min) - Badges, histórico
   LONG: {
     staleTime: 900000,
     cacheTime: 1800000,
@@ -35,10 +35,10 @@ export const CACHE_CONFIG = {
     refetchInterval: false,
   },
   
-  // Dados estáticos (1h)
+  // Dados estáticos (infinito) - User, entidades estáticas
   STATIC: {
-    staleTime: 3600000,
-    cacheTime: 7200000,
+    staleTime: Infinity,
+    cacheTime: Infinity,
     refetchOnWindowFocus: false,
     refetchInterval: false,
   }
@@ -60,6 +60,7 @@ export const queryKeys = {
   event: (eventId) => ['event', eventId],
   eventsByOrganizer: (organizerId) => ['eventsByOrganizer', organizerId],
   futureEvents: () => ['futureEvents'],
+  nearbyEvents: (lat, lng) => ['nearbyEvents', lat, lng],
   
   // Interactions
   feedInteractions: (userId, eventIds) => ['feedInteractions', userId, eventIds?.length],
@@ -77,7 +78,39 @@ export const queryKeys = {
   // Notifications
   notifications: (userId) => ['notifications', userId],
   unreadCount: (userId) => ['unreadCount', userId],
+
+  // Analytics
+  dashboardMetrics: (userId) => ['dashboardMetrics', userId],
+  eventPolls: (eventId) => ['eventPolls', eventId],
+  pollVotes: (eventId) => ['pollVotes', eventId],
 };
+
+// ====================================
+// PREFETCH HELPERS
+// ====================================
+
+export function prefetchEventDetails(queryClient, eventId) {
+  queryClient.prefetchQuery({
+    queryKey: queryKeys.event(eventId),
+    queryFn: async () => {
+      const { base44 } = await import('@/api/base44Client');
+      return await base44.entities.Event.filter({ id: eventId });
+    },
+    ...CACHE_CONFIG.MEDIUM,
+  });
+}
+
+export function prefetchUserProfile(queryClient, userId) {
+  queryClient.prefetchQuery({
+    queryKey: queryKeys.profileUser(userId),
+    queryFn: async () => {
+      const { base44 } = await import('@/api/base44Client');
+      const users = await base44.entities.User.filter({ id: userId });
+      return users[0];
+    },
+    ...CACHE_CONFIG.LONG,
+  });
+}
 
 // ====================================
 // DEBOUNCE E THROTTLE
@@ -177,7 +210,6 @@ export const SafeStorage = {
       };
       localStorage.setItem(key, JSON.stringify(item));
       
-      // Limpar items expirados
       this.cleanup();
     } catch (e) {
       console.warn('LocalStorage full, clearing old items');
@@ -219,7 +251,6 @@ export const SafeStorage = {
           localStorage.removeItem(key);
         }
       } catch (e) {
-        // Item inválido, remover
         localStorage.removeItem(key);
       }
     });
@@ -235,7 +266,7 @@ export function measurePerformance(name, fn) {
   const result = fn();
   const end = performance.now();
   
-  if (end - start > 16) { // Mais de 1 frame (60fps)
+  if (end - start > 16) {
     console.warn(`⚠️ Slow operation: ${name} took ${(end - start).toFixed(2)}ms`);
   }
   
@@ -302,6 +333,8 @@ export function useVirtualization(items, containerHeight, itemHeight) {
 export default {
   CACHE_CONFIG,
   queryKeys,
+  prefetchEventDetails,
+  prefetchUserProfile,
   debounce,
   throttle,
   BatchProcessor,
