@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -246,11 +247,23 @@ export default function Perfil() {
 
             {user.is_organizer && (
               <div className="flex gap-2">
-                <Button onClick={() => navigate(createPageUrl("DashboardOrganizador"))} className="flex-1 bg-cyan-600 hover:bg-cyan-700">
+                <Button 
+                  onClick={() => navigate(createPageUrl("DashboardOrganizador"))} 
+                  className="flex-1 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 shadow-lg border border-cyan-500/30"
+                  style={{
+                    boxShadow: '0 0 20px rgba(6, 182, 212, 0.3)'
+                  }}
+                >
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Dashboard
                 </Button>
-                <Button onClick={() => navigate(createPageUrl("ChatOrganizadores"))} className="flex-1 bg-purple-600 hover:bg-purple-700">
+                <Button 
+                  onClick={() => navigate(createPageUrl("ChatOrganizadores"))} 
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg border border-purple-500/30"
+                  style={{
+                    boxShadow: '0 0 20px rgba(168, 85, 247, 0.3)'
+                  }}
+                >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Chat
                 </Button>
