@@ -14,23 +14,28 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import EditProfileModal from "../components/profile/EditProfileModal";
 import TicketCard from "../components/tickets/TicketCard";
-import BirthdayBanner from "../components/profile/BirthdayBanner";
 import CalendarIntegration from "../components/integrations/CalendarIntegration";
-import AIRecommendations from "../components/recommendations/AIRecommendations";
-import PreferencesModal from "../components/recommendations/PreferencesModal";
-import { CACHE_CONFIG } from "../components/shared/helpers";
-import { queryKeys } from "../components/shared/optimizations";
-import { getUserDisplayName, getUserAvatar } from "../components/shared/userHelpers";
-import useCurrentUser from "../components/shared/useCurrentUser";
 
 export default function Perfil() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
 
-  const { data: user, isLoading } = useCurrentUser();
+  // CORREÇÃO: Fetch direto sem hook customizado
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch (error) {
+        console.error('Erro ao buscar usuário:', error);
+        throw error;
+      }
+    },
+    retry: 1,
+    staleTime: Infinity,
+  });
 
   React.useEffect(() => {
     if (!isLoading && !user) {
@@ -38,59 +43,77 @@ export default function Perfil() {
     }
   }, [user, isLoading, navigate]);
 
-  const { data: socialData } = useQuery({
-    queryKey: queryKeys.userSocial(user?.id),
+  // OTIMIZADO: Queries apenas quando necessário
+  const { data: socialData = { followers: [], following: [] } } = useQuery({
+    queryKey: ['userSocial', user?.id],
     queryFn: async () => {
       if (!user?.id) return { followers: [], following: [] };
       
-      const [followers, following] = await Promise.allSettled([
-        base44.entities.Follow.filter({ following_id: user.id }),
-        base44.entities.Follow.filter({ follower_id: user.id })
-      ]);
-
-      return {
-        followers: followers.status === 'fulfilled' ? followers.value : [],
-        following: following.status === 'fulfilled' ? following.value : []
-      };
+      try {
+        const [followers, following] = await Promise.all([
+          base44.entities.Follow.filter({ following_id: user.id }),
+          base44.entities.Follow.filter({ follower_id: user.id })
+        ]);
+        return { followers, following };
+      } catch (error) {
+        console.error('Erro ao buscar dados sociais:', error);
+        return { followers: [], following: [] };
+      }
     },
     enabled: !!user?.id,
-    ...CACHE_CONFIG.SHORT,
-    initialData: { followers: [], following: [] },
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: userTickets = [] } = useQuery({
     queryKey: ['userTickets', user?.id],
-    queryFn: () => base44.entities.Ticket.filter({ user_id: user.id }, "-created_date"),
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        return await base44.entities.Ticket.filter({ user_id: user.id }, "-created_date", 10);
+      } catch (error) {
+        console.error('Erro ao buscar tickets:', error);
+        return [];
+      }
+    },
     enabled: !!user?.id && !user?.is_organizer,
-    ...CACHE_CONFIG.MEDIUM,
+    staleTime: 2 * 60 * 1000,
   });
 
-  const { data: allEvents = [] } = useQuery({
-    queryKey: ['profileEvents'],
-    queryFn: () => base44.entities.Event.list("-date", 100),
-    ...CACHE_CONFIG.MEDIUM,
+  const { data: myEvents = [] } = useQuery({
+    queryKey: ['myOrganizerEvents', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        return await base44.entities.Event.filter({ organizer_id: user.id }, "-date", 20);
+      } catch (error) {
+        console.error('Erro ao buscar eventos:', error);
+        return [];
+      }
+    },
+    enabled: !!user?.id && !!user?.is_organizer,
+    staleTime: 2 * 60 * 1000,
   });
 
   const { data: userBadges = [] } = useQuery({
     queryKey: ['userBadges', user?.id],
-    queryFn: () => base44.entities.UserBadge.filter({ user_id: user.id }),
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        return await base44.entities.UserBadge.filter({ user_id: user.id });
+      } catch (error) {
+        console.error('Erro ao buscar badges:', error);
+        return [];
+      }
+    },
     enabled: !!user?.id,
-    ...CACHE_CONFIG.LONG,
+    staleTime: 10 * 60 * 1000,
   });
 
-  const myEvents = useMemo(() => {
-    if (!user || !allEvents) return [];
-    return allEvents.filter(e => e.organizer_id === user.id);
-  }, [allEvents, user]);
-
-  const attendedEvents = useMemo(() => {
-    if (!userTickets || !allEvents) return [];
-    const eventIds = userTickets.map(t => t.event_id);
-    return allEvents.filter(e => eventIds.includes(e.id));
-  }, [userTickets, allEvents]);
+  const getUserDisplayName = (u) => u?.display_name || u?.full_name || u?.email?.split('@')[0] || 'Usuário';
+  const getUserAvatar = (u) => u?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getUserDisplayName(u))}&background=06b6d4&color=fff&size=128`;
 
   const favoriteGenres = useMemo(() => {
-    const events = user?.is_organizer ? myEvents : attendedEvents;
+    const events = user?.is_organizer ? myEvents : [];
     if (!events || events.length === 0) return [];
     
     const genreCounts = events.reduce((acc, event) => {
@@ -103,27 +126,7 @@ export default function Perfil() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([genre, count]) => ({ genre, count }));
-  }, [myEvents, attendedEvents, user?.is_organizer]);
-
-  const birthdayInfo = useMemo(() => {
-    if (!user?.birth_date) return { isBirthday: false, daysUntil: 999 };
-
-    const today = new Date();
-    const birthDate = new Date(user.birth_date);
-    const thisYearBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
-    
-    const isBirthday = 
-      today.getDate() === birthDate.getDate() && 
-      today.getMonth() === birthDate.getMonth();
-
-    if (thisYearBirthday < today) {
-      thisYearBirthday.setFullYear(today.getFullYear() + 1);
-    }
-
-    const daysUntil = Math.ceil((thisYearBirthday - today) / (1000 * 60 * 60 * 24));
-
-    return { isBirthday, daysUntil };
-  }, [user?.birth_date]);
+  }, [myEvents, user?.is_organizer]);
 
   const handleLogout = () => {
     base44.auth.logout();
@@ -163,7 +166,7 @@ export default function Perfil() {
   const stats = {
     followers: socialData.followers.length,
     following: socialData.following.length,
-    events: user.is_organizer ? myEvents.length : attendedEvents.length,
+    events: user.is_organizer ? myEvents.length : userTickets.length,
     level: user.underground_level || 1,
   };
 
@@ -196,12 +199,6 @@ export default function Perfil() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
-        <BirthdayBanner 
-          user={user} 
-          isBirthday={birthdayInfo.isBirthday} 
-          daysUntilBirthday={birthdayInfo.daysUntil} 
-        />
-
         <div className="flex items-start gap-6 mb-6">
           <div className="relative flex-shrink-0">
             <img
@@ -244,11 +241,6 @@ export default function Perfil() {
                 )}
                 {user.verified_organizer && <CheckCircle className="w-4 h-4 text-blue-500" />}
                 <span className="text-xs text-gray-500">Nível {stats.level}</span>
-                {user.birth_date && (
-                  <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-400">
-                    🎂 {format(new Date(user.birth_date), "dd/MM")}
-                  </Badge>
-                )}
               </div>
             </div>
 
@@ -265,23 +257,6 @@ export default function Perfil() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* AI Recommendations */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold">Para Você</h3>
-            <Button
-              onClick={() => setShowPreferencesModal(true)}
-              variant="outline"
-              size="sm"
-              className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-            >
-              <Sparkles className="w-4 h-4 mr-1" />
-              Preferências
-            </Button>
-          </div>
-          <AIRecommendations user={user} />
         </div>
 
         <Tabs defaultValue={user.is_organizer ? "eventos" : "ingressos"} className="w-full">
@@ -326,10 +301,9 @@ export default function Perfil() {
             ) : (
               userTickets.filter(t => t.status === 'valid').length > 0 ? (
                 <div className="space-y-3">
-                  {userTickets.filter(t => t.status === 'valid').map((ticket) => {
-                    const event = allEvents.find(e => e.id === ticket.event_id);
-                    return event ? <TicketCard key={ticket.id} ticket={ticket} event={event} /> : null;
-                  })}
+                  {userTickets.filter(t => t.status === 'valid').map((ticket) => (
+                    <TicketCard key={ticket.id} ticket={ticket} />
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -383,7 +357,7 @@ export default function Perfil() {
                       </div>
                     </div>
                     <div className="text-sm text-gray-400">
-                      {Math.round((item.count / (user.is_organizer ? myEvents.length : attendedEvents.length)) * 100)}%
+                      {Math.round((item.count / myEvents.length) * 100)}%
                     </div>
                   </div>
                 ))}
@@ -413,28 +387,6 @@ export default function Perfil() {
                 </div>
               )}
 
-              {user.birth_date && (
-                <div className="pb-4 border-b border-gray-800">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-400">Aniversário</p>
-                      <p className="text-white font-medium text-sm">
-                        {format(new Date(user.birth_date), "dd 'de' MMMM", { locale: ptBR })}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => setShowCalendarModal(true)}
-                      variant="ghost"
-                      size="sm"
-                      className="text-cyan-400 hover:bg-cyan-500/10"
-                    >
-                      <Calendar className="w-4 h-4 mr-1" />
-                      Adicionar
-                    </Button>
-                  </div>
-                </div>
-              )}
-
               <div>
                 <p className="text-sm text-gray-400">Membro desde</p>
                 <p className="text-white font-medium text-sm">
@@ -457,15 +409,14 @@ export default function Perfil() {
       </div>
 
       {showEditModal && <EditProfileModal user={user} onClose={() => setShowEditModal(false)} />}
-      {showPreferencesModal && <PreferencesModal user={user} onClose={() => setShowPreferencesModal(false)} />}
-      {showCalendarModal && user.birth_date && (
+      {showCalendarModal && (
         <CalendarIntegration 
           event={{
-            title: `🎂 Aniversário de ${getUserDisplayName(user)}`,
-            date: new Date(new Date().getFullYear(), new Date(user.birth_date).getMonth(), new Date(user.birth_date).getDate()),
-            description: "Aniversário - Lembre-se de comemorar!",
+            title: `Lembrete`,
+            date: new Date(),
+            description: "Lembrete",
             location: { venue_name: "", address: "" },
-            duration_hours: 24
+            duration_hours: 1
           }} 
           onClose={() => setShowCalendarModal(false)} 
         />
