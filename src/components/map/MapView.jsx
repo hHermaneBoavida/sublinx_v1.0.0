@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Calendar, MapPin, Users, Search, SlidersHorizontal, Sparkles, Upload, Menu, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { createPageUrl } from '@/utils';
+import { useNavigate } from 'react-router-dom';
 
-// Fix Leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -31,10 +33,19 @@ export default function MapView({
   userLocation, 
   onPinClick, 
   onPinDetailsClick,
+  onSwipeUp,
+  onOpenFilters,
+  onOpenVibe,
+  onOpenUpload,
+  searchTerm,
+  onSearchChange,
+  activeVibe,
   suggestedEvents = [] 
 }) {
   const mapRef = useRef(null);
+  const navigate = useNavigate();
   const [mapReady, setMapReady] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const center = userLocation ? [userLocation.lat, userLocation.lng] : [-23.5505, -46.6333];
   const zoom = userLocation ? 13 : 11;
@@ -72,6 +83,101 @@ export default function MapView({
 
   return (
     <div className="w-full h-full relative">
+      {/* Search Bar */}
+      <div className="absolute top-4 left-4 right-4 z-[1000] flex gap-2">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Buscar eventos..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-10 bg-black/80 backdrop-blur-xl border-gray-700 text-white placeholder:text-gray-500"
+          />
+        </div>
+        <Button
+          size="icon"
+          onClick={() => setShowMenu(!showMenu)}
+          className="bg-black/80 backdrop-blur-xl border border-gray-700 hover:bg-gray-900"
+        >
+          {showMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </Button>
+      </div>
+
+      {/* Menu Dropdown */}
+      {showMenu && (
+        <div className="absolute top-20 right-4 z-[1000] bg-black/95 backdrop-blur-xl border border-gray-700 rounded-xl p-2 min-w-[200px] shadow-2xl">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              onOpenFilters();
+              setShowMenu(false);
+            }}
+            className="w-full justify-start text-white hover:bg-gray-800"
+          >
+            <SlidersHorizontal className="w-4 h-4 mr-2" />
+            Filtros
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              onOpenVibe();
+              setShowMenu(false);
+            }}
+            className="w-full justify-start text-white hover:bg-gray-800"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Vibe Selector
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              onOpenUpload();
+              setShowMenu(false);
+            }}
+            className="w-full justify-start text-white hover:bg-gray-800"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Upload Reel
+          </Button>
+          <div className="h-px bg-gray-700 my-2" />
+          <Button
+            variant="ghost"
+            onClick={() => navigate(createPageUrl("Feed"))}
+            className="w-full justify-start text-white hover:bg-gray-800"
+          >
+            Feed
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => navigate(createPageUrl("Perfil"))}
+            className="w-full justify-start text-white hover:bg-gray-800"
+          >
+            Perfil
+          </Button>
+        </div>
+      )}
+
+      {/* Active Vibe Badge */}
+      {activeVibe && activeVibe !== 'all' && (
+        <div className="absolute top-20 left-4 z-[1000]">
+          <Badge className="bg-purple-600/90 backdrop-blur-xl border-purple-500/50 text-white">
+            <Sparkles className="w-3 h-3 mr-1" />
+            {activeVibe}
+          </Badge>
+        </div>
+      )}
+
+      {/* Swipe Up Indicator */}
+      <div 
+        className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[999] cursor-pointer"
+        onClick={onSwipeUp}
+      >
+        <div className="bg-black/80 backdrop-blur-xl border border-gray-700 rounded-full px-4 py-2 flex items-center gap-2 animate-bounce">
+          <span className="text-white text-sm">Deslizar para Reels</span>
+          <div className="text-white">⬆️</div>
+        </div>
+      </div>
+
       <MapContainer
         ref={mapRef}
         center={center}
@@ -86,9 +192,9 @@ export default function MapView({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         
+        <ZoomControl position="bottomright" />
         <MapUpdater center={center} zoom={zoom} />
 
-        {/* User Location Marker */}
         {userLocation && (
           <Marker
             position={[userLocation.lat, userLocation.lng]}
@@ -112,7 +218,6 @@ export default function MapView({
           </Marker>
         )}
 
-        {/* Event Markers */}
         {events.map((event) => {
           if (!event.location?.lat || !event.location?.lng) return null;
 
