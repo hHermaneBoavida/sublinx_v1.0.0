@@ -1,26 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, User, CreditCard, CheckCircle, XCircle, Copy, Share2, Download } from "lucide-react";
+import { Calendar, MapPin, User, CreditCard, CheckCircle, XCircle, Copy, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import CalendarIntegration from "../integrations/CalendarIntegration";
 import { motion, AnimatePresence } from "framer-motion";
-import QRCode from "qrcode";
 
 export default function TicketCard({ ticket, event }) {
   const [showQR, setShowQR] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState("");
-
-  useEffect(() => {
-    if (showQR && ticket.qr_code_data) {
-      QRCode.toDataURL(ticket.qr_code_data, { width: 300 })
-        .then(url => setQrCodeUrl(url))
-        .catch(err => console.error(err));
-    }
-  }, [showQR, ticket.qr_code_data]);
 
   const statusConfig = {
     valid: { color: "bg-green-600", icon: CheckCircle, label: "Válido" },
@@ -51,7 +41,6 @@ export default function TicketCard({ ticket, event }) {
     alert('✅ Código copiado!');
   };
 
-  // CORREÇÃO: Se não tiver evento, mostrar apenas dados básicos do ticket
   if (!event) {
     return (
       <Card className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700 text-white overflow-hidden">
@@ -80,7 +69,7 @@ export default function TicketCard({ ticket, event }) {
             onClick={() => setShowQR(!showQR)}
             className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700"
           >
-            {showQR ? 'Ocultar QR Code' : 'Mostrar QR Code'}
+            {showQR ? 'Ocultar Código' : 'Mostrar Código'}
           </Button>
 
           <AnimatePresence>
@@ -92,7 +81,7 @@ export default function TicketCard({ ticket, event }) {
                 className="mt-4"
               >
                 <div className="bg-white p-4 rounded-lg">
-                  {qrCodeUrl && <img src={qrCodeUrl} alt="QR Code" className="w-full" />}
+                  <p className="text-black text-center font-mono text-sm break-all">{ticket.qr_code_data}</p>
                 </div>
                 <Button onClick={handleCopyQR} variant="outline" size="sm" className="w-full mt-2">
                   <Copy className="w-4 h-4 mr-2" />
@@ -159,7 +148,7 @@ export default function TicketCard({ ticket, event }) {
             onClick={() => setShowQR(!showQR)}
             className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700"
           >
-            {showQR ? 'Ocultar QR' : 'QR Code'}
+            {showQR ? 'Ocultar Código' : 'Ver Código'}
           </Button>
           <Button onClick={() => setShowCalendar(!showCalendar)} variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800">
             <Calendar className="w-4 h-4" />
@@ -178,7 +167,7 @@ export default function TicketCard({ ticket, event }) {
               className="mb-3"
             >
               <div className="bg-white p-4 rounded-lg">
-                {qrCodeUrl && <img src={qrCodeUrl} alt="QR Code" className="w-full" />}
+                <p className="text-black text-center font-mono text-xs break-all">{ticket.qr_code_data}</p>
               </div>
               <Button onClick={handleCopyQR} variant="outline" size="sm" className="w-full mt-2 border-gray-600 text-gray-300">
                 <Copy className="w-4 h-4 mr-2" />
