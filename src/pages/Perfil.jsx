@@ -16,7 +16,8 @@ import EditProfileModal from "../components/profile/EditProfileModal";
 import TicketCard from "../components/tickets/TicketCard";
 import BirthdayBanner from "../components/profile/BirthdayBanner";
 import CalendarIntegration from "../components/integrations/CalendarIntegration";
-import { CACHE_CONFIG, queryKeys } from "../components/shared/helpers";
+import { CACHE_CONFIG } from "../components/shared/helpers";
+import { queryKeys } from "../components/shared/optimizations";
 import { getUserDisplayName, getUserAvatar } from "../components/shared/userHelpers";
 import useCurrentUser from "../components/shared/useCurrentUser";
 
