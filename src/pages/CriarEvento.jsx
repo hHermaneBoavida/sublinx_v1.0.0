@@ -311,13 +311,24 @@ export default function CriarEvento() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-purple-900 py-8 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text mb-2">
-            Criar Novo Evento
-          </h1>
-          <p className="text-gray-400">
-            Siga os passos para configurar seu evento perfeito
-          </p>
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate(createPageUrl("MeusEventos"))}
+            className="text-gray-400 hover:text-white mb-4"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Voltar para Meus Eventos
+          </Button>
+          
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text mb-2">
+              Criar Novo Evento
+            </h1>
+            <p className="text-gray-400">
+              Siga os passos para configurar seu evento perfeito
+            </p>
+          </div>
         </div>
 
         {/* Progress Stepper */}

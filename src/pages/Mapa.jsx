@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -318,29 +319,20 @@ export default function Mapa() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.5, type: "spring" }}
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[999]"
+              className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[999]"
             >
               <motion.button
-                whileHover={{ scale: 1.1 }}
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleOpenReels}
                 className="relative group"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full blur-2xl opacity-75 group-hover:opacity-100 animate-pulse" />
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full blur-xl opacity-60 group-hover:opacity-80" />
                 
-                <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full px-8 py-4 flex items-center gap-3 shadow-2xl border-2 border-white/20">
-                  <Play className="w-6 h-6 text-white fill-white" />
-                  <span className="text-white font-bold text-lg">Ver Reels</span>
-                  <Sparkles className="w-5 h-5 text-white animate-spin" style={{ animationDuration: '3s' }} />
+                <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full px-5 py-2.5 flex items-center gap-2 shadow-xl border border-white/30">
+                  <Play className="w-4 h-4 text-white fill-white" />
+                  <span className="text-white font-semibold text-sm">Ver Reels</span>
                 </div>
-
-                <motion.div
-                  animate={{ y: [-5, 5, -5] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="absolute -top-8 left-1/2 -translate-x-1/2 text-white text-xs font-semibold"
-                >
-                  ⬆️ Deslize
-                </motion.div>
               </motion.button>
             </motion.div>
           </motion.div>
