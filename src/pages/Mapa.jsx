@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -11,6 +10,7 @@ import { Loader2, MapPin, Sparkles, Play } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { matchesVibe } from "../components/shared/helpers";
 import { isWithinInterval, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import ErrorBoundary from "../components/shared/ErrorBoundary";
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -45,8 +45,6 @@ export default function Mapa() {
     sortBy: 'distance'
   });
   const queryClient = useQueryClient();
-  
-  // FIX CRÍTICO: Ref para limpar Leaflet ao desmontar
   const mapCleanupRef = useRef(null);
 
   useEffect(() => {
@@ -86,7 +84,6 @@ export default function Mapa() {
 
     return () => { 
       isMounted = false;
-      // FIX CRÍTICO: Destruir instância Leaflet para prevenir memory leak
       if (mapCleanupRef.current) {
         mapCleanupRef.current();
       }
@@ -96,18 +93,25 @@ export default function Mapa() {
   const { data: eventsData, isLoading: isLoadingEvents } = useQuery({
     queryKey: ['nearbyEvents', userLocation?.lat, userLocation?.lng],
     queryFn: async () => {
-      const allEvents = await base44.entities.Event.list("-date", 100);
-      
-      const futureEvents = allEvents.filter(e => {
-        const eventDate = new Date(e.date);
-        return eventDate > new Date();
-      });
+      try {
+        const allEvents = await base44.entities.Event.list("-date", 100);
+        
+        const futureEvents = allEvents.filter(e => {
+          if (!e?.date) return false;
+          const eventDate = new Date(e.date);
+          return eventDate > new Date();
+        });
 
-      return { events: futureEvents };
+        return { events: futureEvents };
+      } catch (error) {
+        console.error("Erro ao carregar eventos:", error);
+        return { events: [] };
+      }
     },
     staleTime: 3 * 60 * 1000,
     enabled: !!userLocation,
-    retry: 2
+    retry: 2,
+    initialData: { events: [] }
   });
 
   const events = eventsData?.events || [];
@@ -115,8 +119,13 @@ export default function Mapa() {
   const { data: reels = [], isLoading: isLoadingReels } = useQuery({
     queryKey: ['mapReels'],
     queryFn: async () => {
-      const data = await base44.entities.Reel.list("-created_date", 20);
-      return data || [];
+      try {
+        const data = await base44.entities.Reel.list("-created_date", 20);
+        return data || [];
+      } catch (error) {
+        console.error("Erro ao carregar reels:", error);
+        return [];
+      }
     },
     staleTime: 15 * 60 * 1000,
     initialData: [],
@@ -287,106 +296,108 @@ export default function Mapa() {
   }
 
   return (
-    <div className="w-full h-screen bg-black overflow-hidden relative">
-      <AnimatePresence mode="wait">
-        {viewMode === "map" && (
-          <motion.div
-            key="map"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 z-10"
-          >
-            <MapView 
-              events={filteredEvents} 
-              userLocation={userLocation}
-              onPinClick={handlePinClick} 
-              onPinDetailsClick={handlePinDetailsClick}
-              onOpenFilters={() => {}}
-              onOpenVibe={() => setShowVibeSelector(true)}
-              onOpenUpload={() => setShowUploadModal(true)}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              activeVibe={activeVibe}
-              suggestedEvents={[]}
-              onMapReady={(cleanupFn) => {
-                mapCleanupRef.current = cleanupFn;
-              }}
-            />
-
+    <ErrorBoundary>
+      <div className="w-full h-screen bg-black overflow-hidden relative">
+        <AnimatePresence mode="wait">
+          {viewMode === "map" && (
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.5, type: "spring" }}
-              className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[999]"
+              key="map"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 z-10"
             >
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleOpenReels}
-                className="relative group"
+              <MapView 
+                events={filteredEvents} 
+                userLocation={userLocation}
+                onPinClick={handlePinClick} 
+                onPinDetailsClick={handlePinDetailsClick}
+                onOpenFilters={() => {}}
+                onOpenVibe={() => setShowVibeSelector(true)}
+                onOpenUpload={() => setShowUploadModal(true)}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                activeVibe={activeVibe}
+                suggestedEvents={[]}
+                onMapReady={(cleanupFn) => {
+                  mapCleanupRef.current = cleanupFn;
+                }}
+              />
+
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.5, type: "spring" }}
+                className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[999]"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full blur-xl opacity-60 group-hover:opacity-80" />
-                
-                <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full px-5 py-2.5 flex items-center gap-2 shadow-xl border border-white/30">
-                  <Play className="w-4 h-4 text-white fill-white" />
-                  <span className="text-white font-semibold text-sm">Ver Reels</span>
-                </div>
-              </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleOpenReels}
+                  className="relative group"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full blur-xl opacity-60 group-hover:opacity-80" />
+                  
+                  <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full px-5 py-2.5 flex items-center gap-2 shadow-xl border border-white/30">
+                    <Play className="w-4 h-4 text-white fill-white" />
+                    <span className="text-white font-semibold text-sm">Ver Reels</span>
+                  </div>
+                </motion.button>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence mode="wait">
-        {viewMode === "reels" && (
-          <motion.div
-            key="reels"
-            initial={{ y: "100%" }}
-            animate={{ y: "0%" }}
-            exit={{ y: "100%" }}
-            transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-            className="absolute inset-0 z-20"
-          >
-            <ReelsView
-              reels={reels}
+        <AnimatePresence mode="wait">
+          {viewMode === "reels" && (
+            <motion.div
+              key="reels"
+              initial={{ y: "100%" }}
+              animate={{ y: "0%" }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+              className="absolute inset-0 z-20"
+            >
+              <ReelsView
+                reels={reels}
+                events={events}
+                initialEventId={selectedEventId}
+                onClose={handleCloseReels}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showVibeSelector && (
+            <VibeSelector
+              onClose={() => setShowVibeSelector(false)}
+              onVibeSelect={handleVibeSelect}
               events={events}
-              initialEventId={selectedEventId}
-              onClose={handleCloseReels}
             />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {showVibeSelector && (
-          <VibeSelector
-            onClose={() => setShowVibeSelector(false)}
-            onVibeSelect={handleVibeSelect}
+        {showUploadModal && (
+          <UploadReelModal
+            onClose={() => setShowUploadModal(false)}
+            onUploadComplete={handleUploadComplete}
             events={events}
+            userLocation={userLocation}
           />
         )}
-      </AnimatePresence>
 
-      {showUploadModal && (
-        <UploadReelModal
-          onClose={() => setShowUploadModal(false)}
-          onUploadComplete={handleUploadComplete}
-          events={events}
-          userLocation={userLocation}
-        />
-      )}
-
-      {showEventDetails && selectedEventForDetails && (
-        <EventDetailsModal
-          event={selectedEventForDetails}
-          onClose={() => {
-            setShowEventDetails(false);
-            setSelectedEventForDetails(null);
-          }}
-        />
-      )}
-    </div>
+        {showEventDetails && selectedEventForDetails && (
+          <EventDetailsModal
+            event={selectedEventForDetails}
+            onClose={() => {
+              setShowEventDetails(false);
+              setSelectedEventForDetails(null);
+            }}
+          />
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }
