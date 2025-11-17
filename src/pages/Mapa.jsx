@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import MapView from "../components/reels/MapView";
+import MapView from "../components/map/MapView";
 import ReelsView from "../components/reels/ReelsView";
 import FilterPanel from "../components/map/FilterPanel";
 import VibeSelector from "../components/map/VibeSelector";
@@ -10,7 +10,7 @@ import EventDetailsModal from "../components/map/EventDetailsModal";
 import { Loader2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import { filterFutureEvents, matchesVibe } from "../components/shared/helpers";
+import { matchesVibe } from "../components/shared/helpers";
 
 export default function Mapa() {
   const [viewMode, setViewMode] = useState("map");
@@ -27,30 +27,6 @@ export default function Mapa() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeVibe, setActiveVibe] = useState('all');
   const queryClient = useQueryClient();
-
-  // Cleanup de cache ao montar
-  useEffect(() => {
-    try {
-      const now = Date.now();
-      
-      const analytics = JSON.parse(localStorage.getItem('sublinx_search_analytics') || '{}');
-      const cleanedAnalytics = {};
-      
-      Object.entries(analytics).forEach(([key, value]) => {
-        if (typeof value === 'number' || (value.lastSearched && (now - value.lastSearched) < 7 * 24 * 60 * 60 * 1000)) {
-          cleanedAnalytics[key] = value;
-        }
-      });
-      
-      localStorage.setItem('sublinx_search_analytics', JSON.stringify(cleanedAnalytics));
-      
-      const history = JSON.parse(localStorage.getItem('sublinx_search_history') || '[]');
-      localStorage.setItem('sublinx_search_history', JSON.stringify(history.slice(0, 20)));
-      
-    } catch (e) {
-      console.error('Erro ao limpar cache:', e);
-    }
-  }, []);
 
   // Geolocalização
   useEffect(() => {
@@ -91,20 +67,27 @@ export default function Mapa() {
     return () => { isMounted = false; };
   }, []);
 
-  // OTIMIZADO: Fetch events com cache agressivo
-  const { data: events = [], isLoading: isLoadingEvents, error: eventsError, refetch } = useQuery({
-    queryKey: ['mapEvents'],
+  // OTIMIZADO: Usa backend function para busca por raio
+  const { data: eventsData, isLoading: isLoadingEvents, error: eventsError } = useQuery({
+    queryKey: ['nearbyEvents', userLocation?.lat, userLocation?.lng],
     queryFn: async () => {
-      const data = await base44.entities.Event.list('-date', 50);
-      return filterFutureEvents(data);
+      const response = await base44.functions.invoke('searchEventsByRadius', {
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+        radius_km: 20,
+        limit: 50
+      });
+      return response.data;
     },
-    staleTime: 10 * 60 * 1000, // 10min
-    cacheTime: 30 * 60 * 1000, // 30min
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    initialData: [],
     enabled: !!userLocation,
+    retry: 2
   });
+
+  const events = eventsData?.events || [];
 
   // OTIMIZADO: Fetch reels com cache
   const { data: reels = [], isLoading: isLoadingReels } = useQuery({
@@ -113,8 +96,8 @@ export default function Mapa() {
       const data = await base44.entities.Reel.list("-created_date", 20);
       return data || [];
     },
-    staleTime: 15 * 60 * 1000, // 15min
-    cacheTime: 45 * 60 * 1000, // 45min
+    staleTime: 15 * 60 * 1000,
+    cacheTime: 45 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     initialData: [],
