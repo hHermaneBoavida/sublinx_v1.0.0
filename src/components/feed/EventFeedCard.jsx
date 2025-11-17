@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -191,7 +192,9 @@ export default function EventFeedCard({
       navigate(createPageUrl("BemVindo"));
       return;
     }
-    likeMutation.mutate();
+    if (!likeMutation.isPending) {
+      likeMutation.mutate();
+    }
   };
 
   const handleComment = () => {
@@ -352,7 +355,13 @@ export default function EventFeedCard({
 
             <div className="flex items-center justify-between">
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" className="hover:text-red-500 h-7 px-1.5" onClick={handleLike}>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="hover:text-red-500 h-7 px-1.5" 
+                  onClick={handleLike}
+                  disabled={likeMutation.isPending}
+                >
                   <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                   <span className="ml-1 text-xs">{likes}</span>
                 </Button>

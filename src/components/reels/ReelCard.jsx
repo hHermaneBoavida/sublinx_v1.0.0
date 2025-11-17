@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -33,12 +34,18 @@ export default function ReelCard({ reel, isActive, shouldLoad }) {
     if (!video) return;
 
     const updateProgress = () => {
+      if (!video) return; // Added null check for video
       const percentage = (video.currentTime / video.duration) * 100;
       setProgress(percentage);
     };
 
     video.addEventListener('timeupdate', updateProgress);
-    return () => video.removeEventListener('timeupdate', updateProgress);
+    
+    return () => {
+      if (video) { // Added null check for video before removing listener
+        video.removeEventListener('timeupdate', updateProgress);
+      }
+    };
   }, []);
 
   const togglePlay = () => {

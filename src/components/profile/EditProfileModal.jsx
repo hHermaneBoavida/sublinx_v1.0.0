@@ -82,10 +82,6 @@ export default function EditProfileModal({ user, onClose }) {
       queryClient.invalidateQueries({ queryKey: ['profileUser'] });
       
       onClose();
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
 
     } catch (error) {
       console.error("❌ Erro ao salvar:", error);

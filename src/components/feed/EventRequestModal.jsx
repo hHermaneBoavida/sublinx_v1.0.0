@@ -51,7 +51,6 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
 
   const requestMutation = useMutation({
     mutationFn: async (requestData) => {
-      // 1. Verificar solicitações existentes
       const existingRequests = await base44.entities.EventRequest.filter({
         user_id: requestData.user_id,
         event_id: requestData.event_id,
@@ -66,7 +65,6 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
         throw new Error('Você já possui uma solicitação pendente');
       }
 
-      // 2. Criar solicitação
       const newRequest = await base44.entities.EventRequest.create({
         user_id: String(requestData.user_id),
         event_id: String(requestData.event_id),
@@ -83,11 +81,10 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
         }
       });
 
-      // 3. Notificar organizador
       try {
         await base44.entities.Notification.create({
           user_id: requestData.organizer_id,
-          type: 'request_approved',
+          type: 'event_alert',
           title: '🎫 Nova Solicitação de Ingresso',
           message: `${requestData.applicant_data.full_name} solicitou acesso ao evento "${event.title}"`,
           event_id: requestData.event_id,
@@ -116,6 +113,7 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
       }
       
       alert(`❌ ${errorMessage}`);
+      setFormData(prev => ({ ...prev, message: '' }));
     }
   });
 
