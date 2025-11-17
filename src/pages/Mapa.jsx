@@ -3,22 +3,33 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import MapView from "../components/map/MapView";
 import ReelsView from "../components/reels/ReelsView";
-import FilterPanel from "../components/map/FilterPanel";
+import AdvancedFilters from "../components/map/AdvancedFilters";
 import VibeSelector from "../components/map/VibeSelector";
 import UploadReelModal from "../components/reels/UploadReelModal";
 import EventDetailsModal from "../components/map/EventDetailsModal";
-import AdvancedFilters from "../components/map/AdvancedFilters";
-import { Loader2, MapPin, SlidersHorizontal } from "lucide-react";
+import { Loader2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
 import { matchesVibe } from "../components/shared/helpers";
+import { isWithinInterval, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+
+// Função para calcular distância
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
 
 export default function Mapa() {
   const [viewMode, setViewMode] = useState("map");
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [selectedEventForDetails, setSelectedEventForDetails] = useState(null);
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showVibeSelector, setShowVibeSelector] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -28,13 +39,13 @@ export default function Mapa() {
   const [loadingLocation, setLoadingLocation] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeVibe, setActiveVibe] = useState('all');
-  const [filters, setFilters] = useState({ 
-    genre: "all", 
-    type: "all",
-    dateRange: "all",
+  const [filters, setFilters] = useState({
+    genre: 'all',
+    type: 'all',
+    dateRange: 'all',
     maxDistance: 50,
-    minPopularity: 0,
-    sortBy: "distance"
+    minAttendees: 0,
+    sortBy: 'distance'
   });
   const queryClient = useQueryClient();
 
@@ -77,7 +88,7 @@ export default function Mapa() {
   }, []);
 
   const { data: eventsData, isLoading: isLoadingEvents } = useQuery({
-    queryKey: ['nearbyEvents', userLocation?.lat, userLocation?.lng, filters.maxDistance],
+    queryKey: ['nearbyEvents', userLocation?.lat, userLocation?.lng],
     queryFn: async () => {
       const response = await base44.functions.invoke('searchEventsByRadius', {
         lat: userLocation.lat,
@@ -88,8 +99,6 @@ export default function Mapa() {
       return response.data;
     },
     staleTime: 3 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
     enabled: !!userLocation,
     retry: 2
   });
@@ -103,11 +112,10 @@ export default function Mapa() {
       return data || [];
     },
     staleTime: 15 * 60 * 1000,
-    cacheTime: 45 * 60 * 1000,
-    refetchOnWindowFocus: false,
     initialData: [],
   });
 
+  // Filtros avançados em tempo real
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
     
@@ -118,31 +126,51 @@ export default function Mapa() {
       const genreMatch = filters.genre === 'all' || event.genre === filters.genre;
       const typeMatch = filters.type === 'all' || event.type === filters.type;
       const vibeMatch = matchesVibe(event, activeVibe);
-      
+
+      // Filtro de distância
+      let distanceMatch = true;
+      if (userLocation) {
+        const distance = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          event.location.lat,
+          event.location.lng
+        );
+        distanceMatch = distance <= filters.maxDistance;
+      }
+
+      // Filtro de participantes
+      const attendeesMatch = (event.current_attendees || 0) >= filters.minAttendees;
+
       // Filtro de data
       let dateMatch = true;
       if (filters.dateRange !== 'all') {
         const eventDate = new Date(event.date);
-        const now = new Date();
+        const today = new Date();
         
-        if (filters.dateRange === 'today') {
-          dateMatch = eventDate.toDateString() === now.toDateString();
-        } else if (filters.dateRange === 'week') {
-          const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-          dateMatch = eventDate >= now && eventDate <= weekFromNow;
-        } else if (filters.dateRange === 'month') {
-          const monthFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-          dateMatch = eventDate >= now && eventDate <= monthFromNow;
-        } else if (filters.dateRange === 'weekend') {
-          const day = eventDate.getDay();
-          dateMatch = day === 0 || day === 5 || day === 6;
+        switch (filters.dateRange) {
+          case 'today':
+            dateMatch = eventDate.toDateString() === today.toDateString();
+            break;
+          case 'tomorrow':
+            const tomorrow = addDays(today, 1);
+            dateMatch = eventDate.toDateString() === tomorrow.toDateString();
+            break;
+          case 'week':
+            dateMatch = isWithinInterval(eventDate, {
+              start: startOfWeek(today),
+              end: endOfWeek(today)
+            });
+            break;
+          case 'month':
+            dateMatch = isWithinInterval(eventDate, {
+              start: startOfMonth(today),
+              end: endOfMonth(today)
+            });
+            break;
         }
       }
-      
-      // Filtro de popularidade
-      const popularity = event.current_attendees || 0;
-      const popularityMatch = popularity >= filters.minPopularity;
-      
+
       // Busca por texto
       if (searchTerm) {
         const lower = searchTerm.toLowerCase();
@@ -151,23 +179,27 @@ export default function Mapa() {
           event.location?.venue_name?.toLowerCase().includes(lower) ||
           event.genre?.toLowerCase().includes(lower);
         
-        return genreMatch && typeMatch && searchMatch && vibeMatch && dateMatch && popularityMatch;
+        return genreMatch && typeMatch && searchMatch && vibeMatch && distanceMatch && attendeesMatch && dateMatch;
       }
       
-      return genreMatch && typeMatch && vibeMatch && dateMatch && popularityMatch;
+      return genreMatch && typeMatch && vibeMatch && distanceMatch && attendeesMatch && dateMatch;
     });
 
     // Ordenação
-    if (filters.sortBy === 'date') {
+    if (filters.sortBy === 'distance' && userLocation) {
+      filtered.sort((a, b) => {
+        const distA = calculateDistance(userLocation.lat, userLocation.lng, a.location.lat, a.location.lng);
+        const distB = calculateDistance(userLocation.lat, userLocation.lng, b.location.lat, b.location.lng);
+        return distA - distB;
+      });
+    } else if (filters.sortBy === 'date') {
       filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
     } else if (filters.sortBy === 'popularity') {
       filtered.sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0));
-    } else if (filters.sortBy === 'price') {
-      filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
     }
 
     return filtered;
-  }, [events, filters, searchTerm, activeVibe]);
+  }, [events, filters, searchTerm, activeVibe, userLocation]);
 
   const handlePinClick = useCallback((eventId) => {
     setSelectedEventId(eventId);
@@ -187,10 +219,6 @@ export default function Mapa() {
   const handleOpenReels = useCallback(() => {
     setViewMode("reels");
   }, []);
-  
-  const handleApplyFilters = useCallback((newFilters) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  }, []);
 
   const handleVibeSelect = useCallback((vibe) => {
     setActiveVibe(vibe);
@@ -201,6 +229,10 @@ export default function Mapa() {
     setShowUploadModal(false);
     queryClient.invalidateQueries(["mapReels"]);
   }, [queryClient]);
+
+  const handleFiltersChange = useCallback((newFilters) => {
+    setFilters(newFilters);
+  }, []);
 
   if (loadingLocation) {
     return (
@@ -246,45 +278,8 @@ export default function Mapa() {
     );
   }
 
-  const activeFiltersCount = [
-    filters.genre !== 'all',
-    filters.type !== 'all',
-    filters.dateRange !== 'all',
-    filters.maxDistance !== 50,
-    filters.minPopularity > 0,
-    activeVibe !== 'all'
-  ].filter(Boolean).length;
-
   return (
     <div className="w-full h-screen bg-black overflow-hidden relative">
-      {/* Active Filters Badge */}
-      {activeFiltersCount > 0 && (
-        <div className="absolute top-20 left-4 z-[999] flex gap-2">
-          <Badge className="bg-purple-600/90 backdrop-blur-xl flex items-center gap-2">
-            <SlidersHorizontal className="w-3 h-3" />
-            {activeFiltersCount} filtro{activeFiltersCount !== 1 ? 's' : ''} ativo{activeFiltersCount !== 1 ? 's' : ''}
-          </Badge>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setFilters({
-                genre: "all",
-                type: "all",
-                dateRange: "all",
-                maxDistance: 50,
-                minPopularity: 0,
-                sortBy: "distance"
-              });
-              setActiveVibe('all');
-            }}
-            className="h-6 px-2 text-xs text-red-400 hover:bg-red-500/10"
-          >
-            Limpar
-          </Button>
-        </div>
-      )}
-
       <AnimatePresence mode="wait">
         {viewMode === "map" && (
           <motion.div
@@ -301,13 +296,13 @@ export default function Mapa() {
               onPinClick={handlePinClick} 
               onPinDetailsClick={handlePinDetailsClick}
               onSwipeUp={handleOpenReels}
-              onOpenFilters={() => setShowFilterPanel(true)}
               onOpenAdvancedFilters={() => setShowAdvancedFilters(true)}
               onOpenVibe={() => setShowVibeSelector(true)}
               onOpenUpload={() => setShowUploadModal(true)}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               activeVibe={activeVibe}
+              resultCount={filteredEvents.length}
             />
           </motion.div>
         )}
@@ -334,21 +329,11 @@ export default function Mapa() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showFilterPanel && (
-          <FilterPanel 
-            onClose={() => setShowFilterPanel(false)}
-            onApplyFilters={handleApplyFilters}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {showAdvancedFilters && (
           <AdvancedFilters
             filters={filters}
-            onChange={handleApplyFilters}
+            onFiltersChange={handleFiltersChange}
             onClose={() => setShowAdvancedFilters(false)}
-            eventsCount={filteredEvents.length}
           />
         )}
       </AnimatePresence>
