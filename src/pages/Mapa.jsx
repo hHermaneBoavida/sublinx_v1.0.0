@@ -7,7 +7,7 @@ import AdvancedFilters from "../components/map/AdvancedFilters";
 import VibeSelector from "../components/map/VibeSelector";
 import UploadReelModal from "../components/reels/UploadReelModal";
 import EventDetailsModal from "../components/map/EventDetailsModal";
-import { Loader2, MapPin } from "lucide-react";
+import { Loader2, MapPin, Sparkles, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { matchesVibe } from "../components/shared/helpers";
@@ -90,13 +90,15 @@ export default function Mapa() {
   const { data: eventsData, isLoading: isLoadingEvents } = useQuery({
     queryKey: ['nearbyEvents', userLocation?.lat, userLocation?.lng],
     queryFn: async () => {
-      const response = await base44.functions.invoke('searchEventsByRadius', {
-        lat: userLocation.lat,
-        lng: userLocation.lng,
-        radius_km: filters.maxDistance,
-        limit: 100
+      const allEvents = await base44.entities.Event.list("-date", 100);
+      
+      // Filtrar eventos futuros
+      const futureEvents = allEvents.filter(e => {
+        const eventDate = new Date(e.date);
+        return eventDate > new Date();
       });
-      return response.data;
+
+      return { events: futureEvents };
     },
     staleTime: 3 * 60 * 1000,
     enabled: !!userLocation,
@@ -236,44 +238,56 @@ export default function Mapa() {
 
   if (loadingLocation) {
     return (
-      <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-4">
-        <Loader2 className="w-16 h-16 animate-spin text-cyan-400 mb-4" />
-        <p className="text-gray-300 mb-2">Obtendo localização...</p>
-        <p className="text-gray-500 text-sm text-center">
-          📍 Permita acesso à localização
-        </p>
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900/20">
+        <motion.div
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <Sparkles className="w-16 h-16 text-cyan-400 mb-4" />
+        </motion.div>
+        <p className="text-gray-300 mb-2 text-lg">Procurando a cena perto de você...</p>
+        <p className="text-gray-500 text-sm">📍 Ativando localização</p>
       </div>
     );
   }
 
   if (locationError || !userLocation) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-black px-4">
-        <div className="max-w-md bg-gray-900/80 backdrop-blur-xl border border-red-500/30 rounded-2xl p-8 text-center">
+      <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900/20 px-4">
+        <motion.div 
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="max-w-md bg-gray-900/80 backdrop-blur-xl border border-red-500/30 rounded-2xl p-8 text-center"
+        >
           <MapPin className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-3">
             Localização Necessária
           </h2>
           <p className="text-gray-300 mb-6">
-            Permita acesso à localização para ver eventos próximos
+            Permita acesso à localização para descobrir eventos próximos
           </p>
           <Button 
             onClick={() => window.location.reload()}
-            className="w-full bg-gradient-to-r from-cyan-600 to-purple-600"
+            className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 h-12 text-lg"
           >
             <MapPin className="w-5 h-5 mr-2" />
             Tentar Novamente
           </Button>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   if (isLoadingEvents || isLoadingReels) {
     return (
-      <div className="w-full h-screen flex flex-col items-center justify-center bg-black">
-        <Loader2 className="w-16 h-16 animate-spin text-cyan-400 mb-4" />
-        <p className="text-gray-300">Carregando eventos...</p>
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900/20">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        >
+          <Loader2 className="w-16 h-16 text-cyan-400 mb-4" />
+        </motion.div>
+        <p className="text-gray-300 text-lg">Carregando eventos...</p>
       </div>
     );
   }
@@ -296,14 +310,47 @@ export default function Mapa() {
               onPinClick={handlePinClick} 
               onPinDetailsClick={handlePinDetailsClick}
               onSwipeUp={handleOpenReels}
-              onOpenAdvancedFilters={() => setShowAdvancedFilters(true)}
+              onOpenFilters={() => setShowAdvancedFilters(true)}
               onOpenVibe={() => setShowVibeSelector(true)}
               onOpenUpload={() => setShowUploadModal(true)}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               activeVibe={activeVibe}
-              resultCount={filteredEvents.length}
             />
+
+            {/* Botão Reels Imersivo */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.5, type: "spring" }}
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[999]"
+            >
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleOpenReels}
+                className="relative group"
+              >
+                {/* Glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full blur-2xl opacity-75 group-hover:opacity-100 animate-pulse" />
+                
+                {/* Button */}
+                <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full px-8 py-4 flex items-center gap-3 shadow-2xl border-2 border-white/20">
+                  <Play className="w-6 h-6 text-white fill-white" />
+                  <span className="text-white font-bold text-lg">Ver Reels</span>
+                  <Sparkles className="w-5 h-5 text-white animate-spin" style={{ animationDuration: '3s' }} />
+                </div>
+
+                {/* Indicator */}
+                <motion.div
+                  animate={{ y: [-5, 5, -5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="absolute -top-8 left-1/2 -translate-x-1/2 text-white text-xs font-semibold"
+                >
+                  ⬆️ Deslize
+                </motion.div>
+              </motion.button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
