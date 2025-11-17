@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import MapView from "../components/map/MapView";
@@ -44,6 +44,9 @@ export default function Mapa() {
     sortBy: 'distance'
   });
   const queryClient = useQueryClient();
+  
+  // FIX CRÍTICO: Ref para limpar Leaflet ao desmontar
+  const mapCleanupRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -80,7 +83,13 @@ export default function Mapa() {
       }
     );
 
-    return () => { isMounted = false; };
+    return () => { 
+      isMounted = false;
+      // FIX CRÍTICO: Destruir instância Leaflet para prevenir memory leak
+      if (mapCleanupRef.current) {
+        mapCleanupRef.current();
+      }
+    };
   }, []);
 
   const { data: eventsData, isLoading: isLoadingEvents } = useQuery({
@@ -300,6 +309,9 @@ export default function Mapa() {
               onSearchChange={setSearchTerm}
               activeVibe={activeVibe}
               suggestedEvents={[]}
+              onMapReady={(cleanupFn) => {
+                mapCleanupRef.current = cleanupFn;
+              }}
             />
 
             <motion.div

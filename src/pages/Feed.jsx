@@ -16,12 +16,13 @@ import { CACHE_CONFIG, queryKeys } from "../components/shared/optimizations";
 import { motion, AnimatePresence } from "framer-motion";
 import SocialRecommendations from "../components/recommendations/SocialRecommendations";
 import FeedAIRecommendations from "../components/recommendations/FeedAIRecommendations";
-import useCurrentUser from "../components/shared/useCurrentUser";
+import { useCurrentUser } from "../components/providers/UserProvider";
 
 const EventFeedCard = lazy(() => import("../components/feed/EventFeedCard"));
 const ShareVibeModal = lazy(() => import("../components/feed/ShareVibeModal"));
 
 const EVENTS_PER_PAGE = 15;
+const MAX_EVENTS_FOR_INTERACTIONS = 20; // OTIMIZAÇÃO: Limitar queries
 
 export default function Feed() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,7 +32,7 @@ export default function Feed() {
   const [showSortPanel, setShowSortPanel] = useState(false);
   const navigate = useNavigate();
 
-  const { data: user } = useCurrentUser();
+  const { user } = useCurrentUser(); // OTIMIZAÇÃO: Context global
   const isGuest = !user;
 
   // Debounce search
@@ -97,21 +98,23 @@ export default function Feed() {
     initialData: [],
   });
 
-  // OTIMIZADO: Usa backend function para interações
-  const { data: interactions = { likes: {}, comments: {}, requests: {} } } = useQuery({
-    queryKey: queryKeys.feedInteractions(user?.id, events.length),
-    queryFn: async () => {
-      if (!user || events.length === 0) return { likes: {}, comments: {}, requests: {} };
+  // OTIMIZAÇÃO CRÍTICA: Limitar eventos para query de interações
+  const visibleEventIds = useMemo(() => {
+    return events.slice(0, MAX_EVENTS_FOR_INTERACTIONS).map(e => e.id);
+  }, [events]);
 
-      const eventIds = events.map(e => e.id);
-      
-      const response = await base44.functions.invoke('getFeedInteractions', {
-        event_ids: eventIds
+  const { data: interactions = { likes: {}, comments: {}, requests: {} } } = useQuery({
+    queryKey: queryKeys.feedInteractions(user?.id, visibleEventIds.length),
+    queryFn: async () => {
+      if (!user || visibleEventIds.length === 0) return { likes: {}, comments: {}, requests: {} };
+
+      const response = await base44.functions.invoke('getFeedInteractionsOptimized', {
+        event_ids: visibleEventIds // Apenas eventos visíveis
       });
 
       return response.data;
     },
-    enabled: !!user && events.length > 0,
+    enabled: !!user && visibleEventIds.length > 0,
     ...CACHE_CONFIG.REALTIME,
     initialData: { likes: {}, comments: {}, requests: {} },
   });

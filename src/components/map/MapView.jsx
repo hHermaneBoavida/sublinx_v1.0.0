@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
@@ -55,7 +56,8 @@ export default function MapView({
   searchTerm,
   onSearchChange,
   activeVibe,
-  suggestedEvents = [] 
+  suggestedEvents = [],
+  onMapReady 
 }) {
   const mapRef = useRef(null);
   const navigate = useNavigate();
@@ -74,6 +76,32 @@ export default function MapView({
 
   const center = userLocation ? [userLocation.lat, userLocation.lng] : [-23.5505, -46.6333];
   const zoom = userLocation ? 13 : 11;
+
+  // FIX CRÍTICO: Cleanup do mapa ao desmontar
+  useEffect(() => {
+    return () => {
+      if (mapRef.current) {
+        try {
+          mapRef.current.remove();
+          mapRef.current = null;
+        } catch (error) {
+          console.error('Erro ao limpar mapa:', error);
+        }
+      }
+    };
+  }, []);
+
+  // Notificar parent sobre cleanup function
+  useEffect(() => {
+    if (onMapReady && mapReady && mapRef.current) { // Ensure map is ready before providing cleanup
+      onMapReady(() => {
+        if (mapRef.current) {
+          mapRef.current.remove();
+          mapRef.current = null;
+        }
+      });
+    }
+  }, [onMapReady, mapReady]);
 
   const getGenreColor = (genre) => {
     const colors = {
