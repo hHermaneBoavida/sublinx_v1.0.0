@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, lazy, Suspense } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -9,16 +8,15 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import InfiniteScrollTrigger from "../components/feed/InfiniteScrollTrigger";
 import SortControls, { SORT_OPTIONS } from "../components/feed/SortControls";
-import { Search, Heart, RefreshCw, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Search, Heart, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
-import { CACHE_CONFIG, queryKeys, debounce } from "../components/shared/optimizations"; // Added queryKeys and debounce
+import { CACHE_CONFIG, queryKeys } from "../components/shared/optimizations";
 import { motion, AnimatePresence } from "framer-motion";
 import SocialRecommendations from "../components/recommendations/SocialRecommendations";
-import useCurrentUser from "../components/shared/useCurrentUser"; // Added useCurrentUser hook
+import useCurrentUser from "../components/shared/useCurrentUser";
 
-// LAZY LOAD COMPONENTS PESADOS
 const EventFeedCard = lazy(() => import("../components/feed/EventFeedCard"));
 const ShareVibeModal = lazy(() => import("../components/feed/ShareVibeModal"));
 
@@ -26,16 +24,21 @@ const EVENTS_PER_PAGE = 15;
 
 export default function Feed() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [showShareVibe, setShowShareVibe] = useState(false);
   const [sortBy, setSortBy] = useState('distance');
   const [showSortPanel, setShowSortPanel] = useState(false);
   const navigate = useNavigate();
 
-  // Replaced useQuery for currentUser with useCurrentUser hook
   const { data: user } = useCurrentUser();
   const isGuest = !user;
 
-  // OTIMIZADO: Infinite Query com limite reduzido
+  // Debounce search
+  React.useEffect(() => {
+    const timer = setTimeout(() => setSearchTerm(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const {
     data: eventsData,
     fetchNextPage,
@@ -44,7 +47,7 @@ export default function Feed() {
     isLoading: isLoadingEvents,
     refetch
   } = useInfiniteQuery({
-    queryKey: queryKeys.events(), // Changed queryKey
+    queryKey: queryKeys.events(),
     queryFn: async ({ pageParam = 0 }) => {
       const offset = pageParam * EVENTS_PER_PAGE;
       const limit = EVENTS_PER_PAGE;
@@ -69,7 +72,6 @@ export default function Feed() {
     return eventsData.pages.flatMap(page => page.events);
   }, [eventsData]);
 
-  // OTIMIZADO: Ads com cache longo
   const { data: advertisements = [] } = useQuery({
     queryKey: ['feedAds'],
     queryFn: async () => {
@@ -94,9 +96,8 @@ export default function Feed() {
     initialData: [],
   });
 
-  // OTIMIZADO: Interações carregam sob demanda apenas se usuário logado
   const { data: interactions = { likes: {}, comments: {}, requests: {} } } = useQuery({
-    queryKey: queryKeys.feedInteractions(user?.id, events.length), // Changed queryKey
+    queryKey: queryKeys.feedInteractions(user?.id, events.length),
     queryFn: async () => {
       if (!user || events.length === 0) return { likes: {}, comments: {}, requests: {} };
 
@@ -180,12 +181,6 @@ export default function Feed() {
     return sorted;
   }, [events, sortBy, user?.location, interactions.likes]);
 
-  // Added: Debounced search function
-  const debouncedSearch = useMemo(
-    () => debounce((term) => setSearchTerm(term), 300),
-    []
-  );
-
   const filteredEvents = useMemo(() => {
     if (!searchTerm) return sortedEvents;
     
@@ -239,7 +234,6 @@ export default function Feed() {
 
   return (
     <div className="max-w-xl mx-auto px-0 py-0">
-      {/* Header Compacto */}
       <div className="sticky top-0 z-10 bg-black/95 backdrop-blur-lg border-b border-gray-800/50 px-3 sm:px-4 py-2.5 sm:py-3">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
@@ -270,8 +264,8 @@ export default function Feed() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             placeholder="Buscar evento, gênero, local..."
-            value={searchTerm}
-            onChange={(e) => debouncedSearch(e.target.value)} // Changed: Use debouncedSearch
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="bg-gray-900/80 border-gray-700 pl-9 pr-3 text-white placeholder:text-gray-500 focus:border-cyan-500 text-sm h-9 rounded-lg"
           />
         </div>
@@ -316,10 +310,8 @@ export default function Feed() {
         </AnimatePresence>
       </div>
 
-      {/* Social Recommendations */}
       {!isGuest && <SocialRecommendations user={user} />}
 
-      {/* Share Vibe Button */}
       <div className="px-3 sm:px-4 py-2.5 border-b border-gray-800/30">
         <Button
           className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 h-10 text-sm font-semibold shadow-lg"
@@ -331,14 +323,12 @@ export default function Feed() {
         </Button>
       </div>
 
-      {/* Feed com Skeleton e Infinite Scroll */}
       <div className="space-y-0">
         {isLoadingEvents ? (
           <>
             <LoadingSkeleton />
             <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
             <LoadingSkeleton />
-            {/* One LoadingSkeleton and its divider removed as per outline */}
           </>
         ) : feedWithAds.length > 0 ? (
           <Suspense fallback={<LoadingSkeleton />}>
@@ -347,7 +337,6 @@ export default function Feed() {
               
               return (
                 <React.Fragment key={item.key}>
-                  {/* Kept rendering for both ads and events to preserve functionality */}
                   {item.type === 'ad' ? (
                     <SponsoredAdCard ad={item.data} featured={item.featured} />
                   ) : (
@@ -363,9 +352,7 @@ export default function Feed() {
                   )}
                   
                   {index < feedWithAds.length - 1 && (
-                    <div className="relative h-[1px] bg-gradient-to-r from-transparent via-gray-800/50 to-transparent">
-                      {/* Removed blur effect from divider as per outline */}
-                    </div>
+                    <div className="relative h-[1px] bg-gradient-to-r from-transparent via-gray-800/50 to-transparent" />
                   )}
                 </React.Fragment>
               );
@@ -376,19 +363,16 @@ export default function Feed() {
               isLoading={isFetchingNextPage}
               hasMore={hasNextPage}
             />
-
-            {/* Removed the "Você viu todos os eventos!" message block as per outline */}
           </Suspense>
         ) : (
-          <div className="text-center py-16 bg-gray-900/50 rounded-lg border border-gray-700 mx-4 mt-4"> {/* Adjusted padding and margin */}
-            <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" /> {/* Adjusted icon size */}
-            <h3 className="text-xl font-semibold text-gray-400 mb-2"> {/* Adjusted text size */}
+          <div className="text-center py-16 bg-gray-900/50 rounded-lg border border-gray-700 mx-4 mt-4">
+            <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-400 mb-2">
               Nenhum evento encontrado
             </h3>
-            <p className="text-gray-500 px-4 mb-4"> {/* Adjusted text size and content */}
+            <p className="text-gray-500 px-4 mb-4">
               {searchTerm ? "Tente ajustar sua busca" : "Ainda não há eventos futuros"}
             </p>
-            {/* "Limpar Busca" button removed as per outline */}
           </div>
         )}
       </div>
@@ -405,7 +389,6 @@ export default function Feed() {
   );
 }
 
-// SPONSORED AD CARD (inline para evitar outro lazy load)
 function SponsoredAdCard({ ad, featured = false }) {
   if (!ad?.id) return null;
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,8 +16,9 @@ import EditProfileModal from "../components/profile/EditProfileModal";
 import TicketCard from "../components/tickets/TicketCard";
 import BirthdayBanner from "../components/profile/BirthdayBanner";
 import CalendarIntegration from "../components/integrations/CalendarIntegration";
-import { CACHE_CONFIG } from "../components/shared/helpers";
+import { CACHE_CONFIG, queryKeys } from "../components/shared/helpers";
 import { getUserDisplayName, getUserAvatar } from "../components/shared/userHelpers";
+import useCurrentUser from "../components/shared/useCurrentUser";
 
 export default function Perfil() {
   const navigate = useNavigate();
@@ -26,32 +26,32 @@ export default function Perfil() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
 
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['currentUser'],
+  const { data: user, isLoading } = useCurrentUser();
+
+  React.useEffect(() => {
+    if (!isLoading && !user) {
+      navigate(createPageUrl("BemVindo"));
+    }
+  }, [user, isLoading, navigate]);
+
+  const { data: socialData } = useQuery({
+    queryKey: queryKeys.userSocial(user?.id),
     queryFn: async () => {
-      try {
-        return await base44.auth.me();
-      } catch (error) {
-        navigate(createPageUrl("BemVindo"));
-        throw error;
-      }
+      if (!user?.id) return { followers: [], following: [] };
+      
+      const [followers, following] = await Promise.allSettled([
+        base44.entities.Follow.filter({ following_id: user.id }),
+        base44.entities.Follow.filter({ follower_id: user.id })
+      ]);
+
+      return {
+        followers: followers.status === 'fulfilled' ? followers.value : [],
+        following: following.status === 'fulfilled' ? following.value : []
+      };
     },
-    retry: false,
-    ...CACHE_CONFIG.STATIC,
-  });
-
-  const { data: followers = [] } = useQuery({
-    queryKey: ['followers', user?.id],
-    queryFn: () => base44.entities.Follow.filter({ following_id: user.id }),
     enabled: !!user?.id,
     ...CACHE_CONFIG.SHORT,
-  });
-
-  const { data: following = [] } = useQuery({
-    queryKey: ['following', user?.id],
-    queryFn: () => base44.entities.Follow.filter({ follower_id: user.id }),
-    enabled: !!user?.id,
-    ...CACHE_CONFIG.SHORT,
+    initialData: { followers: [], following: [] },
   });
 
   const { data: userTickets = [] } = useQuery({
@@ -101,7 +101,6 @@ export default function Perfil() {
       .map(([genre, count]) => ({ genre, count }));
   }, [myEvents, attendedEvents, user?.is_organizer]);
 
-  // Verificar aniversário
   const birthdayInfo = useMemo(() => {
     if (!user?.birth_date) return { isBirthday: false, daysUntil: 999 };
 
@@ -155,16 +154,17 @@ export default function Perfil() {
     );
   }
 
+  if (!user) return null;
+
   const stats = {
-    followers: followers.length,
-    following: following.length,
+    followers: socialData.followers.length,
+    following: socialData.following.length,
     events: user.is_organizer ? myEvents.length : attendedEvents.length,
     level: user.underground_level || 1,
   };
 
   return (
     <div className="min-h-screen bg-black text-white pb-24 md:pb-8">
-      {/* Header */}
       <div className="border-b border-gray-800 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
@@ -191,9 +191,7 @@ export default function Perfil() {
         </div>
       </div>
 
-      {/* Profile */}
       <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Birthday Banner */}
         <BirthdayBanner 
           user={user} 
           isBirthday={birthdayInfo.isBirthday} 
@@ -265,7 +263,6 @@ export default function Perfil() {
           </div>
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue={user.is_organizer ? "eventos" : "ingressos"} className="w-full">
           <TabsList className="w-full grid grid-cols-4 bg-black border-b border-gray-800 rounded-none h-auto p-0">
             <TabsTrigger value={user.is_organizer ? "eventos" : "ingressos"} className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3">

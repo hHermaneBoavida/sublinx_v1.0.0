@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import EventApprovedModal from "./EventApprovedModal";
 import EventRequestModal from "./EventRequestModal";
 import ShareModal from "./ShareModal";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "../shared/helpers";
 import LazyImage from "./LazyImage";
 import useRealtimeEvent from "../events/useRealtimeEvent";
@@ -36,7 +35,6 @@ export default function EventFeedCard({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [isPlaying, setIsPlaying] = useState(false);
   const [likes, setLikes] = useState(initialLikes.length || 0);
   const [isLiked, setIsLiked] = useState(false);
   const [comments, setComments] = useState(initialComments || []);
@@ -49,7 +47,7 @@ export default function EventFeedCard({
   const [newComment, setNewComment] = useState("");
   const [previousAttendees, setPreviousAttendees] = useState(event.current_attendees || 0);
 
-  const { event: realtimeEvent, isConnected, isRealtime } = useRealtimeEvent(event.id);
+  const { event: realtimeEvent, isRealtime } = useRealtimeEvent(event.id);
   const displayEvent = realtimeEvent || event;
 
   useEffect(() => {
@@ -86,7 +84,6 @@ export default function EventFeedCard({
   const organizerAvatar = organizerData?.avatar_url || event.organizer_avatar || `https://i.pravatar.cc/40?u=${event.organizer_id}`;
   const isEventOrganizer = user?.id === event.organizer_id;
 
-  // CORREÇÃO: Função para navegar ao perfil
   const handleNavigateToProfile = (e) => {
     e.stopPropagation();
     if (event.organizer_id) {
@@ -121,9 +118,7 @@ export default function EventFeedCard({
               title: '❤️ Nova curtida!',
               message: `${user.full_name || user.email} curtiu "${event.title}"`,
               event_id: event.id,
-              is_read: false,
-              location_match: false,
-              genre_match: []
+              is_read: false
             });
           } catch (e) {
             console.log("Erro ao notificar:", e);
@@ -161,9 +156,7 @@ export default function EventFeedCard({
             title: '💬 Novo comentário!',
             message: `${user.full_name || user.email} comentou em "${event.title}"`,
             event_id: event.id,
-            is_read: false,
-            location_match: false,
-            genre_match: []
+            is_read: false
           });
         } catch (e) {
           console.log("Erro ao notificar:", e);
@@ -547,7 +540,18 @@ export default function EventFeedCard({
       </Dialog>
 
       {showApprovedModal && <EventApprovedModal event={displayEvent} onClose={() => setShowApprovedModal(false)} />}
-      {showRequestModal && <EventRequestModal event={displayEvent} user={user} onClose={() => setShowRequestModal(false)} onSuccess={(status) => { setRequestStatus(status); queryClient.invalidateQueries(['feedInteractions']); }} />}
+      {showRequestModal && (
+        <EventRequestModal 
+          event={displayEvent} 
+          user={user} 
+          onClose={() => setShowRequestModal(false)} 
+          onSuccess={(status) => { 
+            setRequestStatus(status); 
+            queryClient.invalidateQueries(['feedInteractions']);
+            queryClient.invalidateQueries(['userTickets']);
+          }} 
+        />
+      )}
       {showShareModal && <ShareModal event={displayEvent} onClose={() => setShowShareModal(false)} />}
     </>
   );
