@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Crown, Calendar, Ticket, Award, Edit2, Share2, CheckCircle, 
-  Settings, Shield, Music, Trophy, BarChart3, MessageCircle
+  Settings, Shield, Music, Trophy, BarChart3, MessageCircle, Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -16,6 +16,8 @@ import EditProfileModal from "../components/profile/EditProfileModal";
 import TicketCard from "../components/tickets/TicketCard";
 import BirthdayBanner from "../components/profile/BirthdayBanner";
 import CalendarIntegration from "../components/integrations/CalendarIntegration";
+import AIRecommendations from "../components/recommendations/AIRecommendations";
+import PreferencesModal from "../components/recommendations/PreferencesModal";
 import { CACHE_CONFIG } from "../components/shared/helpers";
 import { queryKeys } from "../components/shared/optimizations";
 import { getUserDisplayName, getUserAvatar } from "../components/shared/userHelpers";
@@ -26,6 +28,7 @@ export default function Perfil() {
   const queryClient = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
 
   const { data: user, isLoading } = useCurrentUser();
 
@@ -264,6 +267,23 @@ export default function Perfil() {
           </div>
         </div>
 
+        {/* AI Recommendations */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Para Você</h3>
+            <Button
+              onClick={() => setShowPreferencesModal(true)}
+              variant="outline"
+              size="sm"
+              className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+            >
+              <Sparkles className="w-4 h-4 mr-1" />
+              Preferências
+            </Button>
+          </div>
+          <AIRecommendations user={user} />
+        </div>
+
         <Tabs defaultValue={user.is_organizer ? "eventos" : "ingressos"} className="w-full">
           <TabsList className="w-full grid grid-cols-4 bg-black border-b border-gray-800 rounded-none h-auto p-0">
             <TabsTrigger value={user.is_organizer ? "eventos" : "ingressos"} className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3">
@@ -437,6 +457,7 @@ export default function Perfil() {
       </div>
 
       {showEditModal && <EditProfileModal user={user} onClose={() => setShowEditModal(false)} />}
+      {showPreferencesModal && <PreferencesModal user={user} onClose={() => setShowPreferencesModal(false)} />}
       {showCalendarModal && user.birth_date && (
         <CalendarIntegration 
           event={{
