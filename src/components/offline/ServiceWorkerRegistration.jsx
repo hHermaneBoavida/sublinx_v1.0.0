@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 
 const SW_CODE = `
-const CACHE_NAME = 'sublinx-v2.1';
-const STATIC_CACHE = 'sublinx-static-v2.1';
-const DYNAMIC_CACHE = 'sublinx-dynamic-v2.1';
-const IMAGE_CACHE = 'sublinx-images-v2.1';
+const CACHE_NAME = 'sublinx-v2.2';
+const STATIC_CACHE = 'sublinx-static-v2.2';
+const DYNAMIC_CACHE = 'sublinx-dynamic-v2.2';
+const IMAGE_CACHE = 'sublinx-images-v2.2';
+const API_CACHE = 'sublinx-api-v2.2';
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing...');
@@ -27,7 +28,7 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) => {
         return Promise.all(
           cacheNames
-            .filter((name) => name !== STATIC_CACHE && name !== DYNAMIC_CACHE && name !== IMAGE_CACHE)
+            .filter((name) => !name.startsWith('sublinx-') || (name !== STATIC_CACHE && name !== DYNAMIC_CACHE && name !== IMAGE_CACHE && name !== API_CACHE))
             .map((name) => caches.delete(name))
         );
       })
@@ -63,13 +64,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API: Network First with Cache Fallback
+  // API: Network First with Aggressive Cache
   if (url.pathname.startsWith('/api/')) {
+    const isStaticAPI = url.pathname.includes('/entities/User') || 
+                        url.pathname.includes('/entities/Venue') ||
+                        url.pathname.includes('/auth/me');
+    
     event.respondWith(
       fetch(request)
         .then((networkResponse) => {
           if (request.method === 'GET' && networkResponse.status === 200) {
-            caches.open(DYNAMIC_CACHE).then((cache) => {
+            const cacheName = isStaticAPI ? API_CACHE : DYNAMIC_CACHE;
+            caches.open(cacheName).then((cache) => {
               cache.put(request, networkResponse.clone());
             });
           }
@@ -78,7 +84,7 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           return caches.match(request).then((cachedResponse) => {
             if (cachedResponse) return cachedResponse;
-            return new Response(JSON.stringify({ error: 'Offline' }), 
+            return new Response(JSON.stringify({ error: 'Offline', cached: false }), 
               { status: 503, headers: { 'Content-Type': 'application/json' } });
           });
         })

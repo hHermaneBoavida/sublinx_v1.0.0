@@ -6,7 +6,7 @@ export const CACHE_CONFIG = {
   // Dados em tempo real (30s) - Eventos ao vivo, notificações
   REALTIME: {
     staleTime: 30000,
-    cacheTime: 60000,
+    gcTime: 60000,
     refetchOnWindowFocus: true,
     refetchInterval: 30000,
   },
@@ -14,31 +14,31 @@ export const CACHE_CONFIG = {
   // Dados que mudam frequentemente (2min) - Feed, interactions
   SHORT: {
     staleTime: 120000,
-    cacheTime: 300000,
+    gcTime: 300000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
   },
   
-  // Dados moderados (5min) - Eventos, tickets
+  // Dados moderados (10min) - Eventos, tickets
   MEDIUM: {
-    staleTime: 300000,
-    cacheTime: 600000,
+    staleTime: 600000,
+    gcTime: 1200000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
   },
   
-  // Dados que raramente mudam (15min) - Badges, histórico
+  // Dados que raramente mudam (1h) - Badges, histórico, reviews
   LONG: {
-    staleTime: 900000,
-    cacheTime: 1800000,
+    staleTime: 3600000,
+    gcTime: 7200000,
     refetchOnWindowFocus: false,
     refetchInterval: false,
   },
   
-  // Dados estáticos (infinito) - User, entidades estáticas
+  // Dados estáticos (infinito) - User, schemas, venues
   STATIC: {
     staleTime: Infinity,
-    cacheTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchInterval: false,
   }
@@ -90,26 +90,48 @@ export const queryKeys = {
 // ====================================
 
 export function prefetchEventDetails(queryClient, eventId) {
-  queryClient.prefetchQuery({
+  return queryClient.prefetchQuery({
     queryKey: queryKeys.event(eventId),
     queryFn: async () => {
       const { base44 } = await import('@/api/base44Client');
-      return await base44.entities.Event.filter({ id: eventId });
+      const events = await base44.entities.Event.filter({ id: eventId });
+      return events[0];
     },
-    ...CACHE_CONFIG.MEDIUM,
+    staleTime: Infinity,
   });
 }
 
 export function prefetchUserProfile(queryClient, userId) {
-  queryClient.prefetchQuery({
+  return queryClient.prefetchQuery({
     queryKey: queryKeys.profileUser(userId),
     queryFn: async () => {
       const { base44 } = await import('@/api/base44Client');
       const users = await base44.entities.User.filter({ id: userId });
       return users[0];
     },
-    ...CACHE_CONFIG.LONG,
+    staleTime: Infinity,
   });
+}
+
+export function prefetchEventInteractions(queryClient, eventId) {
+  return Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.likes(eventId),
+      queryFn: async () => {
+        const { base44 } = await import('@/api/base44Client');
+        return await base44.entities.Like.filter({ event_id: eventId });
+      },
+      staleTime: 120000,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.comments(eventId),
+      queryFn: async () => {
+        const { base44 } = await import('@/api/base44Client');
+        return await base44.entities.Comment.filter({ event_id: eventId });
+      },
+      staleTime: 120000,
+    }),
+  ]);
 }
 
 // ====================================

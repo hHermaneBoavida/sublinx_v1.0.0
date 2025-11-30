@@ -94,7 +94,8 @@ export default function Feed() {
         return [];
       }
     },
-    ...CACHE_CONFIG.LONG,
+    staleTime: 600000,
+    gcTime: 1200000,
     initialData: [],
   });
 

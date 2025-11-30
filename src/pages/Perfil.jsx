@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -36,6 +35,7 @@ export default function Perfil() {
     },
     retry: 1,
     staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   React.useEffect(() => {
@@ -107,7 +107,8 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id,
-    staleTime: 10 * 60 * 1000,
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   const getUserDisplayName = (u) => u?.display_name || u?.full_name || u?.email?.split('@')[0] || 'Usuário';
