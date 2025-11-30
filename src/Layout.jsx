@@ -194,7 +194,9 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary key={currentPageName}>
+      <ServiceWorkerRegistration />
+      <OfflineIndicator />
       <WebSocketEventProvider user={user}>
         <div className="min-h-screen bg-black text-white relative overflow-hidden">
           
