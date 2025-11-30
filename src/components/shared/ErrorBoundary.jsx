@@ -37,53 +37,61 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-gray-900/80 backdrop-blur-xl border border-red-500/30 rounded-2xl p-8 text-center">
+        <div className="w-full h-screen bg-gradient-to-br from-black via-gray-900 to-purple-900/20 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-gray-900/90 backdrop-blur-xl border-2 border-red-500/40 rounded-2xl p-8 text-center shadow-2xl">
             <div className="mb-6">
-              <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-white mb-2">
-                Algo deu errado
+              <div className="relative inline-block mb-4">
+                <AlertTriangle className="w-20 h-20 text-red-400 mx-auto animate-pulse" />
+                <div className="absolute inset-0 bg-red-500/20 blur-2xl rounded-full" />
+              </div>
+              <h1 className="text-2xl font-bold text-white mb-3">
+                Ops! Algo deu errado
               </h1>
-              <p className="text-gray-300 text-sm">
-                Desculpe, encontramos um erro inesperado.
+              <p className="text-gray-300 text-sm mb-2">
+                Encontramos um erro inesperado. Não se preocupe, seus dados estão seguros.
+              </p>
+              <p className="text-gray-400 text-xs">
+                Tente recarregar a página ou voltar ao início.
               </p>
             </div>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg text-left">
-                <p className="text-xs text-red-300 font-mono mb-2">
-                  {this.state.error.toString()}
-                </p>
-                {this.state.errorInfo && (
-                  <details className="mt-2">
-                    <summary className="text-xs text-gray-400 cursor-pointer">
-                      Stack trace
-                    </summary>
-                    <pre className="text-[10px] text-gray-500 mt-2 overflow-auto max-h-40">
-                      {this.state.errorInfo.componentStack}
-                    </pre>
-                  </details>
-                )}
-              </div>
-            )}
+            <div className="mb-6 p-4 bg-black/40 border border-red-500/20 rounded-lg">
+              <p className="text-xs text-red-300 font-mono">
+                {this.state.error?.message || 'Erro desconhecido'}
+              </p>
+              {this.state.errorInfo && (
+                <details className="mt-2">
+                  <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300">
+                    Detalhes técnicos
+                  </summary>
+                  <pre className="text-[10px] text-gray-500 mt-2 overflow-auto max-h-32 text-left">
+                    {this.state.errorInfo.componentStack}
+                  </pre>
+                </details>
+              )}
+            </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3">
               <Button
                 onClick={this.handleReset}
-                className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600"
+                className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 h-12 shadow-lg"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Recarregar
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Recarregar Página
               </Button>
               <Button
                 onClick={this.handleGoHome}
                 variant="outline"
-                className="flex-1 border-gray-600"
+                className="w-full border-gray-600 hover:bg-gray-800 h-12"
               >
-                <Home className="w-4 h-4 mr-2" />
-                Início
+                <Home className="w-5 h-5 mr-2" />
+                Voltar ao Início
               </Button>
             </div>
+
+            <p className="text-xs text-gray-500 mt-6">
+              Se o problema persistir, entre em contato com o suporte.
+            </p>
           </div>
         </div>
       );

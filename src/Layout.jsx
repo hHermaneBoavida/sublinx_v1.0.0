@@ -165,7 +165,7 @@ export default function Layout({ children, currentPageName }) {
   const noLayoutPages = ["BemVindo", "Mapa"];
   if (noLayoutPages.includes(currentPageName)) {
     return (
-      <ErrorBoundary>
+      <ErrorBoundary key={currentPageName}>
         <ServiceWorkerRegistration />
         <OfflineIndicator />
         <WebSocketEventProvider user={user}>
