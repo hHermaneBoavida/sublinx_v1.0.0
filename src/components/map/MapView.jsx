@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
@@ -6,10 +5,9 @@ import 'leaflet/dist/leaflet.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Menu, X, Filter } from 'lucide-react';
+import { Search, Menu, X, Filter, AlertCircle } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { useNavigate } from 'react-router-dom';
-import MapMarkerCluster, { clusterEvents } from './MapMarkerCluster';
 import AdvancedFilters from './AdvancedFilters';
 import { AnimatePresence } from 'framer-motion';
 
@@ -46,14 +44,14 @@ function ZoomTracker({ onZoomChange }) {
 }
 
 export default function MapView({ 
-  events, 
+  events = [], 
   userLocation, 
   onPinClick, 
   onPinDetailsClick,
   onOpenFilters,
   onOpenVibe,
   onOpenUpload,
-  searchTerm,
+  searchTerm = "",
   onSearchChange,
   activeVibe,
   suggestedEvents = [],
@@ -65,6 +63,7 @@ export default function MapView({
   const [showMenu, setShowMenu] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(13);
+  const [mapError, setMapError] = useState(null);
   const [advancedFilters, setAdvancedFilters] = useState({
     genre: 'all',
     type: 'all',
@@ -77,7 +76,15 @@ export default function MapView({
   const center = userLocation ? [userLocation.lat, userLocation.lng] : [-23.5505, -46.6333];
   const zoom = userLocation ? 13 : 11;
 
-  // FIX CRÍTICO: Cleanup do mapa ao desmontar
+  // Validate events data
+  useEffect(() => {
+    if (events && !Array.isArray(events)) {
+      console.error('Events must be an array, received:', typeof events);
+      setMapError('Erro ao carregar eventos');
+    }
+  }, [events]);
+
+  // Cleanup do mapa ao desmontar
   useEffect(() => {
     return () => {
       if (mapRef.current) {
@@ -167,10 +174,18 @@ export default function MapView({
     });
   }, [events, searchTerm, advancedFilters, userLocation]);
 
-  // Clusterizar eventos
+  // Simple clustering by proximity
   const eventClusters = useMemo(() => {
-    return clusterEvents(filteredEvents, zoomLevel);
-  }, [filteredEvents, zoomLevel]);
+    if (!filteredEvents || filteredEvents.length === 0) return [];
+    
+    // For now, return events as individual clusters
+    // Advanced clustering can be added later if needed
+    return filteredEvents.map(event => ({
+      center: [event.location.lat, event.location.lng],
+      events: [event],
+      count: 1
+    }));
+  }, [filteredEvents]);
 
   const eventStats = {
     total: events.length,
@@ -183,6 +198,25 @@ export default function MapView({
     if (key === 'minAttendees') return advancedFilters[key] !== 0;
     return advancedFilters[key] !== 'all';
   }).length;
+
+  // Error state
+  if (mapError) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-black">
+        <div className="text-center bg-gray-900/80 backdrop-blur-xl rounded-2xl p-8 border border-red-500/30 max-w-md">
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-white mb-2">Erro no Mapa</h3>
+          <p className="text-gray-300 text-sm mb-4">{mapError}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="bg-gradient-to-r from-cyan-600 to-purple-600"
+          >
+            Recarregar Página
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full relative">
@@ -275,11 +309,18 @@ export default function MapView({
         className="w-full h-full"
         style={{ background: '#1a1a2e' }}
         zoomControl={false}
-        whenReady={() => setMapReady(true)}
+        whenReady={() => {
+          setMapReady(true);
+          console.log('✅ Mapa carregado com', filteredEvents.length, 'eventos');
+        }}
+        whenCreated={(map) => {
+          mapRef.current = map;
+        }}
       >
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          errorTileUrl="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
         />
         
         <ZoomControl position="bottomright" />
@@ -309,16 +350,51 @@ export default function MapView({
           </Marker>
         )}
 
-        {eventClusters.map((cluster, index) => (
-          <MapMarkerCluster
-            key={`cluster-${index}`}
-            cluster={cluster}
-            onPinClick={onPinClick}
-            onPinDetailsClick={onPinDetailsClick}
-            getGenreColor={getGenreColor}
-            suggestedEvents={suggestedEvents}
-          />
-        ))}
+        {eventClusters.map((cluster, index) => {
+          if (!cluster?.center || !cluster.events?.[0]) return null;
+          
+          const event = cluster.events[0];
+          const color = getGenreColor(event.genre);
+          
+          return (
+            <Marker
+              key={`marker-${event.id || index}`}
+              position={cluster.center}
+              icon={L.divIcon({
+                className: 'custom-marker',
+                html: `
+                  <div class="relative cursor-pointer transform hover:scale-110 transition-transform">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-2xl border-2 border-white" 
+                         style="background: ${color}; box-shadow: 0 0 20px ${color}80;">
+                      ${cluster.count}
+                    </div>
+                  </div>
+                `,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+              })}
+              eventHandlers={{
+                click: () => onPinClick(event.id)
+              }}
+            >
+              <Popup>
+                <div className="p-2 min-w-[200px]">
+                  <h3 className="font-bold text-sm mb-1">{event.title}</h3>
+                  <p className="text-xs text-gray-600 mb-2">
+                    {event.location?.venue_name || 'Local não informado'}
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => onPinDetailsClick(event)}
+                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                  >
+                    Ver Detalhes
+                  </Button>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
 
       {filteredEvents.length === 0 && (
