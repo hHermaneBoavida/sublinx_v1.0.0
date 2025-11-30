@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -15,6 +14,8 @@ import WebSocketEventProvider from "@/components/events/WebSocketEventProvider";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "@/components/shared/helpers";
+import OfflineIndicator from "@/components/offline/OfflineIndicator";
+import ServiceWorkerRegistration from "@/components/offline/ServiceWorkerRegistration";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -165,6 +166,8 @@ export default function Layout({ children, currentPageName }) {
   if (noLayoutPages.includes(currentPageName)) {
     return (
       <ErrorBoundary>
+        <ServiceWorkerRegistration />
+        <OfflineIndicator />
         <WebSocketEventProvider user={user}>
           <style>{`
             @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Space+Grotesk:wght@400;700&display=swap');
