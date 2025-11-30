@@ -5,6 +5,8 @@ const MAX_LIKES_PER_EVENT = 100;
 const MAX_COMMENTS_PER_EVENT = 50;
 
 Deno.serve(async (req) => {
+  const startTime = Date.now();
+  
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -92,8 +94,9 @@ Deno.serve(async (req) => {
 
     return Response.json(result, {
       headers: {
-        'Cache-Control': 'public, max-age=30', // Cache 30s
-        'X-Processing-Time': Date.now() - start
+        'Cache-Control': 'public, max-age=30',
+        'X-Processing-Time': `${Date.now() - startTime}ms`,
+        'X-Events-Count': event_ids.length.toString()
       }
     });
 

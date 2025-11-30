@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import SocialRecommendations from "../components/recommendations/SocialRecommendations";
 import FeedAIRecommendations from "../components/recommendations/FeedAIRecommendations";
 import { useCurrentUser } from "../components/providers/UserProvider";
+import { useBatchOrganizers } from "../components/shared/useBatchOrganizers";
 
 const EventFeedCard = lazy(() => import("../components/feed/EventFeedCard"));
 const ShareVibeModal = lazy(() => import("../components/feed/ShareVibeModal"));
@@ -71,8 +72,14 @@ export default function Feed() {
 
   const events = useMemo(() => {
     if (!eventsData?.pages) return [];
-    return eventsData.pages.flatMap(page => page.events);
+    const allEvents = eventsData.pages.flatMap(page => page.events);
+    // Deduplicate by ID to prevent duplicates during infinite scroll
+    const uniqueEvents = Array.from(new Map(allEvents.map(e => [e.id, e])).values());
+    return uniqueEvents;
   }, [eventsData]);
+
+  // Batch fetch organizers to avoid N+1 queries
+  const { organizersMap } = useBatchOrganizers(events);
 
   const { data: advertisements = [] } = useQuery({
     queryKey: ['feedAds'],
@@ -330,6 +337,7 @@ export default function Feed() {
                       event={item.data}
                       user={user}
                       isGuest={isGuest}
+                      organizer={organizersMap.get(item.data.organizer_id)}
                       initialLikes={interactions.likes[item.data.id] || []}
                       initialComments={interactions.comments[item.data.id] || []}
                       initialRequestStatus={interactions.requests[item.data.id] || null}

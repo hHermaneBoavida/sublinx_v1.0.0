@@ -9,22 +9,43 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all data in parallel
-    const [events, tickets, requests, likes, comments] = await Promise.all([
-      base44.asServiceRole.entities.Event.filter({ organizer_id: user.id }),
-      base44.asServiceRole.entities.Ticket.list('', 1000),
-      base44.asServiceRole.entities.EventRequest.list('', 1000),
-      base44.asServiceRole.entities.Like.list('', 1000),
-      base44.asServiceRole.entities.Comment.list('', 1000)
+    // Fetch organizer events first
+    const events = await base44.asServiceRole.entities.Event.filter({ organizer_id: user.id });
+    const eventIds = events.map(e => e.id);
+
+    if (eventIds.length === 0) {
+      return Response.json({
+        metrics: {
+          totalRevenue: 0,
+          totalSold: 0,
+          avgPrice: 0,
+          pendingRequests: 0,
+          totalLikes: 0,
+          totalComments: 0,
+          engagement: 0,
+          occupancyRate: 0,
+          totalCapacity: 0,
+          conversionRate: 0
+        },
+        charts: {
+          revenueByEvent: [],
+          ticketTypesData: [],
+          last30Days: [],
+          revenueGrowth: 0
+        },
+        rawData: { events: [], tickets: [], requests: [], likes: [], comments: [] }
+      });
+    }
+
+    // OTIMIZADO: Fetch only relevant data with filters
+    const [organizerTickets, organizerRequests, organizerLikes, organizerComments] = await Promise.all([
+      base44.asServiceRole.entities.Ticket.filter({ event_id: { $in: eventIds } }, '', 1000),
+      base44.asServiceRole.entities.EventRequest.filter({ event_id: { $in: eventIds } }, '', 500),
+      base44.asServiceRole.entities.Like.filter({ event_id: { $in: eventIds } }, '', 2000),
+      base44.asServiceRole.entities.Comment.filter({ event_id: { $in: eventIds } }, '', 500)
     ]);
 
-    const eventIds = events.map(e => e.id);
-    const organizerTickets = tickets.filter(t => eventIds.includes(t.event_id));
-    const organizerRequests = requests.filter(r => eventIds.includes(r.event_id));
-    const organizerLikes = likes.filter(l => eventIds.includes(l.event_id));
-    const organizerComments = comments.filter(c => eventIds.includes(c.event_id));
-
-    // Calculate metrics
+    // Calculate metrics (optimized)
     const validTickets = organizerTickets.filter(t => t.status !== 'cancelled' && t.status !== 'refunded');
     const totalRevenue = validTickets.reduce((sum, t) => sum + (t.price || 0), 0);
     const totalSold = validTickets.length;
