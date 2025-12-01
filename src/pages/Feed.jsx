@@ -8,7 +8,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import InfiniteScrollTrigger from "../components/feed/InfiniteScrollTrigger";
 import SortControls, { SORT_OPTIONS } from "../components/feed/SortControls";
-import { Search, Heart, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { Search, Heart, RefreshCw, SlidersHorizontal, Sparkles, TrendingUp, Music } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
@@ -21,6 +21,7 @@ import { useBatchOrganizers } from "../components/shared/useBatchOrganizers";
 
 const EventFeedCard = lazy(() => import("../components/feed/EventFeedCard"));
 const ShareVibeModal = lazy(() => import("../components/feed/ShareVibeModal"));
+const MusicPreferencesModal = lazy(() => import("../components/feed/MusicPreferencesModal"));
 
 const EVENTS_PER_PAGE = 15;
 const MAX_EVENTS_FOR_INTERACTIONS = 20; // OTIMIZAÇÃO: Limitar queries
@@ -29,8 +30,10 @@ export default function Feed() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [showShareVibe, setShowShareVibe] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
   const [sortBy, setSortBy] = useState('distance');
   const [showSortPanel, setShowSortPanel] = useState(false);
+  const [discoverTab, setDiscoverTab] = useState('personalized');
   const navigate = useNavigate();
 
   const { user } = useCurrentUser(); // OTIMIZAÇÃO: Context global
@@ -104,6 +107,19 @@ export default function Feed() {
     staleTime: 600000,
     gcTime: 1200000,
     initialData: [],
+  });
+
+  // Recomendações IA personalizadas
+  const { data: recommendations, isLoading: isLoadingRecs, refetch: refetchRecs } = useQuery({
+    queryKey: ['personalizedRecommendations', user?.id],
+    queryFn: async () => {
+      if (!user) return { personalized: [], popular: [], trending: [] };
+      const response = await base44.functions.invoke('getPersonalizedRecommendations');
+      return response.data;
+    },
+    enabled: !!user,
+    staleTime: 300000, // 5min
+    initialData: { personalized: [], popular: [], trending: [] },
   });
 
   // OTIMIZAÇÃO CRÍTICA: Limitar eventos para query de interações
@@ -302,8 +318,102 @@ export default function Feed() {
         </AnimatePresence>
       </div>
 
-      {!isGuest && <FeedAIRecommendations user={user} />}
-      {!isGuest && <SocialRecommendations user={user} />}
+      {/* Seção Descubra */}
+      {!isGuest && (recommendations?.personalized?.length > 0 || recommendations?.popular?.length > 0) && (
+        <div className="bg-gradient-to-br from-purple-900/20 via-black to-cyan-900/20 border-y border-purple-500/20 py-4 px-3 sm:px-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-transparent bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-400" />
+              Descubra
+            </h2>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={discoverTab === 'personalized' ? 'default' : 'ghost'}
+                onClick={() => setDiscoverTab('personalized')}
+                className={`h-7 px-3 text-xs ${
+                  discoverTab === 'personalized' 
+                    ? 'bg-purple-600 hover:bg-purple-700' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-3 h-3 mr-1" />
+                Para Você
+              </Button>
+              <Button
+                size="sm"
+                variant={discoverTab === 'trending' ? 'default' : 'ghost'}
+                onClick={() => setDiscoverTab('trending')}
+                className={`h-7 px-3 text-xs ${
+                  discoverTab === 'trending' 
+                    ? 'bg-cyan-600 hover:bg-cyan-700' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <TrendingUp className="w-3 h-3 mr-1" />
+                Em Alta
+              </Button>
+            </div>
+          </div>
+
+          {isLoadingRecs ? (
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex-shrink-0 w-48 h-64 bg-gray-800/50 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+              {(discoverTab === 'personalized' ? recommendations.personalized : recommendations.trending)
+                .slice(0, 6)
+                .map((event, index) => (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex-shrink-0 w-48"
+                  >
+                    <Card 
+                      className="bg-gray-900/80 border-purple-500/30 hover:border-cyan-500/50 transition-all cursor-pointer group"
+                      onClick={() => navigate(createPageUrl("EventoDetalhes") + `?id=${event.id}`)}
+                    >
+                      {event.image_url && (
+                        <div className="relative h-32 overflow-hidden rounded-t-lg">
+                          <img 
+                            src={event.image_url} 
+                            alt={event.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                          <div className="absolute top-2 right-2">
+                            <Badge className="bg-purple-600/90 backdrop-blur-sm text-xs">
+                              {discoverTab === 'personalized' ? '✨ Recomendado' : '🔥 Em Alta'}
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
+                      <CardContent className="p-3">
+                        <h3 className="font-semibold text-white text-sm line-clamp-1 mb-1">
+                          {event.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <Badge variant="outline" className="text-xs">
+                            {event.genre}
+                          </Badge>
+                          {event.current_attendees > 0 && (
+                            <span className="text-cyan-400">
+                              {event.current_attendees} 👥
+                            </span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="px-3 sm:px-4 py-2.5 border-b border-gray-800/30">
         <Button
@@ -379,9 +489,31 @@ export default function Feed() {
           />
         </Suspense>
       )}
-    </div>
-  );
-}
+
+      {showPreferences && user && (
+        <Suspense fallback={null}>
+          <MusicPreferencesModal
+            user={user}
+            onClose={() => setShowPreferences(false)}
+            onSave={() => {
+              refetchRecs();
+            }}
+          />
+        </Suspense>
+      )}
+      </div>
+
+      <style jsx>{`
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      `}</style>
+      );
+      }
 
 function SponsoredAdCard({ ad, featured = false }) {
   if (!ad?.id) return null;
