@@ -501,19 +501,19 @@ export default function Feed() {
           />
         </Suspense>
       )}
-      </div>
 
-      <style jsx>{`
-      .hide-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .hide-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
       `}</style>
-      );
-      }
+    </div>
+  );
+}
 
 function SponsoredAdCard({ ad, featured = false }) {
   if (!ad?.id) return null;
