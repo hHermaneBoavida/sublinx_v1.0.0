@@ -168,7 +168,7 @@ export default function Layout({ children, currentPageName }) {
       <ErrorBoundary key={currentPageName}>
         <ServiceWorkerRegistration />
         <OfflineIndicator />
-        <WebSocketEventProvider user={user}>
+        <WebSocketEventProvider user={user || null}>
           <style>{`
             @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Space+Grotesk:wght@400;700&display=swap');
             body {
@@ -185,8 +185,8 @@ export default function Layout({ children, currentPageName }) {
           `}</style>
           {children}
           
-          {!isGuest && <NotificationListener user={user} />}
-          {!isGuest && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
+          {!isGuest && user && <NotificationListener user={user} />}
+          {!isGuest && user && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
           {showNotificationPrompt && <NotificationPermissionPrompt />}
         </WebSocketEventProvider>
       </ErrorBoundary>
@@ -197,7 +197,7 @@ export default function Layout({ children, currentPageName }) {
     <ErrorBoundary key={currentPageName}>
       <ServiceWorkerRegistration />
       <OfflineIndicator />
-      <WebSocketEventProvider user={user}>
+      <WebSocketEventProvider user={user || null}>
         <div className="min-h-screen bg-black text-white relative overflow-hidden">
           
           <style>{`
@@ -631,8 +631,8 @@ export default function Layout({ children, currentPageName }) {
 
           <PWAInstallPrompt />
 
-          {!isGuest && <NotificationListener user={user} />}
-          {!isGuest && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
+          {!isGuest && user && <NotificationListener user={user} />}
+          {!isGuest && user && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
           {showNotificationPrompt && <NotificationPermissionPrompt />}
 
           <style jsx>{`
