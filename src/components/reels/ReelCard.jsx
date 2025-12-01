@@ -1,9 +1,8 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, MessageCircle, Share2, Play, Pause, Volume2, VolumeX, MapPin, Calendar, Users, MoreVertical, Bookmark, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Play, Pause, Volume2, VolumeX, MapPin, Calendar, Users, MoreVertical, Bookmark, Sparkles, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import confetti from 'canvas-confetti';
@@ -15,10 +14,34 @@ export default function ReelCard({ reel, isActive, shouldLoad }) {
   const [isSaved, setIsSaved] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showInfo, setShowInfo] = useState(true);
+  const [videoLoading, setVideoLoading] = useState(true);
+  const [videoError, setVideoError] = useState(false);
   const videoRef = useRef(null);
 
   useEffect(() => {
-    if (!videoRef.current || !shouldLoad) return;
+    const video = videoRef.current;
+    if (!video || !shouldLoad) return;
+
+    const handleLoadStart = () => setVideoLoading(true);
+    const handleCanPlay = () => setVideoLoading(false);
+    const handleError = () => {
+      setVideoError(true);
+      setVideoLoading(false);
+    };
+
+    video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
+
+    return () => {
+      video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
+    };
+  }, [shouldLoad]);
+
+  useEffect(() => {
+    if (!videoRef.current || !shouldLoad || videoLoading) return;
 
     if (isActive) {
       videoRef.current.play().catch(err => console.log("Autoplay prevented:", err));
@@ -27,7 +50,7 @@ export default function ReelCard({ reel, isActive, shouldLoad }) {
       videoRef.current.pause();
       setIsPlaying(false);
     }
-  }, [isActive, shouldLoad]);
+  }, [isActive, shouldLoad, videoLoading]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -129,15 +152,120 @@ export default function ReelCard({ reel, isActive, shouldLoad }) {
 
       {/* Vídeo */}
       {shouldLoad ? (
-        <video
-          ref={videoRef}
-          src={reel.video_url}
-          className="w-full h-full object-cover"
-          loop
-          playsInline
-          muted={isMuted}
-          onClick={() => setShowInfo(!showInfo)}
-        />
+        <>
+          <video
+            ref={videoRef}
+            src={reel.video_url}
+            className="w-full h-full object-cover"
+            loop
+            playsInline
+            muted={isMuted}
+            onClick={() => setShowInfo(!showInfo)}
+            style={{ opacity: videoLoading ? 0 : 1, transition: 'opacity 0.3s' }}
+          />
+          
+          {/* Skeleton Loader */}
+          <AnimatePresence>
+            {videoLoading && !videoError && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-purple-900/20"
+              >
+                {/* Skeleton Content */}
+                <div className="absolute inset-0 flex flex-col justify-between p-4">
+                  {/* Top Skeleton - Event Info */}
+                  <div className="space-y-3 animate-pulse">
+                    <div className="w-32 h-6 bg-gray-800/60 rounded-full" />
+                    <div className="flex gap-2">
+                      <div className="w-24 h-4 bg-gray-800/40 rounded" />
+                      <div className="w-20 h-4 bg-gray-800/40 rounded" />
+                    </div>
+                  </div>
+
+                  {/* Center Spinner */}
+                  <div className="flex items-center justify-center">
+                    <motion.div 
+                      className="relative"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    >
+                      <div className="w-16 h-16 border-3 border-cyan-500 border-t-transparent rounded-full" />
+                      <motion.div
+                        className="absolute inset-0 rounded-full"
+                        style={{
+                          boxShadow: '0 0 25px rgba(6, 182, 212, 0.8)'
+                        }}
+                        animate={{
+                          opacity: [0.5, 1, 0.5],
+                          scale: [1, 1.1, 1]
+                        }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
+                    </motion.div>
+                    <motion.p 
+                      className="absolute mt-32 text-cyan-400 text-sm font-semibold"
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      Carregando vídeo...
+                    </motion.p>
+                  </div>
+
+                  {/* Bottom Skeleton - Description */}
+                  <div className="space-y-2 animate-pulse">
+                    <div className="w-3/4 h-5 bg-gray-800/60 rounded" />
+                    <div className="w-full h-4 bg-gray-800/40 rounded" />
+                    <div className="w-2/3 h-4 bg-gray-800/40 rounded" />
+                    <div className="flex gap-2 mt-2">
+                      <div className="w-20 h-6 bg-gray-800/40 rounded-full" />
+                      <div className="w-16 h-6 bg-gray-800/40 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Loading Progress Shimmer */}
+                <motion.div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.1), transparent)',
+                  }}
+                  animate={{
+                    x: ['-100%', '200%']
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Error State */}
+          <AnimatePresence>
+            {videoError && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 bg-gradient-to-br from-red-900/30 via-black to-gray-900 flex items-center justify-center"
+              >
+                <div className="text-center space-y-3">
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
+                  </motion.div>
+                  <p className="text-red-400 font-semibold">Erro ao carregar vídeo</p>
+                  <p className="text-gray-400 text-sm">Deslize para o próximo</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-purple-900/20">
           <motion.div 
@@ -179,7 +307,7 @@ export default function ReelCard({ reel, isActive, shouldLoad }) {
 
       {/* Overlay de Play/Pause - Centro */}
       <AnimatePresence>
-        {!isPlaying && shouldLoad && (
+        {!isPlaying && shouldLoad && !videoLoading && !videoError && (
           <motion.div
             initial={{ scale: 0, opacity: 0, rotate: -90 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
