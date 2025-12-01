@@ -360,23 +360,88 @@ export default function Mapa() {
               />
 
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.5, type: "spring" }}
-                className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[999]"
+                initial={{ scale: 0, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0, y: 20 }}
+                transition={{ 
+                  delay: 0.5, 
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 20
+                }}
+                className="fixed bottom-24 sm:bottom-28 left-1/2 -translate-x-1/2 z-[999] pointer-events-auto"
               >
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.08, y: -3 }}
+                  whileTap={{ scale: 0.92 }}
                   onClick={handleOpenReels}
                   className="relative group"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full blur-xl opacity-60 group-hover:opacity-80" />
+                  {/* Glow animado ao redor */}
+                  <motion.div 
+                    className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full blur-2xl"
+                    animate={{
+                      opacity: [0.5, 0.8, 0.5],
+                      scale: [1, 1.15, 1]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  />
                   
-                  <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full px-5 py-2.5 flex items-center gap-2 shadow-xl border border-white/30">
-                    <Play className="w-4 h-4 text-white fill-white" />
-                    <span className="text-white font-semibold text-sm">Ver Reels</span>
-                  </div>
+                  {/* Botão principal */}
+                  <motion.div 
+                    className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-full px-6 py-3 flex items-center gap-2.5 shadow-2xl border-2 border-white/40 overflow-hidden"
+                    style={{
+                      boxShadow: '0 10px 40px rgba(236, 72, 153, 0.6), inset 0 1px 0 rgba(255,255,255,0.4)'
+                    }}
+                  >
+                    {/* Brilho superior */}
+                    <div 
+                      className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
+                      style={{
+                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.3), transparent)'
+                      }}
+                    />
+                    
+                    {/* Ícone com animação */}
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.2, 1],
+                        rotate: [0, 10, -10, 0]
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <Play className="w-5 h-5 text-white fill-white drop-shadow-lg" />
+                    </motion.div>
+                    
+                    <span className="text-white font-bold text-base drop-shadow-lg">
+                      Ver Reels
+                    </span>
+                    
+                    {/* Brilho animado */}
+                    <motion.div
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: 'linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%)',
+                        backgroundSize: '200% 200%'
+                      }}
+                      animate={{
+                        backgroundPosition: ['200% 0%', '-200% 0%']
+                      }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                    />
+                  </motion.div>
                 </motion.button>
               </motion.div>
             </motion.div>
