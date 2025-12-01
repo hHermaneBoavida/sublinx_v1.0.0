@@ -248,10 +248,24 @@ export default function Feed() {
             Feed
           </h1>
           <div className="flex items-center gap-2">
+            {!isGuest && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setShowPreferences(true)}
+                className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-purple-500/20"
+                title="Preferências Musicais"
+              >
+                <Music className="w-4 h-4 text-purple-400" />
+              </Button>
+            )}
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => refetch()}
+              onClick={() => {
+                refetch();
+                if (!isGuest) refetchRecs();
+              }}
               className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-cyan-500/20"
             >
               <RefreshCw className="w-4 h-4 text-cyan-400" />
