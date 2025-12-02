@@ -36,7 +36,8 @@ export default function Feed() {
   const [discoverTab, setDiscoverTab] = useState('personalized');
   const navigate = useNavigate();
 
-  const { user } = useCurrentUser(); // OTIMIZAÇÃO: Context global
+  const userContext = useCurrentUser();
+  const user = userContext?.user || null;
   const isGuest = !user;
 
   // Debounce search
