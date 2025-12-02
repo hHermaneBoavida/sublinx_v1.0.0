@@ -58,12 +58,14 @@ export default function MapView({
   onMapReady 
 }) {
   const mapRef = useRef(null);
+  const containerRef = useRef(null);
   const navigate = useNavigate();
   const [mapReady, setMapReady] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(13);
   const [mapError, setMapError] = useState(null);
+  const [mapKey, setMapKey] = useState(0);
   const [advancedFilters, setAdvancedFilters] = useState({
     genre: 'all',
     type: 'all',
@@ -84,15 +86,25 @@ export default function MapView({
     }
   }, [events]);
 
-  // Cleanup do mapa ao desmontar
+  // Cleanup completo do mapa ao desmontar
   useEffect(() => {
     return () => {
       if (mapRef.current) {
         try {
+          mapRef.current.off();
           mapRef.current.remove();
-          mapRef.current = null;
         } catch (error) {
           console.error('Erro ao limpar mapa:', error);
+        } finally {
+          mapRef.current = null;
+        }
+      }
+      
+      // Limpar container DOM do Leaflet
+      if (containerRef.current) {
+        const leafletContainer = containerRef.current.querySelector('.leaflet-container');
+        if (leafletContainer && leafletContainer._leaflet_id) {
+          delete leafletContainer._leaflet_id;
         }
       }
     };
@@ -100,11 +112,17 @@ export default function MapView({
 
   // Notificar parent sobre cleanup function
   useEffect(() => {
-    if (onMapReady && mapReady && mapRef.current) { // Ensure map is ready before providing cleanup
+    if (onMapReady && mapReady && mapRef.current) {
       onMapReady(() => {
         if (mapRef.current) {
-          mapRef.current.remove();
-          mapRef.current = null;
+          try {
+            mapRef.current.off();
+            mapRef.current.remove();
+          } catch (error) {
+            console.error('Erro ao limpar mapa:', error);
+          } finally {
+            mapRef.current = null;
+          }
         }
       });
     }
@@ -219,7 +237,7 @@ export default function MapView({
   }
 
   return (
-    <div className="w-full h-full relative">
+    <div ref={containerRef} className="w-full h-full relative">
       {/* Search Bar */}
       <div className="absolute top-4 left-4 right-4 z-[1000] flex gap-2">
         <div className="flex-1 relative">
@@ -303,6 +321,7 @@ export default function MapView({
       )}
 
       <MapContainer
+        key={`map-${mapKey}`}
         ref={mapRef}
         center={center}
         zoom={zoom}
@@ -314,6 +333,14 @@ export default function MapView({
           console.log('✅ Mapa carregado com', filteredEvents.length, 'eventos');
         }}
         whenCreated={(map) => {
+          if (mapRef.current && mapRef.current !== map) {
+            try {
+              mapRef.current.off();
+              mapRef.current.remove();
+            } catch (e) {
+              console.error('Erro ao limpar mapa anterior:', e);
+            }
+          }
           mapRef.current = map;
         }}
       >
