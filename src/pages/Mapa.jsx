@@ -359,19 +359,19 @@ export default function Mapa() {
                 }}
               />
 
-              <motion.div
-                initial={{ scale: 0, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0, y: 20 }}
-                transition={{ 
-                  delay: 0.5, 
-                  type: "spring",
-                  stiffness: 260,
-                  damping: 20
-                }}
-                className="fixed bottom-24 sm:bottom-28 left-1/2 transform -translate-x-1/2 z-[999] pointer-events-auto"
-                style={{ left: '50%' }}
-              >
+              <div className="fixed bottom-24 sm:bottom-28 left-0 right-0 z-[999] pointer-events-none flex justify-center">
+                <motion.div
+                  initial={{ scale: 0, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0, y: 20 }}
+                  transition={{ 
+                    delay: 0.5, 
+                    type: "spring",
+                    stiffness: 260,
+                    damping: 20
+                  }}
+                  className="pointer-events-auto"
+                >
                 <motion.button
                   whileHover={{ scale: 1.08, y: -3 }}
                   whileTap={{ scale: 0.92 }}
@@ -444,7 +444,8 @@ export default function Mapa() {
                     />
                   </motion.div>
                 </motion.button>
-              </motion.div>
+                </motion.div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
