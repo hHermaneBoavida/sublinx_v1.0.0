@@ -85,7 +85,7 @@ export default function NotificationPermissionPrompt() {
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -50 }}
-        className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-[100] max-w-sm w-full px-4"
+        className="fixed top-16 sm:top-20 right-2 sm:right-4 z-[100] max-w-[calc(100vw-16px)] sm:max-w-sm w-full sm:w-auto"
       >
         <Card className="bg-gradient-to-r from-cyan-900/98 to-purple-900/98 border-2 border-cyan-500/50 shadow-2xl backdrop-blur-xl overflow-hidden">
           {/* Animated Background */}
