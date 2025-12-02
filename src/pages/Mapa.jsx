@@ -369,7 +369,8 @@ export default function Mapa() {
                   stiffness: 260,
                   damping: 20
                 }}
-                className="fixed bottom-24 sm:bottom-28 left-1/2 -translate-x-1/2 z-[999] pointer-events-auto"
+                className="fixed bottom-24 sm:bottom-28 left-1/2 transform -translate-x-1/2 z-[999] pointer-events-auto"
+                style={{ left: '50%' }}
               >
                 <motion.button
                   whileHover={{ scale: 1.08, y: -3 }}
