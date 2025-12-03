@@ -20,15 +20,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. Buscar preferências do usuário
-    const [userGenres, userPrefs, userInteractions, allEvents] = await Promise.all([
+    // Buscar dados do usuário e eventos
+    const [userGenres, userPrefs, userLikes, userTickets, allEvents] = await Promise.all([
       base44.entities.UserGenre.filter({ user_id: user.id }),
       base44.entities.UserPreferences.filter({ user_id: user.id }),
-      base44.entities.Like.filter({ user_id: user.id }, '-created_date', 20),
+      base44.entities.Like.filter({ user_id: user.id }, '-created_date', 50),
+      base44.entities.Ticket.filter({ user_id: user.id }),
       base44.entities.Event.list('-date', 100)
     ]);
 
-    // 2. Filtrar eventos futuros
     const now = new Date();
     const futureEvents = allEvents.filter(e => {
       try {
@@ -38,102 +38,159 @@ Deno.serve(async (req) => {
       }
     });
 
-    // 3. Eventos que o usuário já curtiu
-    const likedEventIds = userInteractions.map(like => like.event_id);
-    const likedEvents = futureEvents.filter(e => likedEventIds.includes(e.id));
-
-    // 4. Gêneros favoritos
     const favoriteGenres = userGenres.map(g => g.genre);
+    const likedEventIds = userLikes.map(l => l.event_id);
+    const attendedEventIds = userTickets.map(t => t.event_id);
+    const userLocation = user.location;
+    const preferences = userPrefs[0] || {};
 
-    // 5. Montar contexto para IA
-    const prompt = `Você é um sistema de recomendação de eventos underground.
+    // Calcular score e razões para cada evento
+    const scoredEvents = futureEvents.map(event => {
+      let score = 0;
+      const reasons = [];
 
-**Perfil do Usuário:**
-- Gêneros favoritos: ${favoriteGenres.join(', ') || 'Nenhum definido'}
-- Faixa de preço: ${userPrefs[0]?.price_range || 'any'}
-- Preferência de público: ${userPrefs[0]?.crowd_preference || 'qualquer'}
-- Eventos curtidos recentemente: ${likedEvents.slice(0, 5).map(e => e.title).join(', ') || 'Nenhum'}
-
-**Eventos Disponíveis (${futureEvents.length} eventos):**
-${futureEvents.slice(0, 30).map(e => `
-- ID: ${e.id}
-- Título: ${e.title}
-- Gênero: ${e.genre}
-- Tipo: ${e.type}
-- Preço: R$ ${e.price || 0}
-- Data: ${e.date}
-- Público: ${e.current_attendees || 0} pessoas
-`).join('\n')}
-
-**TAREFA:**
-Analise o perfil do usuário e recomende os TOP 6 eventos mais relevantes.
-Considere:
-1. Match de gênero musical (peso: 40%)
-2. Faixa de preço compatível (peso: 20%)
-3. Popularidade/tendências (peso: 20%)
-4. Similaridade com eventos curtidos (peso: 20%)
-
-Retorne APENAS os IDs dos 6 eventos recomendados, do mais relevante ao menos relevante.`;
-
-    // 6. Chamar IA
-    const aiResponse = await base44.integrations.Core.InvokeLLM({
-      prompt,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          recommended_event_ids: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Array com IDs dos 6 eventos recomendados'
-          },
-          reasoning: {
-            type: 'string',
-            description: 'Breve explicação da recomendação'
-          }
-        },
-        required: ['recommended_event_ids']
+      // Gênero favorito (+40)
+      if (favoriteGenres.includes(event.genre)) {
+        score += 40;
+        reasons.push(`Você ama ${event.genre}`);
       }
+
+      // Eventos similares que já foi (+35)
+      const attendedSameGenre = attendedEventIds.filter(id => {
+        const e = allEvents.find(ev => ev.id === id);
+        return e?.genre === event.genre;
+      }).length;
+      if (attendedSameGenre > 0) {
+        score += 35;
+        reasons.push(`Você foi a ${attendedSameGenre} evento(s) de ${event.genre}`);
+      }
+
+      // Proximidade (+30/20/10)
+      if (userLocation?.lat && event.location?.lat) {
+        const dist = calculateDistance(
+          userLocation.lat, userLocation.lng,
+          event.location.lat, event.location.lng
+        );
+        if (dist < 5) {
+          score += 30;
+          reasons.push(`Apenas ${dist.toFixed(1)}km de você`);
+        } else if (dist < 10) {
+          score += 20;
+          reasons.push(`Perto (${dist.toFixed(1)}km)`);
+        } else if (dist < 20) {
+          score += 10;
+          reasons.push(`${dist.toFixed(1)}km de você`);
+        }
+        event.distance_km = dist;
+      }
+
+      // Popularidade (+20)
+      if (event.current_attendees > 50) {
+        score += 20;
+        reasons.push(`${event.current_attendees}+ pessoas confirmadas`);
+      }
+
+      // Mesmo organizador (+15)
+      const sameOrganizerCount = attendedEventIds.filter(id => {
+        const e = allEvents.find(ev => ev.id === id);
+        return e?.organizer_id === event.organizer_id;
+      }).length;
+      if (sameOrganizerCount > 0) {
+        score += 15;
+        reasons.push('Organizador que você conhece');
+      }
+
+      // Faixa de preço (+15)
+      if (preferences.price_range) {
+        const price = event.price || event.ticket_types?.[0]?.price || 0;
+        const matches = 
+          (preferences.price_range === 'free' && price === 0) ||
+          (preferences.price_range === 'budget' && price < 50) ||
+          (preferences.price_range === 'moderate' && price >= 50 && price < 150) ||
+          (preferences.price_range === 'premium' && price >= 150);
+        if (matches) {
+          score += 15;
+          reasons.push('No seu orçamento');
+        }
+      }
+
+      // Evento secreto (+10)
+      if (event.is_secret) {
+        score += 10;
+        reasons.push('Evento exclusivo');
+      }
+
+      // Novo (+5)
+      if (!likedEventIds.includes(event.id) && !attendedEventIds.includes(event.id)) {
+        score += 5;
+        reasons.push('Descoberta nova');
+      }
+
+      return {
+        ...event,
+        recommendation_score: score,
+        recommendation_reasons: reasons
+      };
     });
 
-    const recommendedIds = aiResponse.recommended_event_ids || [];
-    const recommendedEvents = futureEvents.filter(e => recommendedIds.includes(e.id));
+    // Top recomendações
+    const personalized = scoredEvents
+      .filter(e => e.recommendation_score > 0)
+      .sort((a, b) => b.recommendation_score - a.recommendation_score)
+      .slice(0, 12);
 
-    // 7. Ordenar na sequência recomendada
-    const sortedRecommendations = recommendedIds
-      .map(id => recommendedEvents.find(e => e.id === id))
-      .filter(Boolean);
-
-    // 8. Eventos populares (fallback se IA falhar)
-    const popularEvents = futureEvents
+    // Trending
+    const trending = futureEvents
+      .map(e => ({
+        ...e,
+        recommendation_reasons: [
+          `${e.current_attendees || 0} confirmados`,
+          'Em alta agora',
+          e.genre || 'Popular'
+        ]
+      }))
       .sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
-      .slice(0, 6);
+      .slice(0, 10);
+
+    // Próximos
+    let nearby = [];
+    if (userLocation?.lat) {
+      nearby = futureEvents
+        .filter(e => e.location?.lat)
+        .map(e => {
+          const dist = calculateDistance(
+            userLocation.lat, userLocation.lng,
+            e.location.lat, e.location.lng
+          );
+          return {
+            ...e,
+            distance_km: dist,
+            recommendation_reasons: [
+              `${dist.toFixed(1)}km de você`,
+              e.location.venue_name || 'Perto',
+              e.genre || 'Evento'
+            ]
+          };
+        })
+        .sort((a, b) => a.distance_km - b.distance_km)
+        .slice(0, 10);
+    }
 
     return Response.json({
-      personalized: sortedRecommendations,
-      popular: popularEvents.slice(0, 6),
-      trending: futureEvents
-        .filter(e => {
-          const eventDate = new Date(e.date);
-          const daysDiff = (eventDate - now) / (1000 * 60 * 60 * 24);
-          return daysDiff <= 7; // Próximos 7 dias
-        })
-        .sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
-        .slice(0, 6),
-      reasoning: aiResponse.reasoning || 'Recomendações baseadas em seus gostos',
-      user_profile: {
-        favorite_genres: favoriteGenres,
-        price_range: userPrefs[0]?.price_range || 'any',
-        crowd_preference: userPrefs[0]?.crowd_preference || 'qualquer'
-      }
+      personalized,
+      trending,
+      nearby,
+      events: personalized
     });
 
   } catch (error) {
-    console.error('Erro ao gerar recomendações:', error);
+    console.error('Erro:', error);
     return Response.json({ 
       error: error.message,
       personalized: [],
-      popular: [],
-      trending: []
+      trending: [],
+      nearby: [],
+      events: []
     }, { status: 500 });
   }
 });
