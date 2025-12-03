@@ -112,20 +112,20 @@ export default function NotificationPermissionPrompt() {
             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
           />
 
-          <CardContent className="p-4 sm:p-5 relative z-10">
-            <div className="flex items-start gap-3">
+          <CardContent className="p-3 sm:p-4 relative z-10">
+            <div className="flex items-start gap-2.5">
               {/* Animated Icon */}
               <motion.div
                 className="flex-shrink-0 rounded-full p-2 relative overflow-hidden"
                 style={{
                   background: 'linear-gradient(135deg, rgba(6, 182, 212, 1), rgba(139, 92, 246, 1))',
-                  boxShadow: '0 0 25px rgba(6, 182, 212, 0.8)'
+                  boxShadow: '0 0 20px rgba(6, 182, 212, 0.6)'
                 }}
                 animate={{
                   boxShadow: [
-                    '0 0 25px rgba(6, 182, 212, 0.8)',
-                    '0 0 35px rgba(6, 182, 212, 1)',
-                    '0 0 25px rgba(6, 182, 212, 0.8)'
+                    '0 0 20px rgba(6, 182, 212, 0.6)',
+                    '0 0 30px rgba(6, 182, 212, 0.8)',
+                    '0 0 20px rgba(6, 182, 212, 0.6)'
                   ]
                 }}
                 transition={{ duration: 2, repeat: Infinity }}
@@ -134,30 +134,30 @@ export default function NotificationPermissionPrompt() {
                   animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
                   transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
                 >
-                  <Bell className="w-5 h-5 text-white" />
+                  <Bell className="w-4 h-4 text-white" />
                 </motion.div>
               </motion.div>
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-white text-base sm:text-lg mb-1 flex items-center gap-2">
+                <h3 className="font-bold text-gray-900 text-sm sm:text-base mb-1 flex items-center gap-1.5">
                   Ativar Notificações
-                  <Zap className="w-3.5 h-3.5 text-yellow-400 animate-pulse" />
+                  <Zap className="w-3 h-3 text-yellow-500 animate-pulse" />
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-200 mb-3">
+                <p className="text-[10px] sm:text-xs text-gray-700 mb-2">
                   Receba alertas de:
                 </p>
-                <ul className="text-[10px] sm:text-xs text-gray-300 space-y-0.5 mb-3">
-                  <li className="flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-cyan-400" />
+                <ul className="text-[9px] sm:text-[10px] text-gray-600 space-y-0.5 mb-2.5">
+                  <li className="flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-cyan-500" />
                     📍 Eventos próximos
                   </li>
-                  <li className="flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-purple-400" />
+                  <li className="flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-purple-500" />
                     ❤️ Curtidas e comentários
                   </li>
-                  <li className="flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-pink-400" />
+                  <li className="flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-pink-500" />
                     🎉 Eventos surpresa
                   </li>
                 </ul>
