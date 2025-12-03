@@ -162,18 +162,18 @@ export default function NotificationPermissionPrompt() {
                   </li>
                 </ul>
 
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <Button
                     onClick={handleRequestPermission}
-                    className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white font-semibold text-xs h-8"
+                    className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white font-semibold text-[10px] sm:text-xs h-7"
                   >
-                    <Bell className="w-3.5 h-3.5 mr-1" />
+                    <Bell className="w-3 h-3 mr-1" />
                     Ativar
                   </Button>
                   <Button
                     onClick={handleDismiss}
                     variant="ghost"
-                    className="text-white hover:bg-white/10 text-xs h-8 px-2.5"
+                    className="text-gray-700 hover:bg-gray-200 text-[10px] sm:text-xs h-7 px-2"
                   >
                     Depois
                   </Button>
@@ -181,7 +181,7 @@ export default function NotificationPermissionPrompt() {
 
                 <button
                   onClick={handlePermanentDismiss}
-                  className="text-[10px] text-gray-400 hover:text-gray-300 underline mt-2 w-full text-center"
+                  className="text-[9px] text-gray-500 hover:text-gray-700 underline mt-1.5 w-full text-center"
                 >
                   Não perguntar novamente
                 </button>
@@ -190,9 +190,9 @@ export default function NotificationPermissionPrompt() {
               {/* Close Button */}
               <button
                 onClick={handleDismiss}
-                className="flex-shrink-0 p-1 rounded-full hover:bg-white/20 transition-colors"
+                className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-colors"
               >
-                <X className="w-4 h-4 text-white/80" />
+                <X className="w-3.5 h-3.5 text-gray-600" />
               </button>
             </div>
           </CardContent>
