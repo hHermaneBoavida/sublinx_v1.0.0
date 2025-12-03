@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -21,6 +20,7 @@ import EventRatingDisplay from "../reviews/EventRatingDisplay";
 import ReviewsList from "../reviews/ReviewsList";
 import AddReviewModal from "../reviews/AddReviewModal";
 import GuestListStatus from "../guestlist/GuestListStatus";
+import SponsorsSection from "../events/SponsorsSection";
 
 export default function EventDetailsModal({ event, onClose }) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -55,6 +55,18 @@ export default function EventDetailsModal({ event, onClose }) {
       status: 'valid'
     }),
     enabled: !!user?.id,
+  });
+
+  const { data: sponsors = [] } = useQuery({
+    queryKey: ['eventSponsors', event.id],
+    queryFn: async () => {
+      return await base44.entities.EventSponsor.filter({ 
+        event_id: event.id, 
+        is_visible: true 
+      }, 'display_order');
+    },
+    enabled: !!event,
+    initialData: [],
   });
 
   const hasTicket = userTickets.length > 0;
@@ -525,6 +537,11 @@ export default function EventDetailsModal({ event, onClose }) {
                     </Button>
                   </div>
                 </motion.div>
+              )}
+
+              {/* Patrocinadores */}
+              {sponsors.length > 0 && (
+                <SponsorsSection sponsors={sponsors} showTitle={true} />
               )}
 
               {/* Main CTA */}

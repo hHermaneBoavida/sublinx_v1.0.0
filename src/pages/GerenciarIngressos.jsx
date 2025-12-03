@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -19,7 +18,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { createPageUrl } from "@/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserCheck, UserX, CheckCircle2 } from "lucide-react";
+import { UserCheck, UserX, CheckCircle2, Award } from "lucide-react";
 
 export default function GerenciarIngressos() {
   const location = useLocation();
