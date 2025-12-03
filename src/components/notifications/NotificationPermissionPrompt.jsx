@@ -82,12 +82,12 @@ export default function NotificationPermissionPrompt() {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -50 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -50 }}
-        className="fixed top-16 sm:top-20 right-2 sm:right-4 z-[100] max-w-[calc(100vw-16px)] sm:max-w-sm w-full sm:w-auto"
+        initial={{ opacity: 0, y: -50, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -50, scale: 0.95 }}
+        className="fixed top-16 sm:top-20 right-2 sm:right-4 z-[100] max-w-[280px] sm:max-w-[320px]"
       >
-        <Card className="bg-gradient-to-r from-cyan-900/98 to-purple-900/98 border-2 border-cyan-500/50 shadow-2xl backdrop-blur-xl overflow-hidden">
+        <Card className="bg-gradient-to-br from-white via-cyan-50 to-purple-50 border-2 border-cyan-400/60 shadow-2xl backdrop-blur-xl overflow-hidden">
           {/* Animated Background */}
           <motion.div
             className="absolute inset-0 pointer-events-none"
