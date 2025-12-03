@@ -1,126 +1,139 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    
+
     if (!user) {
-      return Response.json({ error: 'Não autorizado' }, { status: 401 });
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. Coletar histórico de interações
-    const [likes, tickets, reviews, follows, searches] = await Promise.allSettled([
-      base44.asServiceRole.entities.Like.filter({ user_id: user.id }, '-created_date', 50),
-      base44.asServiceRole.entities.Ticket.filter({ user_id: user.id }, '-created_date', 50),
-      base44.asServiceRole.entities.EventReview.filter({ user_id: user.id }, '-created_date', 30),
-      base44.asServiceRole.entities.Follow.filter({ follower_id: user.id }),
-      base44.asServiceRole.entities.UserEventInteraction.filter({ 
-        user_id: user.id,
-        interaction_type: 'interested'
-      }, '-created_date', 30)
+    // 1. Buscar preferências do usuário
+    const [userGenres, userPrefs, userInteractions, allEvents] = await Promise.all([
+      base44.entities.UserGenre.filter({ user_id: user.id }),
+      base44.entities.UserPreferences.filter({ user_id: user.id }),
+      base44.entities.Like.filter({ user_id: user.id }, '-created_date', 20),
+      base44.entities.Event.list('-date', 100)
     ]);
 
-    const likesData = likes.status === 'fulfilled' ? likes.value : [];
-    const ticketsData = tickets.status === 'fulfilled' ? tickets.value : [];
-    const reviewsData = reviews.status === 'fulfilled' ? reviews.value : [];
-    const followsData = follows.status === 'fulfilled' ? follows.value : [];
-    const searchesData = searches.status === 'fulfilled' ? searches.value : [];
-
-    // 2. Buscar eventos relacionados
-    const eventIds = [
-      ...likesData.map(l => l.event_id),
-      ...ticketsData.map(t => t.event_id),
-      ...reviewsData.map(r => r.event_id),
-      ...searchesData.map(s => s.event_id)
-    ];
-
-    const userEvents = await base44.asServiceRole.entities.Event.filter({
-      id: { $in: eventIds }
-    });
-
-    // 3. Buscar todos eventos futuros
-    const allEvents = await base44.asServiceRole.entities.Event.list('-date', 200);
-    const futureEvents = allEvents.filter(e => new Date(e.date) > new Date());
-
-    // 4. Gerar análise com AI
-    const prompt = `
-Você é um sistema de recomendação de eventos underground.
-
-HISTÓRICO DO USUÁRIO:
-- Eventos curtidos: ${likesData.length}
-- Ingressos comprados: ${ticketsData.length}
-- Eventos avaliados: ${reviewsData.length}
-- Gêneros dos eventos que participou: ${userEvents.map(e => e.genre).join(', ')}
-- Tipos de eventos preferidos: ${userEvents.map(e => e.type).join(', ')}
-- Avaliações médias: ${reviewsData.length > 0 ? (reviewsData.reduce((sum, r) => sum + r.overall_rating, 0) / reviewsData.length).toFixed(1) : 'N/A'}
-
-PREFERÊNCIAS EXPLÍCITAS DO USUÁRIO:
-${user.favorite_genres ? `- Gêneros favoritos: ${user.favorite_genres.join(', ')}` : '- Sem gêneros definidos'}
-${user.price_range ? `- Faixa de preço: ${user.price_range}` : '- Sem faixa de preço definida'}
-${user.preferred_event_types ? `- Tipos preferidos: ${user.preferred_event_types.join(', ')}` : '- Sem tipos definidos'}
-
-EVENTOS DISPONÍVEIS:
-${futureEvents.slice(0, 50).map(e => `- ${e.title} (${e.genre}, ${e.type}, R$ ${e.price || e.ticket_types?.[0]?.price || 0})`).join('\n')}
-
-Com base nesse histórico e preferências, selecione os IDs dos 10 melhores eventos para recomendar.
-Priorize eventos que:
-1. Correspondam aos gêneros e tipos favoritos do usuário
-2. Estejam na faixa de preço preferida
-3. Sejam similares aos eventos bem avaliados
-4. Tragam alguma novidade (não apenas o que já conhece)
-
-Também recomende 5 organizadores que o usuário deveria seguir baseado no histórico.
-`;
-
-    const aiResponse = await base44.integrations.Core.InvokeLLM({
-      prompt,
-      response_json_schema: {
-        type: "object",
-        properties: {
-          recommended_event_ids: {
-            type: "array",
-            items: { type: "string" }
-          },
-          recommended_organizer_ids: {
-            type: "array",
-            items: { type: "string" }
-          },
-          reasoning: {
-            type: "string"
-          }
-        }
+    // 2. Filtrar eventos futuros
+    const now = new Date();
+    const futureEvents = allEvents.filter(e => {
+      try {
+        return e?.date && new Date(e.date) > now;
+      } catch {
+        return false;
       }
     });
 
-    // 5. Filtrar eventos recomendados
-    const recommendedEvents = futureEvents.filter(e => 
-      aiResponse.recommended_event_ids?.includes(e.id)
-    ).slice(0, 10);
+    // 3. Eventos que o usuário já curtiu
+    const likedEventIds = userInteractions.map(like => like.event_id);
+    const likedEvents = futureEvents.filter(e => likedEventIds.includes(e.id));
 
-    // 6. Buscar organizadores recomendados
-    const recommendedOrganizers = await base44.asServiceRole.entities.User.filter({
-      id: { $in: aiResponse.recommended_organizer_ids || [] }
+    // 4. Gêneros favoritos
+    const favoriteGenres = userGenres.map(g => g.genre);
+
+    // 5. Montar contexto para IA
+    const prompt = `Você é um sistema de recomendação de eventos underground.
+
+**Perfil do Usuário:**
+- Gêneros favoritos: ${favoriteGenres.join(', ') || 'Nenhum definido'}
+- Faixa de preço: ${userPrefs[0]?.price_range || 'any'}
+- Preferência de público: ${userPrefs[0]?.crowd_preference || 'qualquer'}
+- Eventos curtidos recentemente: ${likedEvents.slice(0, 5).map(e => e.title).join(', ') || 'Nenhum'}
+
+**Eventos Disponíveis (${futureEvents.length} eventos):**
+${futureEvents.slice(0, 30).map(e => `
+- ID: ${e.id}
+- Título: ${e.title}
+- Gênero: ${e.genre}
+- Tipo: ${e.type}
+- Preço: R$ ${e.price || 0}
+- Data: ${e.date}
+- Público: ${e.current_attendees || 0} pessoas
+`).join('\n')}
+
+**TAREFA:**
+Analise o perfil do usuário e recomende os TOP 6 eventos mais relevantes.
+Considere:
+1. Match de gênero musical (peso: 40%)
+2. Faixa de preço compatível (peso: 20%)
+3. Popularidade/tendências (peso: 20%)
+4. Similaridade com eventos curtidos (peso: 20%)
+
+Retorne APENAS os IDs dos 6 eventos recomendados, do mais relevante ao menos relevante.`;
+
+    // 6. Chamar IA
+    const aiResponse = await base44.integrations.Core.InvokeLLM({
+      prompt,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          recommended_event_ids: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Array com IDs dos 6 eventos recomendados'
+          },
+          reasoning: {
+            type: 'string',
+            description: 'Breve explicação da recomendação'
+          }
+        },
+        required: ['recommended_event_ids']
+      }
     });
 
+    const recommendedIds = aiResponse.recommended_event_ids || [];
+    const recommendedEvents = futureEvents.filter(e => recommendedIds.includes(e.id));
+
+    // 7. Ordenar na sequência recomendada
+    const sortedRecommendations = recommendedIds
+      .map(id => recommendedEvents.find(e => e.id === id))
+      .filter(Boolean);
+
+    // 8. Eventos populares (fallback se IA falhar)
+    const popularEvents = futureEvents
+      .sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
+      .slice(0, 6);
+
     return Response.json({
-      events: recommendedEvents,
-      organizers: recommendedOrganizers.slice(0, 5),
-      reasoning: aiResponse.reasoning,
-      based_on: {
-        likes: likesData.length,
-        tickets: ticketsData.length,
-        reviews: reviewsData.length,
-        follows: followsData.length
+      personalized: sortedRecommendations,
+      popular: popularEvents.slice(0, 6),
+      trending: futureEvents
+        .filter(e => {
+          const eventDate = new Date(e.date);
+          const daysDiff = (eventDate - now) / (1000 * 60 * 60 * 24);
+          return daysDiff <= 7; // Próximos 7 dias
+        })
+        .sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0))
+        .slice(0, 6),
+      reasoning: aiResponse.reasoning || 'Recomendações baseadas em seus gostos',
+      user_profile: {
+        favorite_genres: favoriteGenres,
+        price_range: userPrefs[0]?.price_range || 'any',
+        crowd_preference: userPrefs[0]?.crowd_preference || 'qualquer'
       }
     });
 
   } catch (error) {
-    console.error('Erro:', error);
+    console.error('Erro ao gerar recomendações:', error);
     return Response.json({ 
       error: error.message,
-      events: [],
-      organizers: []
+      personalized: [],
+      popular: [],
+      trending: []
     }, { status: 500 });
   }
 });
