@@ -1,16 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, User, CreditCard, CheckCircle, XCircle, Copy, Share2 } from "lucide-react";
+import { Calendar, MapPin, User, CreditCard, CheckCircle, XCircle, Copy, Share2, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import CalendarIntegration from "../integrations/CalendarIntegration";
 import { motion, AnimatePresence } from "framer-motion";
+import QRCode from "qrcode";
 
 export default function TicketCard({ ticket, event }) {
   const [showQR, setShowQR] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [qrCodeDataURL, setQrCodeDataURL] = useState("");
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (showQR && ticket.qr_code_data && !qrCodeDataURL) {
+      QRCode.toDataURL(ticket.qr_code_data, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      }).then((url) => {
+        setQrCodeDataURL(url);
+      }).catch((err) => {
+        console.error('Erro ao gerar QR Code:', err);
+      });
+    }
+  }, [showQR, ticket.qr_code_data, qrCodeDataURL]);
 
   const statusConfig = {
     valid: { color: "bg-green-600", icon: CheckCircle, label: "Válido" },
@@ -39,6 +59,14 @@ export default function TicketCard({ ticket, event }) {
   const handleCopyQR = () => {
     navigator.clipboard.writeText(ticket.qr_code_data);
     alert('✅ Código copiado!');
+  };
+
+  const handleDownloadQR = () => {
+    if (!qrCodeDataURL) return;
+    const link = document.createElement('a');
+    link.download = `ingresso-${ticket.id}.png`;
+    link.href = qrCodeDataURL;
+    link.click();
   };
 
   if (!event) {
@@ -80,13 +108,24 @@ export default function TicketCard({ ticket, event }) {
                 exit={{ opacity: 0, height: 0 }}
                 className="mt-4"
               >
-                <div className="bg-white p-4 rounded-lg">
-                  <p className="text-black text-center font-mono text-sm break-all">{ticket.qr_code_data}</p>
+                <div className="bg-white p-4 rounded-lg flex flex-col items-center">
+                  {qrCodeDataURL ? (
+                    <img src={qrCodeDataURL} alt="QR Code" className="w-48 h-48" />
+                  ) : (
+                    <div className="w-48 h-48 bg-gray-200 animate-pulse rounded-lg" />
+                  )}
+                  <p className="text-black text-center font-mono text-xs break-all mt-3 px-2">{ticket.qr_code_data}</p>
                 </div>
-                <Button onClick={handleCopyQR} variant="outline" size="sm" className="w-full mt-2">
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copiar Código
-                </Button>
+                <div className="flex gap-2 mt-2">
+                  <Button onClick={handleCopyQR} variant="outline" size="sm" className="flex-1">
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar
+                  </Button>
+                  <Button onClick={handleDownloadQR} variant="outline" size="sm" className="flex-1" disabled={!qrCodeDataURL}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Baixar
+                  </Button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -166,13 +205,24 @@ export default function TicketCard({ ticket, event }) {
               exit={{ opacity: 0, height: 0 }}
               className="mb-3"
             >
-              <div className="bg-white p-4 rounded-lg">
-                <p className="text-black text-center font-mono text-xs break-all">{ticket.qr_code_data}</p>
+              <div className="bg-white p-4 rounded-lg flex flex-col items-center">
+                {qrCodeDataURL ? (
+                  <img src={qrCodeDataURL} alt="QR Code" className="w-64 h-64" />
+                ) : (
+                  <div className="w-64 h-64 bg-gray-200 animate-pulse rounded-lg" />
+                )}
+                <p className="text-black text-center font-mono text-xs break-all mt-3 px-2">{ticket.qr_code_data}</p>
               </div>
-              <Button onClick={handleCopyQR} variant="outline" size="sm" className="w-full mt-2 border-gray-600 text-gray-300">
-                <Copy className="w-4 h-4 mr-2" />
-                Copiar Código
-              </Button>
+              <div className="flex gap-2 mt-2">
+                <Button onClick={handleCopyQR} variant="outline" size="sm" className="flex-1 border-gray-600 text-gray-300">
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copiar
+                </Button>
+                <Button onClick={handleDownloadQR} variant="outline" size="sm" className="flex-1 border-gray-600 text-gray-300" disabled={!qrCodeDataURL}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Baixar QR
+                </Button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
