@@ -292,13 +292,23 @@ export default function GerenciarIngressos() {
               </h1>
               <p className="text-gray-400">{event.title}</p>
             </div>
-            <Button
-              onClick={() => navigate(createPageUrl("MeusEventos"))}
-              variant="outline"
-              className="border-gray-600"
-            >
-              Voltar
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => navigate(createPageUrl("GerenciarPatrocinadores") + `?eventId=${event.id}`)}
+                variant="outline"
+                className="border-gray-600"
+              >
+                <Award className="w-4 h-4 mr-2" />
+                Patrocinadores
+              </Button>
+              <Button
+                onClick={() => navigate(createPageUrl("MeusEventos"))}
+                variant="outline"
+                className="border-gray-600"
+              >
+                Voltar
+              </Button>
+            </div>
           </div>
         </motion.div>
 
