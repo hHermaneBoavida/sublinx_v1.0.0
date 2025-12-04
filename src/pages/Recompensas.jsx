@@ -20,6 +20,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import PointsEarningActions from "../components/loyalty/PointsEarningActions";
+import InviteFriendsModal from "../components/community/InviteFriendsModal";
 
 const categoryIcons = {
   visual: Sparkles,
@@ -43,6 +45,7 @@ export default function Recompensas() {
   const [selectedReward, setSelectedReward] = useState(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [filterCategory, setFilterCategory] = useState("all");
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -169,41 +172,55 @@ export default function Recompensas() {
           </h1>
           <p className="text-gray-400">Troque seus pontos por vantagens exclusivas</p>
         </div>
-        <Button
-          onClick={() => navigate(createPageUrl("Ranking"))}
-          className="bg-gradient-to-r from-purple-600 to-pink-600"
-        >
-          <Trophy className="w-4 h-4 mr-2" />
-          Ver Ranking
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowInviteModal(true)}
+            variant="outline"
+            className="border-yellow-500/30 text-yellow-400"
+          >
+            <Gift className="w-4 h-4 mr-2" />
+            Convidar Amigos
+          </Button>
+          <Button
+            onClick={() => navigate(createPageUrl("Ranking"))}
+            className="bg-gradient-to-r from-purple-600 to-pink-600"
+          >
+            <Trophy className="w-4 h-4 mr-2" />
+            Ver Ranking
+          </Button>
+        </div>
       </div>
 
       {/* Saldo de Pontos */}
-      <Card className="mb-6 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border-yellow-500/50">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                <Star className="w-8 h-8 text-white" fill="white" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <Card className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border-yellow-500/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                  <Star className="w-8 h-8 text-white" fill="white" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-400">Seus Pontos</div>
+                  <div className="text-4xl font-bold text-white">{userPoints.toLocaleString()}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-sm text-gray-400">Seus Pontos</div>
-                <div className="text-4xl font-bold text-white">{userPoints.toLocaleString()}</div>
+              <div className="text-right">
+                <Button
+                  onClick={() => navigate(createPageUrl("HistoricoPontos"))}
+                  variant="outline"
+                  className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Histórico
+                </Button>
               </div>
             </div>
-            <div className="text-right">
-              <Button
-                onClick={() => navigate(createPageUrl("HistoricoPontos"))}
-                variant="outline"
-                className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
-              >
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Ver Histórico
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <PointsEarningActions />
+      </div>
 
       {/* Filtros por Categoria */}
       <Tabs defaultValue="all" className="mb-6" onValueChange={(value) => setFilterCategory(value)}>
@@ -399,6 +416,14 @@ export default function Recompensas() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {showInviteModal && (
+        <InviteFriendsModal
+          event={null}
+          user={user}
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
     </div>
   );
 }

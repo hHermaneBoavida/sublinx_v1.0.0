@@ -124,7 +124,7 @@ export default function Comunidade() {
       navigate(createPageUrl("BemVindo"));
       return;
     }
-    alert(`Pedido enviado!`);
+    navigate(createPageUrl("ComunidadeDetalhes") + `?id=${communityId}`);
   };
 
   const handleUserClick = (userId) => {
@@ -294,7 +294,7 @@ export default function Comunidade() {
                         className="w-full bg-purple-600 hover:bg-purple-700"
                         disabled={!user}
                       >
-                        {user ? 'Solicitar Entrada' : 'Faça Login'}
+                        {user ? 'Ver Comunidade' : 'Faça Login'}
                       </Button>
                     </CardContent>
                   </Card>

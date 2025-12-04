@@ -28,6 +28,7 @@ import ChatOrganizadores from './pages/ChatOrganizadores';
 import AnalyticsOrganizador from './pages/AnalyticsOrganizador';
 import ValidarIngresso from './pages/ValidarIngresso';
 import GerenciarPatrocinadores from './pages/GerenciarPatrocinadores';
+import ComunidadeDetalhes from './pages/ComunidadeDetalhes';
 import __Layout from './Layout.jsx';
 
 
@@ -62,6 +63,7 @@ export const PAGES = {
     "AnalyticsOrganizador": AnalyticsOrganizador,
     "ValidarIngresso": ValidarIngresso,
     "GerenciarPatrocinadores": GerenciarPatrocinadores,
+    "ComunidadeDetalhes": ComunidadeDetalhes,
 }
 
 export const pagesConfig = {
