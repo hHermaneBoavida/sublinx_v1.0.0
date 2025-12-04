@@ -51,33 +51,41 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
 
   const requestMutation = useMutation({
     mutationFn: async (requestData) => {
-      const existingRequests = await base44.entities.EventRequest.filter({
-        user_id: requestData.user_id,
-        event_id: requestData.event_id,
-        status: { $in: ['pending', 'approved'] }
-      });
+      try {
+        const existingRequests = await base44.entities.EventRequest.filter({
+          user_id: requestData.user_id,
+          event_id: requestData.event_id,
+          status: { $in: ['pending', 'approved'] }
+        });
 
-      if (existingRequests?.length > 0) {
-        const existing = existingRequests[0];
-        if (existing.status === 'approved') {
-          throw new Error('Você já foi aprovado para este evento');
+        if (existingRequests && existingRequests.length > 0) {
+          const existing = existingRequests[0];
+          if (existing.status === 'approved') {
+            throw new Error('Você já foi aprovado para este evento');
+          }
+          throw new Error('Você já possui uma solicitação pendente');
         }
-        throw new Error('Você já possui uma solicitação pendente');
+      } catch (error) {
+        if (error.message && error.message.includes('já')) {
+          throw error;
+        }
+        console.warn('Erro ao verificar solicitações existentes:', error);
       }
 
       const newRequest = await base44.entities.EventRequest.create({
-        user_id: String(requestData.user_id),
-        event_id: String(requestData.event_id),
-        organizer_id: String(requestData.organizer_id),
+        user_id: requestData.user_id,
+        event_id: requestData.event_id,
+        organizer_id: requestData.organizer_id,
         status: 'pending',
-        message: requestData.message?.trim() || '',
+        message: requestData.message || '',
+        underground_level_required: event?.minimum_level || 1,
         applicant_data: {
-          full_name: requestData.applicant_data.full_name?.trim(),
-          email: requestData.applicant_data.email?.trim().toLowerCase(),
-          phone: requestData.applicant_data.phone?.trim(),
-          emergency_contact: requestData.applicant_data.emergency_contact?.trim(),
-          dietary_restrictions: requestData.applicant_data.dietary_restrictions?.trim(),
-          special_needs: requestData.applicant_data.special_needs?.trim()
+          full_name: requestData.applicant_data.full_name,
+          email: requestData.applicant_data.email,
+          phone: requestData.applicant_data.phone,
+          emergency_contact: requestData.applicant_data.emergency_contact || '',
+          dietary_restrictions: requestData.applicant_data.dietary_restrictions || '',
+          special_needs: requestData.applicant_data.special_needs || ''
         }
       });
 
@@ -96,24 +104,28 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
 
       return newRequest;
     },
-    onSuccess: () => {
+    onSuccess: (newRequest) => {
       setShowSuccess(true);
       setTimeout(() => {
-        if (onSuccess) onSuccess('pending');
+        if (onSuccess) onSuccess('pending', newRequest);
         setTimeout(onClose, 500);
-      }, 3000);
+      }, 2500);
     },
     onError: (error) => {
+      console.error('Erro ao criar solicitação:', error);
       let errorMessage = 'Erro ao enviar solicitação. Tente novamente.';
       
-      if (error.message.includes('já')) {
-        errorMessage = error.message;
-      } else if (error.message.includes('network') || error.message.includes('fetch')) {
-        errorMessage = 'Sem conexão. Verifique sua internet.';
+      if (error?.message) {
+        if (error.message.includes('já')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Sem conexão. Verifique sua internet.';
+        } else if (error.message.includes('required') || error.message.includes('validation')) {
+          errorMessage = 'Dados inválidos. Verifique os campos obrigatórios.';
+        }
       }
       
       alert(`❌ ${errorMessage}`);
-      setFormData(prev => ({ ...prev, message: '' }));
     }
   });
 
@@ -145,14 +157,14 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
       user_id: user.id,
       event_id: event.id,
       organizer_id: event.organizer_id,
-      message: formData.message,
+      message: formData.message.trim(),
       applicant_data: {
-        full_name: formData.full_name,
-        email: formData.email,
-        phone: formData.phone,
-        emergency_contact: formData.emergency_contact,
-        dietary_restrictions: formData.dietary_restrictions,
-        special_needs: formData.special_needs
+        full_name: formData.full_name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim(),
+        emergency_contact: formData.emergency_contact.trim(),
+        dietary_restrictions: formData.dietary_restrictions.trim(),
+        special_needs: formData.special_needs.trim()
       }
     });
   };
@@ -196,7 +208,7 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
                 Solicitação Enviada! 🎉
               </h3>
               <p className="text-gray-300 text-lg mb-6 px-4">
-                O organizador foi notificado e você receberá uma resposta em breve.
+                O organizador foi notificado. Você receberá uma notificação quando sua solicitação for analisada.
               </p>
               <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-full">
                 <Sparkles className="w-5 h-5 text-green-400" />
