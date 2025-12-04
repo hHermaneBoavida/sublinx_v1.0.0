@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
@@ -103,11 +102,15 @@ export default function CriarEvento() {
     is_secret: false,
     allow_waitlist: true,
     refund_policy: "flexible",
-    age_restriction: "18+"
+    age_restriction: "18+",
+    community_id: null
   });
+
+  const [userCommunities, setUserCommunities] = useState([]);
 
   useEffect(() => {
     checkOrganizerAccess();
+    loadUserCommunities();
   }, []);
 
   const checkOrganizerAccess = async () => {
@@ -120,6 +123,28 @@ export default function CriarEvento() {
       setUser(userData);
     } catch (error) {
       navigate(createPageUrl("BemVindo"));
+    }
+  };
+
+  const loadUserCommunities = async () => {
+    try {
+      const userData = await base44.auth.me();
+      if (!userData) return;
+      
+      const memberships = await base44.entities.CommunityMember.filter({ 
+        user_id: userData.id,
+        role: { $in: ['admin', 'moderator'] }
+      });
+      
+      if (memberships.length > 0) {
+        const communityIds = memberships.map(m => m.community_id);
+        const communities = await base44.entities.Community.filter({ 
+          id: { $in: communityIds } 
+        });
+        setUserCommunities(communities);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar comunidades:', error);
     }
   };
 
@@ -921,6 +946,32 @@ export default function CriarEvento() {
                         Ajuda os usuários a encontrar o evento baseado na vibe desejada
                       </p>
                     </div>
+
+                    {/* Comunidade Privada */}
+                    {userCommunities.length > 0 && (
+                      <div>
+                        <Label className="text-gray-300 mb-2 block">Evento Privado de Comunidade (Opcional)</Label>
+                        <Select 
+                          value={formData.community_id || 'none'} 
+                          onValueChange={(value) => handleInputChange('community_id', value === 'none' ? null : value)}
+                        >
+                          <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                            <SelectValue placeholder="Selecione uma comunidade (opcional)" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-600">
+                            <SelectItem value="none">Nenhuma (Evento Público)</SelectItem>
+                            {userCommunities.map(community => (
+                              <SelectItem key={community.id} value={community.id}>
+                                {community.name} ({community.member_count} membros)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Eventos de comunidade são visíveis apenas para membros
+                        </p>
+                      </div>
+                    )}
 
                     {/* Opções de Toggle */}
                     <div className="space-y-4">
