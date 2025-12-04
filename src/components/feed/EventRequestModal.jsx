@@ -51,6 +51,8 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
 
   const requestMutation = useMutation({
     mutationFn: async (requestData) => {
+      console.log('📤 Enviando solicitação:', requestData);
+      
       try {
         const existingRequests = await base44.entities.EventRequest.filter({
           user_id: requestData.user_id,
@@ -69,9 +71,10 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
         if (error.message && error.message.includes('já')) {
           throw error;
         }
-        console.warn('Erro ao verificar solicitações existentes:', error);
+        console.warn('⚠️ Erro ao verificar solicitações existentes:', error);
       }
 
+      console.log('✅ Criando nova solicitação...');
       const newRequest = await base44.entities.EventRequest.create({
         user_id: requestData.user_id,
         event_id: requestData.event_id,
@@ -88,6 +91,8 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
           special_needs: requestData.applicant_data.special_needs || ''
         }
       });
+
+      console.log('✅ Solicitação criada:', newRequest);
 
       try {
         await base44.entities.Notification.create({
@@ -112,16 +117,29 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
       }, 2500);
     },
     onError: (error) => {
-      console.error('Erro ao criar solicitação:', error);
+      console.error('❌ Erro ao criar solicitação:', error);
+      console.error('Detalhes:', {
+        message: error?.message,
+        response: error?.response,
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
+      
       let errorMessage = 'Erro ao enviar solicitação. Tente novamente.';
       
       if (error?.message) {
         if (error.message.includes('já')) {
           errorMessage = error.message;
-        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
           errorMessage = 'Sem conexão. Verifique sua internet.';
         } else if (error.message.includes('required') || error.message.includes('validation')) {
           errorMessage = 'Dados inválidos. Verifique os campos obrigatórios.';
+        } else if (error.message.includes('unauthorized') || error.message.includes('401')) {
+          errorMessage = 'Faça login novamente.';
+        } else if (error.message.includes('404')) {
+          errorMessage = 'Evento não encontrado.';
+        } else {
+          errorMessage = `${error.message}`;
         }
       }
       
