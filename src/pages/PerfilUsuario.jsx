@@ -1,5 +1,4 @@
-
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -15,11 +14,13 @@ import { ptBR } from "date-fns/locale";
 import FollowButton from "../components/profile/FollowButton";
 import { CACHE_CONFIG, DEFAULT_AVATAR } from "../components/shared/helpers";
 import OrganizerRating from "../components/reviews/OrganizerRating";
+import { useSignalCapture } from "../components/resonance/SignalCapture";
 
 export default function PerfilUsuario() {
   const location = useLocation();
   const navigate = useNavigate();
   const [eventFilter, setEventFilter] = useState('all');
+  const [viewStartTime] = useState(Date.now());
   
   const searchParams = new URLSearchParams(location.search);
   const userId = searchParams.get('id');
@@ -36,6 +37,39 @@ export default function PerfilUsuario() {
     retry: false,
     ...CACHE_CONFIG.STATIC,
   });
+
+  const { captureArtistProfileView, captureOrganizerPattern } = useSignalCapture(currentUser, {
+    profile_user_id: userId
+  });
+
+  // Capturar visualização de perfil de artista/organizador
+  useEffect(() => {
+    if (!currentUser || !profileUser) return;
+
+    return () => {
+      const duration = (Date.now() - viewStartTime) / 1000;
+      if (duration > 5) {
+        captureArtistProfileView(duration, {
+          organizer_id: profileUser.is_organizer ? userId : null,
+          is_organizer: profileUser.is_organizer
+        });
+
+        // Se for organizador, calcular padrão de frequência
+        if (profileUser.is_organizer && userTickets.length > 0) {
+          const organizerEventCount = userTickets.filter(t => {
+            const event = allEvents.find(e => e.id === t.event_id);
+            return event?.organizer_id === userId;
+          }).length;
+
+          if (organizerEventCount > 0) {
+            captureOrganizerPattern(userId, organizerEventCount, {
+              total_events: userEvents.length
+            });
+          }
+        }
+      }
+    };
+  }, [currentUser, profileUser, viewStartTime]);
 
   const { data: profileUser, isLoading, error } = useQuery({
     queryKey: ['profileUser', userId],
