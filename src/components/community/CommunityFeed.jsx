@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Send, Loader2, Calendar, MapPin } from "lucide-react";
+import { Heart, MessageCircle, Send, Loader2, Calendar, MapPin, Flag, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { moderateContent } from "@/functions/moderateContent";
 
 export default function CommunityFeed({ communityId, user }) {
   const [newPost, setNewPost] = useState("");
@@ -40,18 +41,34 @@ export default function CommunityFeed({ communityId, user }) {
 
   const createPostMutation = useMutation({
     mutationFn: async (content) => {
+      // Moderação automática
+      const moderation = await moderateContent({
+        content: content,
+        communityId: communityId,
+        contentType: 'post'
+      });
+
+      if (!moderation.data.allowed) {
+        throw new Error('⚠️ Conteúdo bloqueado: linguagem inapropriada detectada');
+      }
+
       const chatId = `community-${communityId}`;
+      const finalContent = moderation.data.filtered_content || content;
+
       return await base44.entities.ChatMessage.create({
         chat_id: chatId,
         sender_id: user.id,
         sender_name: user.full_name || user.email,
-        message: content,
+        message: finalContent,
         message_type: 'text'
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['communityPosts', communityId]);
       setNewPost("");
+    },
+    onError: (error) => {
+      alert(error.message);
     }
   });
 
@@ -164,6 +181,10 @@ export default function CommunityFeed({ communityId, user }) {
                     <button className="flex items-center gap-1 hover:text-cyan-400 transition-colors">
                       <MessageCircle className="w-4 h-4" />
                       <span>Comentar</span>
+                    </button>
+                    <button className="flex items-center gap-1 hover:text-orange-400 transition-colors ml-auto">
+                      <Flag className="w-4 h-4" />
+                      <span>Reportar</span>
                     </button>
                   </div>
                 </CardContent>
