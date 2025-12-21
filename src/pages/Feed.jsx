@@ -18,6 +18,7 @@ import SocialRecommendations from "../components/recommendations/SocialRecommend
 import FeedAIRecommendations from "../components/recommendations/FeedAIRecommendations";
 import { useCurrentUser } from "../components/providers/UserProvider";
 import { useBatchOrganizers } from "../components/shared/useBatchOrganizers";
+import { useSignalCapture } from "../components/resonance/SignalCapture";
 
 const EventFeedCard = lazy(() => import("../components/feed/EventFeedCard"));
 const ShareVibeModal = lazy(() => import("../components/feed/ShareVibeModal"));
@@ -39,6 +40,9 @@ export default function Feed() {
   const userContext = useCurrentUser();
   const user = userContext?.user || null;
   const isGuest = !user;
+
+  // Sistema de Ressonância - Captura passiva de sinais
+  const { captureSilentConsumption, captureInteractionDepth } = useSignalCapture(user, {});
 
   // Debounce search
   React.useEffect(() => {
@@ -202,6 +206,20 @@ export default function Feed() {
       event.organizer?.toLowerCase().includes(lowerSearch)
     );
   }, [sortedEvents, searchTerm]);
+
+  // Captura de sinal de consumo silencioso ao visualizar feed
+  React.useEffect(() => {
+    if (!user || filteredEvents.length === 0) return;
+    
+    const timer = setTimeout(() => {
+      captureSilentConsumption({
+        event_count: filteredEvents.length,
+        genre_distribution: filteredEvents.map(e => e.genre)
+      });
+    }, 5000); // Após 5s visualizando o feed
+    
+    return () => clearTimeout(timer);
+  }, [user, filteredEvents.length]);
 
   const feedWithAds = useMemo(() => {
     if (!advertisements?.length) {
