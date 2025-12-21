@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import CommunityFeed from "../components/community/CommunityFeed";
 import CommunityChat from "../components/community/CommunityChat";
 import InviteFriendsModal from "../components/community/InviteFriendsModal";
+import ModerationPanel from "../components/community/ModerationPanel";
 
 export default function ComunidadeDetalhes() {
   const location = useLocation();
@@ -232,6 +233,12 @@ export default function ComunidadeDetalhes() {
                 <Users className="w-4 h-4 mr-2" />
                 Membros ({members.length})
               </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="moderation" className="data-[state=active]:bg-orange-600">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Moderação
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="feed">
@@ -274,6 +281,12 @@ export default function ComunidadeDetalhes() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {isAdmin && (
+              <TabsContent value="moderation">
+                <ModerationPanel community={community} user={user} />
+              </TabsContent>
+            )}
           </Tabs>
         ) : (
           <Card className="bg-gray-900/50 border-gray-700">
