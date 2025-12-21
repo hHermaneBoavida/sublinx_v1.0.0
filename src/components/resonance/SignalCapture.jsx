@@ -70,12 +70,17 @@ export function useSignalCapture(user, context = {}) {
     // Sinais mais fortes recebem pesos maiores
     const weights = {
       spontaneous_return: 1.5,
+      organizer_attendance_pattern: 1.8,
+      repeat_organizer_visit: 1.6,
+      artist_profile_view: 1.4,
       temporal_recurrence: 1.3,
       interaction_depth: 1.2,
       content_resonance: 1.2,
+      genre_deep_dive: 1.3,
       view_duration: 1.0,
       silent_consumption: 0.8,
       navigation_pattern: 0.7,
+      purchase_abandonment: 0.6,
       abandonment_point: 0.5
     };
 
@@ -85,10 +90,21 @@ export function useSignalCapture(user, context = {}) {
     if (context.duration_seconds) {
       if (context.duration_seconds > 60) weight *= 1.2;
       if (context.duration_seconds > 300) weight *= 1.5;
+      if (context.duration_seconds > 600) weight *= 1.8; // +10min = muito engajado
     }
 
     // Ajustar peso baseado na profundidade de scroll
     if (context.scroll_depth > 0.7) weight *= 1.3;
+
+    // Boost para padrões de organizador
+    if (context.organizer_id && context.attendance_count > 2) {
+      weight *= 1.4;
+    }
+
+    // Penalizar abandono repetido
+    if (type === 'purchase_abandonment' && context.abandonment_count > 3) {
+      weight *= 0.5;
+    }
 
     return weight;
   };
@@ -121,6 +137,28 @@ export function useSignalCapture(user, context = {}) {
       captureSignal('spontaneous_return', {
         ...context,
         ...additionalContext
+      });
+    },
+    captureArtistProfileView: (duration, additionalContext = {}) => {
+      captureSignal('artist_profile_view', {
+        ...context,
+        ...additionalContext,
+        duration_seconds: duration
+      });
+    },
+    captureOrganizerPattern: (organizerId, attendanceCount, additionalContext = {}) => {
+      captureSignal('organizer_attendance_pattern', {
+        ...context,
+        ...additionalContext,
+        organizer_id: organizerId,
+        attendance_count: attendanceCount
+      });
+    },
+    capturePurchaseAbandonment: (abandonmentCount, additionalContext = {}) => {
+      captureSignal('purchase_abandonment', {
+        ...context,
+        ...additionalContext,
+        abandonment_count: abandonmentCount
       });
     }
   };

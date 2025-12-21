@@ -49,6 +49,11 @@ function determineVisibility(event, userState, eventOwnerState, context = {}) {
   const rules = [];
   let visibilityScore = 0.5; // Base neutra
 
+  // VARIÂNCIA ALEATÓRIA: Adiciona ruído para evitar previsibilidade (±10%)
+  const randomVariance = (Math.random() - 0.5) * 0.2;
+  visibilityScore += randomVariance;
+  rules.push({ rule: 'random_variance', impact: randomVariance });
+
   // REGRA 1: Maturidade do usuário afeta revelação
   if (userState.maturity_level === 'nascent') {
     // Usuários novos vêem menos eventos especializados
@@ -60,32 +65,43 @@ function determineVisibility(event, userState, eventOwnerState, context = {}) {
     rules.push({ rule: 'mature_user_boost', impact: 0.2 });
   }
 
-  // REGRA 2: Confiança no estado afeta peso
-  visibilityScore *= userState.confidence_level;
-  rules.push({ rule: 'confidence_weight', multiplier: userState.confidence_level });
+  // REGRA 2: Confiança no estado afeta peso (não-linear para evitar loops)
+  const confidenceWeight = Math.pow(userState.confidence_level, 1.2);
+  visibilityScore *= confidenceWeight;
+  rules.push({ rule: 'confidence_weight', multiplier: confidenceWeight });
 
-  // REGRA 3: Similaridade com criador do evento
+  // REGRA 3: Similaridade com criador (com threshold mais alto para evitar bolhas)
   if (eventOwnerState) {
     const similarity = calculateResonanceSimilarity(userState, eventOwnerState);
-    if (similarity > 0.7) {
-      visibilityScore += 0.3;
-      rules.push({ rule: 'high_resonance_match', impact: 0.3, similarity });
-    } else if (similarity < 0.3) {
-      visibilityScore -= 0.2;
-      rules.push({ rule: 'low_resonance_match', impact: -0.2, similarity });
+    
+    // Anti-loop: penalizar similaridade MUITO alta (evita echo chamber)
+    if (similarity > 0.85) {
+      visibilityScore -= 0.1;
+      rules.push({ rule: 'anti_echo_chamber', impact: -0.1, similarity });
+    } else if (similarity > 0.6 && similarity < 0.85) {
+      visibilityScore += 0.25;
+      rules.push({ rule: 'resonance_match', impact: 0.25, similarity });
+    } else if (similarity < 0.25) {
+      // Ocasionalmente mostrar conteúdo divergente (15% chance)
+      if (Math.random() < 0.15) {
+        visibilityScore += 0.2;
+        rules.push({ rule: 'serendipity_boost', impact: 0.2 });
+      }
     }
   }
 
-  // REGRA 4: Saturação temporal (não mostrar tudo de uma vez)
-  if (context.recentlyViewed?.includes(event.genre)) {
-    visibilityScore -= 0.15;
-    rules.push({ rule: 'genre_saturation', impact: -0.15 });
+  // REGRA 4: Saturação temporal adaptativa
+  const genreSaturation = context.recentlyViewed?.filter(g => g === event.genre).length || 0;
+  if (genreSaturation > 2) {
+    visibilityScore -= 0.2 * (genreSaturation / 5);
+    rules.push({ rule: 'genre_saturation', impact: -0.2, count: genreSaturation });
   }
 
-  // REGRA 5: Efeito de ausência (cooldown aumenta interesse)
+  // REGRA 5: Efeito de ausência (não-linear)
   if (context.daysSinceLastView > 3) {
-    visibilityScore += 0.1;
-    rules.push({ rule: 'absence_boost', impact: 0.1 });
+    const absenceBoost = Math.min(0.25, Math.log(context.daysSinceLastView) * 0.1);
+    visibilityScore += absenceBoost;
+    rules.push({ rule: 'absence_boost', impact: absenceBoost });
   }
 
   // REGRA 6: Eventos secretos requerem maturidade
@@ -94,11 +110,27 @@ function determineVisibility(event, userState, eventOwnerState, context = {}) {
     rules.push({ rule: 'secret_access_denied', impact: 'block' });
   }
 
+  // REGRA 7: Anti-padrão de abandono recorrente
+  if (context.purchaseAbandonmentCount > 3 && event.requires_approval) {
+    visibilityScore -= 0.15;
+    rules.push({ rule: 'abandonment_penalty', impact: -0.15 });
+  }
+
+  // REGRA 8: Boost para organizadores frequentes (mas com decay)
+  if (context.organizerFrequency > 2) {
+    const boost = Math.min(0.2, 0.1 * Math.log(context.organizerFrequency));
+    visibilityScore += boost;
+    rules.push({ rule: 'organizer_affinity', impact: boost });
+  }
+
   // Normalizar score entre 0 e 1
   visibilityScore = Math.max(0, Math.min(1, visibilityScore));
 
+  // Threshold dinâmico baseado em maturidade
+  const threshold = userState.maturity_level === 'nascent' ? 0.4 : 0.3;
+
   return {
-    visible: visibilityScore > 0.3, // Threshold de visibilidade
+    visible: visibilityScore > threshold,
     score: visibilityScore,
     level: visibilityScore > 0.7 ? 'high' : visibilityScore > 0.4 ? 'medium' : 'low',
     rules: rules
