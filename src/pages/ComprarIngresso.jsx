@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
@@ -22,6 +21,7 @@ import { ptBR } from 'date-fns/locale';
 import PaymentIntegration from '../components/integrations/PaymentIntegration';
 import SocialShare from '../components/integrations/SocialShare';
 import CalendarIntegration from '../components/integrations/CalendarIntegration';
+import { useSignalCapture } from '../components/resonance/SignalCapture';
 
 export default function ComprarIngresso() {
   const location = useLocation();
@@ -34,6 +34,7 @@ export default function ComprarIngresso() {
   const [generatedTicket, setGeneratedTicket] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [abandonmentCount, setAbandonmentCount] = useState(0);
   
   const searchParams = new URLSearchParams(location.search);
   const eventId = searchParams.get('eventId');
@@ -52,6 +53,23 @@ export default function ComprarIngresso() {
     retry: false,
     staleTime: Infinity,
   });
+
+  const { capturePurchaseAbandonment } = useSignalCapture(user, { event_id: eventId });
+
+  // Capturar abandono se usuário sair sem comprar
+  useEffect(() => {
+    return () => {
+      if (!purchaseSuccess && selectedTicketType) {
+        const newCount = abandonmentCount + 1;
+        setAbandonmentCount(newCount);
+        capturePurchaseAbandonment(newCount, {
+          event_id: eventId,
+          ticket_type: selectedTicketType.name,
+          genre: event?.genre
+        });
+      }
+    };
+  }, [purchaseSuccess, selectedTicketType, eventId]);
 
   const { data: event, isLoading: loadingEvent } = useQuery({
     queryKey: ['event', eventId],
