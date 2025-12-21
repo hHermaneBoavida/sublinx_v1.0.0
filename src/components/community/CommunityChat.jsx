@@ -8,6 +8,7 @@ import { Send, Loader2, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { moderateContent } from "@/functions/moderateContent";
 
 export default function CommunityChat({ communityId, user }) {
   const [message, setMessage] = useState("");
@@ -26,18 +27,34 @@ export default function CommunityChat({ communityId, user }) {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content) => {
+      // Moderação automática
+      const moderation = await moderateContent({
+        content: content,
+        communityId: communityId,
+        contentType: 'message'
+      });
+
+      if (!moderation.data.allowed) {
+        throw new Error('⚠️ Mensagem bloqueada por conteúdo inapropriado');
+      }
+
       const chatId = `community-chat-${communityId}`;
+      const finalContent = moderation.data.filtered_content || content;
+
       return await base44.entities.ChatMessage.create({
         chat_id: chatId,
         sender_id: user.id,
         sender_name: user.full_name || user.email,
-        message: content,
+        message: finalContent,
         message_type: 'text'
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['communityChat', communityId]);
       setMessage("");
+    },
+    onError: (error) => {
+      alert(error.message);
     }
   });
 
