@@ -239,7 +239,7 @@ export default function Planos() {
           return (
             <Card
               key={plan.id}
-              className={`relative overflow-hidden transition-all duration-300 hover:scale-105 ${
+              className={`relative overflow-hidden transition-all duration-300 hover:scale-105 flex flex-col ${
                 plan.popular
                   ? "border-2 border-cyan-500 shadow-xl shadow-cyan-500/25"
                   : isActive
@@ -282,8 +282,8 @@ export default function Planos() {
                 </div>
               </CardHeader>
 
-              <CardContent>
-                <ul className="space-y-3 mb-8">
+              <CardContent className="flex flex-col h-full">
+                <ul className="space-y-3 mb-6 flex-grow">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-center text-gray-300">
                       <Check className={`w-5 h-5 mr-3 bg-gradient-to-r ${plan.color} rounded-full p-1 text-white flex-shrink-0`} />
@@ -295,7 +295,7 @@ export default function Planos() {
                 <Button
                   onClick={() => handleSubscribe(plan.id)}
                   disabled={isActive || processing}
-                  className={`w-full h-12 font-semibold ${
+                  className={`w-full h-12 font-semibold mt-auto ${
                     isActive
                       ? "bg-green-600 text-white cursor-not-allowed"
                       : plan.popular
