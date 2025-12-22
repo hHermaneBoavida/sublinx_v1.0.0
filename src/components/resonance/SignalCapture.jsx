@@ -67,21 +67,21 @@ export function useSignalCapture(user, context = {}) {
   };
 
   const calculateSignalWeight = (type, context) => {
-    // Sinais mais fortes recebem pesos maiores
+    // CORREÇÃO: Sinais silenciosos têm peso MAIOR (princípio invertido)
     const weights = {
-      spontaneous_return: 1.5,
-      organizer_attendance_pattern: 1.8,
-      repeat_organizer_visit: 1.6,
-      artist_profile_view: 1.4,
-      temporal_recurrence: 1.3,
-      interaction_depth: 1.2,
-      content_resonance: 1.2,
-      genre_deep_dive: 1.3,
-      view_duration: 1.0,
-      silent_consumption: 0.8,
-      navigation_pattern: 0.7,
-      purchase_abandonment: 0.6,
-      abandonment_point: 0.5
+      silent_consumption: 1.8,           // MAIOR peso: consumo sem interação
+      view_duration: 1.6,                // Alto peso: tempo dedicado
+      temporal_recurrence: 1.5,          // Padrões naturais de retorno
+      content_resonance: 1.4,            // Afinidade orgânica
+      artist_profile_view: 1.3,          // Interesse espontâneo
+      spontaneous_return: 1.2,           // Retorno voluntário
+      interaction_depth: 1.1,            // Profundidade exploratória
+      genre_deep_dive: 1.0,              // Exploração de categoria
+      organizer_attendance_pattern: 1.0, // REDUZIDO: ação explícita
+      repeat_organizer_visit: 0.9,       // REDUZIDO: ação repetida
+      navigation_pattern: 0.7,           // Navegação geral
+      purchase_abandonment: 0.6,         // Abandono intencional
+      abandonment_point: 0.5             // Ponto de saída
     };
 
     let weight = weights[type] || 1.0;

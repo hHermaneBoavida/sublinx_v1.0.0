@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -361,14 +360,13 @@ export default function EventFeedCard({
                   className="hover:text-red-500 h-7 px-1.5" 
                   onClick={handleLike}
                   disabled={likeMutation.isPending}
+                  title={isLiked ? "Curtido" : "Curtir"}
                 >
                   <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                  <span className="ml-1 text-xs">{likes}</span>
                 </Button>
 
-                <Button variant="ghost" size="sm" className="hover:text-cyan-400 h-7 px-1.5" onClick={handleComment}>
+                <Button variant="ghost" size="sm" className="hover:text-cyan-400 h-7 px-1.5" onClick={handleComment} title="Comentar">
                   <MessageCircle className="w-3.5 h-3.5" />
-                  <span className="ml-1 text-xs">{comments.length}</span>
                 </Button>
 
                 <Button variant="ghost" size="sm" className="hover:text-green-400 h-7 px-1.5" onClick={() => setShowShareModal(true)}>
@@ -508,7 +506,7 @@ export default function EventFeedCard({
         <DialogContent className="bg-gray-900 border-cyan-500 text-white max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              Comentários ({comments.length})
+              Comentários
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">

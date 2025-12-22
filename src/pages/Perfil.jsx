@@ -221,14 +221,6 @@ export default function Perfil() {
                 <div className="text-xl font-bold">{stats.events}</div>
                 <div className="text-sm text-gray-400">{user.is_organizer ? 'eventos' : 'ingressos'}</div>
               </div>
-              <div className="text-center">
-                <div className="text-xl font-bold">{stats.followers}</div>
-                <div className="text-sm text-gray-400">seguidores</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-bold">{stats.following}</div>
-                <div className="text-sm text-gray-400">seguindo</div>
-              </div>
             </div>
 
             <div className="mb-4">
@@ -242,7 +234,6 @@ export default function Perfil() {
                   </Badge>
                 )}
                 {user.verified_organizer && <CheckCircle className="w-4 h-4 text-blue-500" />}
-                <span className="text-xs text-gray-500">Nível {stats.level}</span>
               </div>
             </div>
 
@@ -274,12 +265,9 @@ export default function Perfil() {
         </div>
 
         <Tabs defaultValue={user.is_organizer ? "eventos" : "ingressos"} className="w-full">
-          <TabsList className="w-full grid grid-cols-4 bg-black border-b border-gray-800 rounded-none h-auto p-0">
+          <TabsList className="w-full grid grid-cols-3 bg-black border-b border-gray-800 rounded-none h-auto p-0">
             <TabsTrigger value={user.is_organizer ? "eventos" : "ingressos"} className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3">
               {user.is_organizer ? <Calendar className="w-4 h-4" /> : <Ticket className="w-4 h-4" />}
-            </TabsTrigger>
-            <TabsTrigger value="badges" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3">
-              <Trophy className="w-4 h-4" />
             </TabsTrigger>
             <TabsTrigger value="music" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3">
               <Music className="w-4 h-4" />
@@ -326,35 +314,6 @@ export default function Perfil() {
                   <Button onClick={() => navigate(createPageUrl("Feed"))} className="bg-cyan-600 hover:bg-cyan-700">Ver Eventos</Button>
                 </div>
               )
-            )}
-          </TabsContent>
-
-          <TabsContent value="badges" className="mt-4">
-            {userBadges.length > 0 ? (
-              <div className="grid grid-cols-3 gap-4">
-                {userBadges.map((badge) => {
-                  const rarityColors = {
-                    comum: 'border-gray-600',
-                    raro: 'border-blue-500',
-                    épico: 'border-purple-500',
-                    lendário: 'border-yellow-500'
-                  };
-
-                  return (
-                    <div key={badge.id} className={`aspect-square border-2 ${rarityColors[badge.rarity] || 'border-gray-600'} rounded-lg p-4 flex flex-col items-center justify-center bg-gray-900`}>
-                      <Award className="w-8 h-8 text-cyan-400 mb-2" />
-                      <p className="text-xs text-center font-semibold text-white line-clamp-2">{badge.badge_name}</p>
-                      <Badge variant="outline" className="text-[10px] mt-2 border-gray-700 text-gray-400">{badge.rarity}</Badge>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Award className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400 text-sm mb-4">Nenhum badge conquistado</p>
-                <Button onClick={() => navigate(createPageUrl("Feed"))} className="bg-cyan-600 hover:bg-cyan-700">Explorar Eventos</Button>
-              </div>
             )}
           </TabsContent>
 
