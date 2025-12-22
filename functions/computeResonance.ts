@@ -152,10 +152,39 @@ Deno.serve(async (req) => {
     const daysSinceFirst = (Date.now() - firstSignalDate) / (1000 * 60 * 60 * 24);
     const maturity = determinateMaturityLevel(signals.length, daysSinceFirst);
 
-    // Criar ou atualizar estado de ressonância
+    // Detecção de mudança de fase comportamental
     const existingStates = await base44.asServiceRole.entities.UserResonanceState.filter({
       user_id: targetUserId
     });
+
+    let phaseShiftDetected = false;
+    let previousVector = null;
+
+    if (existingStates.length > 0) {
+      previousVector = existingStates[0].state_vector;
+      
+      // Calcular drift comportamental (últimos 20 sinais vs estado anterior)
+      const recentSignals = signals.slice(0, Math.min(20, signals.length));
+      const recentDimensions = extractBehavioralDimensions(recentSignals);
+      
+      // Comparar afinidade de conteúdo recente vs histórica
+      const recentGenres = Object.keys(recentDimensions.content_affinity || {});
+      const oldGenres = Object.keys(previousVector?.content_affinity || {});
+      
+      const genreOverlap = recentGenres.filter(g => oldGenres.includes(g)).length;
+      const totalGenres = new Set([...recentGenres, ...oldGenres]).size;
+      
+      const overlapRatio = totalGenres > 0 ? genreOverlap / totalGenres : 1;
+      
+      // Mudança de fase: <30% overlap + alta confiança anterior
+      if (overlapRatio < 0.3 && existingStates[0].confidence_level > 0.6 && signals.length > 20) {
+        phaseShiftDetected = true;
+        console.log(`🔄 Mudança de fase detectada para usuário ${targetUserId}: overlap ${overlapRatio.toFixed(2)}`);
+      }
+    }
+
+    // Se mudança de fase, reduzir confiança para permitir reaprendizado
+    const adjustedConfidence = phaseShiftDetected ? Math.max(0.3, confidence * 0.5) : confidence;
 
     const stateData = {
       user_id: targetUserId,
@@ -166,7 +195,7 @@ Deno.serve(async (req) => {
         recurrence_score: dimensions.recurrence_score,
         silent_consumption_ratio: dimensions.silent_consumption_ratio
       },
-      confidence_level: confidence,
+      confidence_level: adjustedConfidence,
       last_computed: new Date().toISOString(),
       signal_count: signals.length,
       maturity_level: maturity
@@ -185,9 +214,10 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       state: resonanceState,
+      phase_shift_detected: phaseShiftDetected,
       metrics: {
         signals_processed: signals.length,
-        confidence: confidence,
+        confidence: adjustedConfidence,
         maturity: maturity,
         days_since_first: Math.floor(daysSinceFirst)
       }

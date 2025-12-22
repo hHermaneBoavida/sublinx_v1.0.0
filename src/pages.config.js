@@ -1,69 +1,71 @@
-import Mapa from './pages/Mapa';
-import BemVindo from './pages/BemVindo';
-import Perfil from './pages/Perfil';
-import Notificacoes from './pages/Notificacoes';
-import Planos from './pages/Planos';
-import CriarEvento from './pages/CriarEvento';
-import MeusEventos from './pages/MeusEventos';
-import ComprarIngresso from './pages/ComprarIngresso';
-import Configuracoes from './pages/Configuracoes';
-import Comunidade from './pages/Comunidade';
-import Chat from './pages/Chat';
-import Feed from './pages/Feed';
-import Documentacao from './pages/Documentacao';
-import ListaEspera from './pages/ListaEspera';
-import Onboarding from './pages/Onboarding';
-import ConfiguracoesPrivacidade from './pages/ConfiguracoesPrivacidade';
-import EditarEvento from './pages/EditarEvento';
-import DashboardOrganizador from './pages/DashboardOrganizador';
-import Recompensas from './pages/Recompensas';
-import Ranking from './pages/Ranking';
-import HistoricoPontos from './pages/HistoricoPontos';
-import EventoAoVivo from './pages/EventoAoVivo';
-import IntegracoesIngressos from './pages/IntegracoesIngressos';
-import PerfilUsuario from './pages/PerfilUsuario';
-import Recomendacoes from './pages/Recomendacoes';
-import GerenciarIngressos from './pages/GerenciarIngressos';
-import ChatOrganizadores from './pages/ChatOrganizadores';
 import AnalyticsOrganizador from './pages/AnalyticsOrganizador';
-import ValidarIngresso from './pages/ValidarIngresso';
-import GerenciarPatrocinadores from './pages/GerenciarPatrocinadores';
+import BemVindo from './pages/BemVindo';
+import Chat from './pages/Chat';
+import ChatOrganizadores from './pages/ChatOrganizadores';
+import ComprarIngresso from './pages/ComprarIngresso';
+import Comunidade from './pages/Comunidade';
 import ComunidadeDetalhes from './pages/ComunidadeDetalhes';
+import Configuracoes from './pages/Configuracoes';
+import ConfiguracoesPrivacidade from './pages/ConfiguracoesPrivacidade';
+import CriarEvento from './pages/CriarEvento';
+import DashboardOrganizador from './pages/DashboardOrganizador';
+import Documentacao from './pages/Documentacao';
+import EditarEvento from './pages/EditarEvento';
+import EventoAoVivo from './pages/EventoAoVivo';
+import Feed from './pages/Feed';
+import GerenciarIngressos from './pages/GerenciarIngressos';
+import GerenciarPatrocinadores from './pages/GerenciarPatrocinadores';
+import HistoricoPontos from './pages/HistoricoPontos';
+import Home from './pages/Home';
+import IntegracoesIngressos from './pages/IntegracoesIngressos';
+import ListaEspera from './pages/ListaEspera';
+import Mapa from './pages/Mapa';
+import MeusEventos from './pages/MeusEventos';
+import Notificacoes from './pages/Notificacoes';
+import Onboarding from './pages/Onboarding';
+import Perfil from './pages/Perfil';
+import PerfilUsuario from './pages/PerfilUsuario';
+import Planos from './pages/Planos';
+import Ranking from './pages/Ranking';
+import Recomendacoes from './pages/Recomendacoes';
+import Recompensas from './pages/Recompensas';
+import ValidarIngresso from './pages/ValidarIngresso';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Mapa": Mapa,
-    "BemVindo": BemVindo,
-    "Perfil": Perfil,
-    "Notificacoes": Notificacoes,
-    "Planos": Planos,
-    "CriarEvento": CriarEvento,
-    "MeusEventos": MeusEventos,
-    "ComprarIngresso": ComprarIngresso,
-    "Configuracoes": Configuracoes,
-    "Comunidade": Comunidade,
-    "Chat": Chat,
-    "Feed": Feed,
-    "Documentacao": Documentacao,
-    "ListaEspera": ListaEspera,
-    "Onboarding": Onboarding,
-    "ConfiguracoesPrivacidade": ConfiguracoesPrivacidade,
-    "EditarEvento": EditarEvento,
-    "DashboardOrganizador": DashboardOrganizador,
-    "Recompensas": Recompensas,
-    "Ranking": Ranking,
-    "HistoricoPontos": HistoricoPontos,
-    "EventoAoVivo": EventoAoVivo,
-    "IntegracoesIngressos": IntegracoesIngressos,
-    "PerfilUsuario": PerfilUsuario,
-    "Recomendacoes": Recomendacoes,
-    "GerenciarIngressos": GerenciarIngressos,
-    "ChatOrganizadores": ChatOrganizadores,
     "AnalyticsOrganizador": AnalyticsOrganizador,
-    "ValidarIngresso": ValidarIngresso,
-    "GerenciarPatrocinadores": GerenciarPatrocinadores,
+    "BemVindo": BemVindo,
+    "Chat": Chat,
+    "ChatOrganizadores": ChatOrganizadores,
+    "ComprarIngresso": ComprarIngresso,
+    "Comunidade": Comunidade,
     "ComunidadeDetalhes": ComunidadeDetalhes,
+    "Configuracoes": Configuracoes,
+    "ConfiguracoesPrivacidade": ConfiguracoesPrivacidade,
+    "CriarEvento": CriarEvento,
+    "DashboardOrganizador": DashboardOrganizador,
+    "Documentacao": Documentacao,
+    "EditarEvento": EditarEvento,
+    "EventoAoVivo": EventoAoVivo,
+    "Feed": Feed,
+    "GerenciarIngressos": GerenciarIngressos,
+    "GerenciarPatrocinadores": GerenciarPatrocinadores,
+    "HistoricoPontos": HistoricoPontos,
+    "Home": Home,
+    "IntegracoesIngressos": IntegracoesIngressos,
+    "ListaEspera": ListaEspera,
+    "Mapa": Mapa,
+    "MeusEventos": MeusEventos,
+    "Notificacoes": Notificacoes,
+    "Onboarding": Onboarding,
+    "Perfil": Perfil,
+    "PerfilUsuario": PerfilUsuario,
+    "Planos": Planos,
+    "Ranking": Ranking,
+    "Recomendacoes": Recomendacoes,
+    "Recompensas": Recompensas,
+    "ValidarIngresso": ValidarIngresso,
 }
 
 export const pagesConfig = {

@@ -56,11 +56,15 @@ function determineVisibility(event, userState, eventOwnerState, context = {}) {
 
   // REGRA 1: Maturidade do usuário afeta revelação
   if (userState.maturity_level === 'nascent') {
-    // Usuários novos vêem menos eventos especializados
-    if (event.minimum_level > 2) visibilityScore -= 0.3;
-    rules.push({ rule: 'new_user_filter', impact: -0.3 });
+    // CORREÇÃO: Discovery boost para iniciantes + penalidade reduzida
+    visibilityScore += 0.1;
+    rules.push({ rule: 'discovery_boost', impact: 0.1 });
+    
+    if (event.minimum_level > 3) {
+      visibilityScore -= 0.15; // Reduzido de -0.3
+      rules.push({ rule: 'new_user_filter', impact: -0.15 });
+    }
   } else if (userState.maturity_level === 'mature') {
-    // Usuários maduros têm acesso a mais conteúdo
     visibilityScore += 0.2;
     rules.push({ rule: 'mature_user_boost', impact: 0.2 });
   }
@@ -70,15 +74,16 @@ function determineVisibility(event, userState, eventOwnerState, context = {}) {
   visibilityScore *= confidenceWeight;
   rules.push({ rule: 'confidence_weight', multiplier: confidenceWeight });
 
-  // REGRA 3: Similaridade com criador (com threshold mais alto para evitar bolhas)
+  // REGRA 3: Similaridade com criador (anti-echo chamber sutil)
   if (eventOwnerState) {
     const similarity = calculateResonanceSimilarity(userState, eventOwnerState);
     
-    // Anti-loop: penalizar similaridade MUITO alta (evita echo chamber)
-    if (similarity > 0.85) {
-      visibilityScore -= 0.1;
-      rules.push({ rule: 'anti_echo_chamber', impact: -0.1, similarity });
-    } else if (similarity > 0.6 && similarity < 0.85) {
+    // CORREÇÃO: Penalidade gradual e mais sutil para alta similaridade
+    if (similarity > 0.95) {
+      const penalty = -0.05 * (similarity - 0.95) * 10; // Penalidade suave
+      visibilityScore += penalty;
+      rules.push({ rule: 'anti_echo_chamber_subtle', impact: penalty, similarity });
+    } else if (similarity > 0.6 && similarity <= 0.95) {
       visibilityScore += 0.25;
       rules.push({ rule: 'resonance_match', impact: 0.25, similarity });
     } else if (similarity < 0.25) {
@@ -104,10 +109,38 @@ function determineVisibility(event, userState, eventOwnerState, context = {}) {
     rules.push({ rule: 'absence_boost', impact: absenceBoost });
   }
 
-  // REGRA 6: Eventos secretos requerem maturidade
-  if (event.is_secret && userState.maturity_level === 'nascent') {
-    visibilityScore = 0;
-    rules.push({ rule: 'secret_access_denied', impact: 'block' });
+  // REGRA 6: Convite silencioso para eventos secretos
+  if (event.is_secret) {
+    const secretUnlockThreshold = context.secretSignalCount || 0;
+    const genreMatch = context.primaryGenre === event.genre;
+    const organizerFamiliarity = context.organizerFrequency || 0;
+    
+    // Sistema de convite silencioso: múltiplos critérios
+    let unlockScore = 0;
+    
+    // Critério 1: Sinais suficientes no gênero (10+)
+    if (genreMatch && secretUnlockThreshold >= 10) unlockScore += 0.3;
+    
+    // Critério 2: Familiaridade com organizador (3+ eventos)
+    if (organizerFamiliarity >= 3) unlockScore += 0.25;
+    
+    // Critério 3: Maturidade estabelecida
+    if (userState.maturity_level === 'established' || userState.maturity_level === 'mature') {
+      unlockScore += 0.2;
+    }
+    
+    // Critério 4: Alta confiança no estado
+    if (userState.confidence_level > 0.7) unlockScore += 0.15;
+    
+    // Se não atingiu threshold de unlock, bloquear
+    if (unlockScore < 0.5) {
+      visibilityScore = 0;
+      rules.push({ rule: 'secret_access_locked', impact: 'block', unlock_score: unlockScore });
+    } else {
+      // Desbloqueado silenciosamente
+      visibilityScore += 0.3;
+      rules.push({ rule: 'secret_unlocked_silently', impact: 0.3, unlock_score: unlockScore });
+    }
   }
 
   // REGRA 7: Anti-padrão de abandono recorrente
