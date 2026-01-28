@@ -20,14 +20,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Buscar dados do usuário e eventos
-    const [userGenres, userPrefs, userLikes, userTickets, allEvents] = await Promise.all([
+    // CORRIGIDO: Buscar dados com fallback individual
+    const [userGenres, userPrefs, userLikes, userTickets, allEvents] = await Promise.allSettled([
       base44.entities.UserGenre.filter({ user_id: user.id }),
       base44.entities.UserPreferences.filter({ user_id: user.id }),
       base44.entities.Like.filter({ user_id: user.id }, '-created_date', 50),
       base44.entities.Ticket.filter({ user_id: user.id }),
       base44.entities.Event.list('-date', 100)
-    ]);
+    ]).then(results => results.map((r, i) => {
+      if (r.status === 'fulfilled') return r.value;
+      console.error(`Query ${i} failed:`, r.reason);
+      return []; // Fallback para array vazio
+    }));
 
     const now = new Date();
     const futureEvents = allEvents.filter(e => {

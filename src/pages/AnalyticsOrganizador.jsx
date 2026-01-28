@@ -90,11 +90,29 @@ export default function AnalyticsOrganizador() {
       };
     });
 
-    // Events Performance
+    // OTIMIZADO: Pre-agrupar tickets/likes/comments por event_id
+    const ticketsByEvent = new Map();
+    const likesByEvent = new Map();
+    const commentsByEvent = new Map();
+
+    tickets.forEach(t => {
+      if (!ticketsByEvent.has(t.event_id)) ticketsByEvent.set(t.event_id, []);
+      ticketsByEvent.get(t.event_id).push(t);
+    });
+
+    (interactions.likes || []).forEach(l => {
+      likesByEvent.set(l.event_id, (likesByEvent.get(l.event_id) || 0) + 1);
+    });
+
+    (interactions.comments || []).forEach(c => {
+      commentsByEvent.set(c.event_id, (commentsByEvent.get(c.event_id) || 0) + 1);
+    });
+
+    // Events Performance - O(n) ao invés de O(n*m)
     const eventPerformance = events.map(event => {
-      const eventTickets = tickets.filter(t => t.event_id === event.id);
-      const eventLikes = interactions.likes?.filter(l => l.event_id === event.id).length || 0;
-      const eventComments = interactions.comments?.filter(c => c.event_id === event.id).length || 0;
+      const eventTickets = ticketsByEvent.get(event.id) || [];
+      const eventLikes = likesByEvent.get(event.id) || 0;
+      const eventComments = commentsByEvent.get(event.id) || 0;
       const revenue = eventTickets.reduce((sum, t) => sum + (t.price || 0), 0);
       const occupancy = event.max_capacity > 0 ? (eventTickets.length / event.max_capacity) * 100 : 0;
       
@@ -220,7 +238,7 @@ export default function AnalyticsOrganizador() {
             icon={Heart}
             title="Total de Likes"
             value={analytics.totalLikes}
-            subtitle={`${(analytics.totalLikes / events.length).toFixed(1)} por evento`}
+            subtitle={events.length > 0 ? `${(analytics.totalLikes / events.length).toFixed(1)} por evento` : 'Nenhum evento'}
             color="from-pink-900/30 to-gray-900"
             iconColor="text-pink-400"
           />
@@ -228,7 +246,7 @@ export default function AnalyticsOrganizador() {
             icon={MessageCircle}
             title="Comentários"
             value={analytics.totalComments}
-            subtitle={`${(analytics.totalComments / events.length).toFixed(1)} por evento`}
+            subtitle={events.length > 0 ? `${(analytics.totalComments / events.length).toFixed(1)} por evento` : 'Nenhum evento'}
             color="from-purple-900/30 to-gray-900"
             iconColor="text-purple-400"
           />
