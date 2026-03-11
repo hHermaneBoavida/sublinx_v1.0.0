@@ -341,12 +341,12 @@ export default function Planos() {
             <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-600">
               <h4 className="text-sm font-semibold text-cyan-400 mb-2">Chave PIX:</h4>
               <div className="flex items-center justify-between bg-gray-700 rounded px-3 py-2">
-                <span className="text-sm font-mono">020.091.326-37</span>
+                <span className="text-sm font-mono">a04fdc2f-152d-40a0-b171-e10d494c4bbd</span>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => {
-                    navigator.clipboard.writeText('020.091.326-37');
+                    navigator.clipboard.writeText('a04fdc2f-152d-40a0-b171-e10d494c4bbd');
                     alert('Chave PIX copiada!');
                   }}
                   className="text-cyan-400 hover:text-cyan-300"
@@ -354,9 +354,6 @@ export default function Planos() {
                   Copiar
                 </Button>
               </div>
-              <p className="text-xs text-gray-400 mt-2">
-                HERMANE DA GRACA CHANGO DE BOAVIDA
-              </p>
             </div>
 
             <Button
