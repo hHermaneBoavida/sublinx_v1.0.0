@@ -92,14 +92,14 @@ export default function MeusEventos() {
             <div className="flex gap-2">
               <Button
                 onClick={() => navigate(createPageUrl("DashboardOrganizador"))}
-                className="bg-gray-800 hover:bg-gray-700 text-cyan-300 border border-cyan-500/50 font-semibold"
+                className="bg-white hover:bg-gray-100 text-black font-black border border-gray-300"
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Dashboard
               </Button>
               <Button
                 onClick={() => navigate(createPageUrl("CriarEvento"))}
-                className="bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-bold"
+                className="bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-black"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Evento
@@ -267,7 +267,7 @@ function EventManagementCard({ event, allTickets, navigate, index, isPast = fals
             <Button
               onClick={onManageTickets}
               size="sm"
-              className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold shadow-lg"
+              className="bg-cyan-600 hover:bg-cyan-500 text-white font-black shadow-lg"
             >
               <Ticket className="w-4 h-4 mr-1.5" />
               Ingressos
@@ -275,7 +275,7 @@ function EventManagementCard({ event, allTickets, navigate, index, isPast = fals
             <Button
               onClick={onManageGuestList}
               size="sm"
-              className="bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg"
+              className="bg-purple-600 hover:bg-purple-500 text-white font-black shadow-lg"
             >
               <Crown className="w-4 h-4 mr-1.5" />
               Lista de convidados
@@ -285,10 +285,10 @@ function EventManagementCard({ event, allTickets, navigate, index, isPast = fals
           <Button
             onClick={onEditEvent}
             size="sm"
-            className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold border border-gray-500"
+            className="w-full bg-white hover:bg-gray-100 text-black font-black border border-gray-400"
           >
             <Edit className="w-4 h-4 mr-2" />
-            evento de luxo
+            Editar Evento
           </Button>
         </CardContent>
       </Card>
