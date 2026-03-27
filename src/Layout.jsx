@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle } from "lucide-react";
+import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -268,29 +268,40 @@ export default function Layout({ children, currentPageName }) {
             boxShadow: '0 0 30px rgba(6, 182, 212, 0.15), inset 0 -1px 0 rgba(6, 182, 212, 0.3)'
           }}>
             <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <Link to={createPageUrl("Mapa")} className="group flex items-center gap-2 sm:gap-3">
-                <motion.img 
-                  whileHover={{ scale: 1.15, rotate: 10 }}
-                  whileTap={{ scale: 0.95 }}
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png" 
-                  alt="SUBLINX Icon" 
-                  className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 transition-transform duration-300"
-                  style={{
-                    filter: 'drop-shadow(0 0 15px rgba(6, 182, 212, 0.7))'
-                  }}
-                />
-                <motion.h1 
-                  className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-lime-400 bg-clip-text text-transparent hidden xs:block"
-                  style={{
-                    textShadow: '0 0 30px rgba(6, 182, 212, 0.5)'
-                  }}
-                  whileHover={{
-                    textShadow: '0 0 40px rgba(6, 182, 212, 0.8)'
-                  }}
+              <div className="flex items-center gap-2">
+                <motion.button
+                  onClick={() => window.history.back()}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="p-2 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all duration-200"
+                  style={{ boxShadow: '0 0 10px rgba(6, 182, 212, 0.1)' }}
                 >
-                  SUBLINX
-                </motion.h1>
-              </Link>
+                  <ArrowLeft className="w-5 h-5" />
+                </motion.button>
+                <Link to={createPageUrl("Mapa")} className="group flex items-center gap-2 sm:gap-3">
+                  <motion.img 
+                    whileHover={{ scale: 1.15, rotate: 10 }}
+                    whileTap={{ scale: 0.95 }}
+                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png" 
+                    alt="SUBLINX Icon" 
+                    className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 transition-transform duration-300"
+                    style={{
+                      filter: 'drop-shadow(0 0 15px rgba(6, 182, 212, 0.7))'
+                    }}
+                  />
+                  <motion.h1 
+                    className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-lime-400 bg-clip-text text-transparent hidden xs:block"
+                    style={{
+                      textShadow: '0 0 30px rgba(6, 182, 212, 0.5)'
+                    }}
+                    whileHover={{
+                      textShadow: '0 0 40px rgba(6, 182, 212, 0.8)'
+                    }}
+                  >
+                    SUBLINX
+                  </motion.h1>
+                </Link>
+              </div>
 
               <nav className="hidden md:flex space-x-2">
                 {navigationItems.map((item) => (
