@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Crown, Calendar, Ticket, Award, Edit2, Share2, CheckCircle, 
-  Settings, Shield, Music, Trophy, BarChart3, MessageCircle, Sparkles
+  Settings, Shield, Music, Trophy, BarChart3, MessageCircle, Sparkles, ArrowLeft
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -177,8 +177,17 @@ export default function Perfil() {
       <div className="border-b border-gray-800 sticky top-0 bg-black/95 backdrop-blur-lg z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold">Perfil</h1>
-            
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => navigate(-1)}
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-gray-900"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <h1 className="text-lg font-semibold">Perfil</h1>
+            </div>
             <div className="flex items-center gap-2">
               <Button 
                 onClick={handleLogout} 
