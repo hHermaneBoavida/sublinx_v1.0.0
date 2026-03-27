@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -93,15 +92,14 @@ export default function MeusEventos() {
             <div className="flex gap-2">
               <Button
                 onClick={() => navigate(createPageUrl("DashboardOrganizador"))}
-                variant="outline"
-                className="border-gray-600"
+                className="bg-gray-800 hover:bg-gray-700 text-cyan-300 border border-cyan-500/50 font-semibold"
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Dashboard
               </Button>
               <Button
                 onClick={() => navigate(createPageUrl("CriarEvento"))}
-                className="bg-gradient-to-r from-cyan-600 to-purple-600"
+                className="bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-bold"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Evento
@@ -185,7 +183,7 @@ export default function MeusEventos() {
             {!searchTerm && (
               <Button
                 onClick={() => navigate(createPageUrl("CriarEvento"))}
-                className="bg-gradient-to-r from-cyan-600 to-purple-600"
+                className="bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Criar Evento
@@ -221,7 +219,7 @@ function EventManagementCard({ event, allTickets, navigate, index, isPast = fals
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
     >
-      <Card className={`bg-gray-900/80 border-gray-700 overflow-hidden ${isPast ? 'opacity-70' : ''} hover:border-cyan-500/30 transition-all`}>
+      <Card className={`bg-gray-900/80 border-gray-700 overflow-hidden ${isPast ? 'opacity-75' : ''} hover:border-cyan-500/40 transition-all`}>
         <CardHeader className="pb-3">
           <div className="flex items-start gap-4">
             <img
@@ -260,7 +258,7 @@ function EventManagementCard({ event, allTickets, navigate, index, isPast = fals
             <div className="bg-gray-800/50 rounded-lg p-3 text-center">
               <TrendingUp className="w-4 h-4 text-purple-400 mx-auto mb-1" />
               <p className="text-sm font-bold text-white">{occupancy.toFixed(0)}%</p>
-              <p className="text-xs text-gray-400">Ocupação</p>
+              <p className="text-xs text-gray-400">participação</p>
             </div>
           </div>
 
@@ -268,27 +266,29 @@ function EventManagementCard({ event, allTickets, navigate, index, isPast = fals
           <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={onManageTickets}
-              variant="outline"
               size="sm"
-              className="border-cyan-500/30 text-cyan-400"
+              className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold shadow-lg"
             >
-              <Ticket className="w-4 h-4 mr-2" />
+              <Ticket className="w-4 h-4 mr-1.5" />
               Ingressos
             </Button>
             <Button
               onClick={onManageGuestList}
-              variant="outline"
               size="sm"
-              className="border-purple-500/30 text-purple-400"
+              className="bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg"
             >
-              <Crown className="w-4 h-4 mr-2" />
-              Guest List
+              <Crown className="w-4 h-4 mr-1.5" />
+              Lista de convidados
             </Button>
           </div>
 
-          <Button onClick={onEditEvent} variant="outline" size="sm" className="w-full border-gray-600">
+          <Button
+            onClick={onEditEvent}
+            size="sm"
+            className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold border border-gray-500"
+          >
             <Edit className="w-4 h-4 mr-2" />
-            Editar Evento
+            evento de luxo
           </Button>
         </CardContent>
       </Card>
