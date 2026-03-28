@@ -377,28 +377,39 @@ export default function Layout({ children, currentPageName }) {
                 )}
 
                 {(!user?.is_pro_member || isGuest) && (
+                  <Link to={createPageUrl("Planos")}>
+                    <motion.div whileHover={{ scale: 1.08, y: -2 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="hidden sm:flex text-xs lg:text-sm font-bold relative overflow-hidden"
+                        style={{
+                          background: 'linear-gradient(to right, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2))',
+                          borderColor: 'rgba(251, 191, 36, 0.5)',
+                          color: '#FBBF24',
+                          boxShadow: '0 0 20px rgba(251, 191, 36, 0.4)'
+                        }}
+                      >
+                        <Crown className="w-3 h-3 lg:w-4 lg:h-4 mr-1" />
+                        <span className="hidden lg:inline">Upgrade</span>
+                        <span className="lg:hidden">Pro</span>
+                      </Button>
+                    </motion.div>
+                  </Link>
+                )}
 
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
+                {!isGuest && (
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                     <Link
                       to={createPageUrl("Notificacoes")}
                       className="relative p-2 rounded-lg hover:bg-gray-800/50 transition-all duration-300 group"
                     >
                       <motion.div
-                        animate={unreadCount > 0 ? {
-                          rotate: [0, -15, 15, -10, 10, 0],
-                        } : {}}
-                        transition={{
-                          duration: 0.5,
-                          repeat: unreadCount > 0 ? Infinity : 0,
-                          repeatDelay: 3
-                        }}
+                        animate={unreadCount > 0 ? { rotate: [0, -15, 15, -10, 10, 0] } : {}}
+                        transition={{ duration: 0.5, repeat: unreadCount > 0 ? Infinity : 0, repeatDelay: 3 }}
                       >
                         <Bell className="w-5 h-5 text-gray-300 group-hover:text-white" />
                       </motion.div>
-
                       {unreadCount > 0 && (
                         <motion.div
                           initial={{ scale: 0 }}
@@ -406,51 +417,17 @@ export default function Layout({ children, currentPageName }) {
                           className="absolute -top-1 -right-1 min-w-[18px] h-[18px] sm:min-w-[20px] sm:h-5 px-1 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center rounded-full"
                           style={{
                             background: 'linear-gradient(135deg, rgba(239, 68, 68, 1), rgba(220, 38, 38, 1))',
-                            boxShadow: '0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.5), inset 0 1px 0 rgba(255,255,255,0.3)'
+                            boxShadow: '0 0 15px rgba(239, 68, 68, 0.8)'
                           }}
                         >
-                          <motion.div
-                            className="absolute inset-0 rounded-full"
-                            style={{
-                              border: '2px solid rgba(239, 68, 68, 0.6)',
-                            }}
-                            animate={{
-                              scale: [1, 1.8, 1],
-                              opacity: [0.8, 0, 0.8]
-                            }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                          />
-
-                          <div
-                            className="absolute top-0 left-0 right-0 h-1/2 rounded-t-full"
-                            style={{
-                              background: 'linear-gradient(to bottom, rgba(255,255,255,0.4), transparent)'
-                            }}
-                          />
-
-                          <motion.span
-                            animate={{
-                              scale: [1, 1.1, 1]
-                            }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="relative z-10"
-                          >
-                            {unreadCount > 99 ? "99+" : unreadCount}
-                          </motion.span>
+                          {unreadCount > 99 ? "99+" : unreadCount}
                         </motion.div>
                       )}
-
                       {unreadCount === 0 && (
                         <motion.div
                           className="absolute top-1 right-1 w-2 h-2 rounded-full"
-                          style={{
-                            background: 'rgba(6, 182, 212, 0.6)',
-                            boxShadow: '0 0 8px rgba(6, 182, 212, 0.8)'
-                          }}
-                          animate={{
-                            opacity: [0.4, 1, 0.4],
-                            scale: [0.8, 1.2, 0.8]
-                          }}
+                          style={{ background: 'rgba(6, 182, 212, 0.6)', boxShadow: '0 0 8px rgba(6, 182, 212, 0.8)' }}
+                          animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.2, 0.8] }}
                           transition={{ duration: 2, repeat: Infinity }}
                         />
                       )}
