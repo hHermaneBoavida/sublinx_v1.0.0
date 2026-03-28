@@ -272,7 +272,7 @@ export default function MapView({
 
       {/* Menu Dropdown */}
       {showMenu && (
-        <div className="absolute top-20 right-4 z-[1000] bg-black/95 backdrop-blur-xl border border-gray-700 rounded-xl p-2 min-w-[200px] shadow-2xl">
+        <div className="absolute top-20 right-4 z-[2000] bg-black/95 backdrop-blur-xl border border-gray-700 rounded-xl p-2 min-w-[200px] shadow-2xl">
           <Button
             variant="ghost"
             onClick={() => {
