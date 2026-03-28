@@ -270,7 +270,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="max-w-7xl mx-auto flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <motion.button
-                  onClick={() => window.history.back()}
+                  onClick={() => window.location.href = createPageUrl('Mapa')}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   className="p-2 rounded-lg text-white font-bold hover:text-white hover:bg-gray-800/50 transition-all duration-200 flex items-center gap-1"
