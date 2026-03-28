@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle, ArrowLeft } from "lucide-react";
+import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -273,8 +273,8 @@ export default function Layout({ children, currentPageName }) {
                   onClick={() => window.history.back()}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className="p-2 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all duration-200"
-                  style={{ boxShadow: '0 0 10px rgba(6, 182, 212, 0.1)' }}
+                  className="p-2 rounded-lg text-white font-bold hover:text-white hover:bg-gray-800/50 transition-all duration-200 flex items-center gap-1"
+                  style={{ boxShadow: '0 0 10px rgba(6, 182, 212, 0.2)', border: '1px solid rgba(6,182,212,0.2)' }}
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </motion.button>
@@ -344,38 +344,40 @@ export default function Layout({ children, currentPageName }) {
               </nav>
 
               <div className="flex items-center gap-2 sm:gap-3">
-                {(!user?.is_pro_member || isGuest) && (
-                  <Link to={createPageUrl("Planos")}>
-                    <motion.div
-                      whileHover={{ scale: 1.08, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        className="hidden sm:flex text-xs lg:text-sm relative overflow-hidden"
-                        style={{
-                          background: 'linear-gradient(to right, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2))',
-                          borderColor: 'rgba(251, 191, 36, 0.5)',
-                          color: '#FBBF24',
-                          boxShadow: '0 0 20px rgba(251, 191, 36, 0.4)'
-                        }}
-                      >
-                        <div 
-                          className="absolute top-0 left-0 right-0 h-1/2"
-                          style={{
-                            background: 'linear-gradient(to bottom, rgba(255,255,255,0.2), transparent)'
-                          }}
-                        />
-                        <Crown className="w-3 h-3 lg:w-4 lg:h-4 mr-1 relative z-10" />
-                        <span className="hidden lg:inline relative z-10">Upgrade</span>
-                        <span className="lg:hidden relative z-10">Pro</span>
-                      </Button>
-                    </motion.div>
-                  </Link>
+                {/* Role Badge */}
+                {!isGuest && user?.is_organizer && (
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.25))',
+                      border: '1.5px solid rgba(251,191,36,0.6)',
+                      color: '#FBBF24',
+                      boxShadow: '0 0 14px rgba(251,191,36,0.3)'
+                    }}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    ORGANIZADOR
+                  </motion.div>
+                )}
+                {!isGuest && !user?.is_organizer && user?.is_pro_member && (
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(168,85,247,0.2))',
+                      border: '1.5px solid rgba(6,182,212,0.5)',
+                      color: '#67e8f9',
+                      boxShadow: '0 0 14px rgba(6,182,212,0.3)'
+                    }}
+                  >
+                    <Crown className="w-3.5 h-3.5" />
+                    PRO
+                  </motion.div>
                 )}
 
-                {!isGuest && (
+                {(!user?.is_pro_member || isGuest) && (
+
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
