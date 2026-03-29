@@ -271,12 +271,12 @@ export default function Layout({ children, currentPageName }) {
               <div className="flex items-center gap-2">
                 <motion.button
                   onClick={() => window.location.href = createPageUrl('Mapa')}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="p-2 rounded-lg text-white font-bold hover:text-white hover:bg-gray-800/50 transition-all duration-200 flex items-center gap-1"
-                  style={{ boxShadow: '0 0 10px rgba(6, 182, 212, 0.2)', border: '1px solid rgba(6,182,212,0.2)' }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="btn-back"
                 >
                   <ArrowLeft className="w-5 h-5" />
+                  <span>Voltar</span>
                 </motion.button>
                 <Link to={createPageUrl("Mapa")} className="group flex items-center gap-2 sm:gap-3">
                   <motion.img 

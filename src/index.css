@@ -156,3 +156,23 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: #000000;
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+  }
+  .btn-back:hover {
+    opacity: 0.7;
+  }
+}
