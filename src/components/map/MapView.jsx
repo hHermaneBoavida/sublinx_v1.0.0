@@ -241,22 +241,24 @@ export default function MapView({
       {/* Search Bar */}
       <div className="absolute top-4 left-4 right-4 z-[1000] flex gap-2">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400" />
           <Input
             placeholder="Buscar eventos..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 bg-black/80 backdrop-blur-xl border-gray-700 text-white placeholder:text-gray-500"
+            className="pl-10 h-11 bg-gray-900 border-2 border-cyan-500/60 text-white placeholder:text-gray-400 focus:border-cyan-400 shadow-lg"
+            style={{ boxShadow: '0 0 12px rgba(6,182,212,0.3)' }}
           />
         </div>
         <Button
           size="icon"
           onClick={() => setShowAdvancedFilters(true)}
-          className="bg-black/80 backdrop-blur-xl border border-gray-700 hover:bg-gray-900 relative"
+          className="h-11 w-11 bg-gray-900 border-2 border-cyan-500/60 hover:bg-gray-800 hover:border-cyan-400 relative shadow-lg flex-shrink-0"
+          style={{ boxShadow: '0 0 12px rgba(6,182,212,0.3)' }}
         >
-          <Filter className="w-5 h-5" />
+          <Filter className="w-5 h-5 text-cyan-400" />
           {activeFiltersCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-cyan-600 text-[10px]">
+            <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-cyan-500 text-[10px] text-black font-bold">
               {activeFiltersCount}
             </Badge>
           )}
@@ -264,9 +266,10 @@ export default function MapView({
         <Button
           size="icon"
           onClick={() => setShowMenu(!showMenu)}
-          className="bg-black/80 backdrop-blur-xl border border-gray-700 hover:bg-gray-900"
+          className="h-11 w-11 bg-gray-900 border-2 border-purple-500/60 hover:bg-gray-800 hover:border-purple-400 shadow-lg flex-shrink-0"
+          style={{ boxShadow: '0 0 12px rgba(168,85,247,0.3)' }}
         >
-          {showMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {showMenu ? <X className="w-5 h-5 text-purple-400" /> : <Menu className="w-5 h-5 text-purple-400" />}
         </Button>
       </div>
 
