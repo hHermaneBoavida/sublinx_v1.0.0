@@ -13,6 +13,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import EditProfileModal from "../components/profile/EditProfileModal";
+import SmartNavButton from "../components/shared/SmartNavButton";
 import TicketCard from "../components/tickets/TicketCard";
 import CalendarIntegration from "../components/integrations/CalendarIntegration";
 
@@ -178,14 +179,7 @@ export default function Perfil() {
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Button
-                onClick={() => navigate(-1)}
-                variant="ghost"
-                size="icon"
-                className="text-white hover:bg-gray-900"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
+              <SmartNavButton context="profile" />
               <h1 className="text-lg font-semibold">Perfil</h1>
             </div>
             <div className="flex items-center gap-2">
