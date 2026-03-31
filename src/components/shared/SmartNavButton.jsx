@@ -25,13 +25,21 @@ export default function SmartNavButton({ context = "default", className = "" }) 
   return (
     <motion.button
       onClick={handleClick}
-      whileTap={{ scale: 0.88, opacity: 0.7 }}
-      whileHover={{ scale: 1.08 }}
+      whileTap={{ scale: 0.88 }}
+      whileHover={{ scale: 1.05 }}
       aria-label="Voltar"
-      className={`flex items-center justify-center w-11 h-11 rounded-xl bg-gray-800/80 border border-gray-600 hover:bg-gray-700 hover:border-gray-400 transition-colors flex-shrink-0 ${className}`}
-      style={{ minWidth: 44, minHeight: 44 }}
+      className={`flex items-center justify-center rounded-xl flex-shrink-0 ${className}`}
+      style={{
+        minWidth: 44,
+        minHeight: 44,
+        width: 44,
+        height: 44,
+        background: 'linear-gradient(135deg, rgba(6,182,212,0.25), rgba(168,85,247,0.25))',
+        border: '2px solid rgba(6,182,212,0.7)',
+        boxShadow: '0 0 14px rgba(6,182,212,0.4)',
+      }}
     >
-      <ArrowLeft className="w-5 h-5 text-white" />
+      <ArrowLeft className="w-5 h-5" style={{ color: '#67e8f9' }} />
     </motion.button>
   );
 }
