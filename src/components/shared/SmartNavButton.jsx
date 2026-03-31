@@ -14,12 +14,8 @@ export default function SmartNavButton({ context = "default", className = "" }) 
   const navigate = useNavigate();
 
   const handleClick = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      const fallback = FALLBACKS[context] || FALLBACKS.default;
-      navigate(createPageUrl(fallback));
-    }
+    const fallback = FALLBACKS[context] || FALLBACKS.default;
+    navigate(createPageUrl(fallback));
   };
 
   return (
