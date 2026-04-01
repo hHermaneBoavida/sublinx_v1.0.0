@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  LogOut, Crown, Calendar, Ticket, Award, Edit2, Share2, CheckCircle, 
-  Settings, Shield, Music, Trophy, BarChart3, MessageCircle, Sparkles, ArrowLeft
+  LogOut, Crown, Calendar, Ticket, Edit2, Share2, CheckCircle,
+  Settings, Shield, Music, BarChart3, MessageCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

@@ -210,11 +210,6 @@ export default function Feed() {
         })
       : sortedEvents;
 
-    // Modo Descoberta Manual: desabilita filtros adaptativos
-    if (manualDiscoveryMode) {
-      return filtered;
-    }
-
     return filtered;
   }, [sortedEvents, searchTerm, manualDiscoveryMode]);
 

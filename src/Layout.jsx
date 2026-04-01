@@ -625,34 +625,18 @@ export default function Layout({ children, currentPageName }) {
           {!isGuest && user && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
           {showNotificationPrompt && <NotificationPermissionPrompt />}
 
-          <style jsx>{`
+          <style>{`
             @keyframes grid-glow {
-              0%, 100% {
-                opacity: 0.08;
-              }
-              50% {
-                opacity: 0.15;
-              }
+              0%, 100% { opacity: 0.08; }
+              50% { opacity: 0.15; }
             }
-
             @keyframes pulse-glow {
-              0%, 100% {
-                transform: scale(1);
-                opacity: 0.15;
-              }
-              50% {
-                transform: scale(1.12);
-                opacity: 0.25;
-              }
+              0%, 100% { transform: scale(1); opacity: 0.15; }
+              50% { transform: scale(1.12); opacity: 0.25; }
             }
-
             @keyframes diagonal-move {
-              0% {
-                background-position: 0 0;
-              }
-              100% {
-                background-position: 120px 120px;
-              }
+              0% { background-position: 0 0; }
+              100% { background-position: 120px 120px; }
             }
           `}</style>
         </div>
