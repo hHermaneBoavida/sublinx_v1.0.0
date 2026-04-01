@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import BottomNav from "@/components/navigation/BottomNav";
 import NotificationListener from "@/components/notifications/NotificationListener";
 import EventProximityChecker from "@/components/notifications/EventProximityChecker";
 import NotificationPermissionPrompt from "@/components/notifications/NotificationPermissionPrompt";
@@ -555,69 +556,11 @@ export default function Layout({ children, currentPageName }) {
             </motion.div>
           )}
 
-          <main className="relative z-0 pb-20 sm:pb-24 md:pb-0">
+          <main className="relative z-0 pb-28 md:pb-0">
             {children}
           </main>
 
-          <div 
-            className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-xl border-t-2 z-20 safe-area-inset-bottom"
-            style={{
-              background: 'linear-gradient(to top, rgba(0,0,0,0.95), rgba(17,24,39,0.8))',
-              borderColor: 'rgba(6, 182, 212, 0.2)',
-              boxShadow: '0 -5px 30px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(6, 182, 212, 0.2)'
-            }}
-          >
-            <div className="grid grid-cols-4 h-16 sm:h-18">
-              {navigationItems.map((item) => (
-                <motion.div
-                  key={item.title}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Link
-                    to={item.url}
-                    className={`flex flex-col items-center justify-center py-2 px-1 transition-all duration-300 relative ${
-                      location.pathname === item.url
-                        ? 'text-cyan-400'
-                        : 'text-gray-500 hover:text-white'
-                    }`}
-                  >
-                    <motion.div
-                      animate={location.pathname === item.url ? {
-                        filter: [
-                          'drop-shadow(0 0 8px rgba(6, 182, 212, 0.8))',
-                          'drop-shadow(0 0 15px rgba(6, 182, 212, 1))',
-                          'drop-shadow(0 0 8px rgba(6, 182, 212, 0.8))'
-                        ]
-                      } : {}}
-                      transition={{ duration: 2, repeat: location.pathname === item.url ? Infinity : 0 }}
-                    >
-                      <item.icon className="w-5 h-5 sm:w-6 sm:h-6 mb-0.5 sm:mb-1" />
-                    </motion.div>
-
-                    <span className="text-[10px] sm:text-xs">{item.title}</span>
-
-                    {location.pathname === item.url && (
-                      <motion.div 
-                        className="w-1 h-1 rounded-full mt-0.5 sm:mt-1"
-                        style={{
-                          background: 'rgba(6, 182, 212, 1)',
-                          boxShadow: '0 0 10px rgba(6, 182, 212, 1)'
-                        }}
-                        animate={{
-                          boxShadow: [
-                            '0 0 10px rgba(6, 182, 212, 1)',
-                            '0 0 20px rgba(6, 182, 212, 1)',
-                            '0 0 10px rgba(6, 182, 212, 1)'
-                          ]
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      />
-                    )}
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </div>
+          <BottomNav navigationItems={navigationItems} location={location} isOrganizer={user?.is_organizer} isGuest={isGuest} />
 
           <PWAInstallPrompt />
 
