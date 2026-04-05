@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle, ArrowLeft, ShieldCheck } from "lucide-react";
@@ -20,6 +20,7 @@ import ServiceWorkerRegistration from "@/components/offline/ServiceWorkerRegistr
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState(null);
 
   const { data: user } = useQuery({
@@ -271,9 +272,15 @@ export default function Layout({ children, currentPageName }) {
             <div className="max-w-7xl mx-auto flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <motion.button
-                  onClick={() => window.location.href = createPageUrl('Mapa')}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    if (window.history.length > 2) {
+                      navigate(-1);
+                    } else {
+                      navigate(createPageUrl('Mapa'));
+                    }
+                  }}
                   className="btn-back"
                 >
                   <ArrowLeft className="w-5 h-5" />
