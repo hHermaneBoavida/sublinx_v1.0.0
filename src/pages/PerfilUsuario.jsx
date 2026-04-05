@@ -42,35 +42,6 @@ export default function PerfilUsuario() {
     profile_user_id: userId
   });
 
-  // Capturar visualização de perfil de artista/organizador
-  useEffect(() => {
-    if (!currentUser || !profileUser) return;
-
-    return () => {
-      const duration = (Date.now() - viewStartTime) / 1000;
-      if (duration > 5) {
-        captureArtistProfileView(duration, {
-          organizer_id: profileUser.is_organizer ? userId : null,
-          is_organizer: profileUser.is_organizer
-        });
-
-        // Se for organizador, calcular padrão de frequência
-        if (profileUser.is_organizer && userTickets.length > 0) {
-          const organizerEventCount = userTickets.filter(t => {
-            const event = allEvents.find(e => e.id === t.event_id);
-            return event?.organizer_id === userId;
-          }).length;
-
-          if (organizerEventCount > 0) {
-            captureOrganizerPattern(userId, organizerEventCount, {
-              total_events: userEvents.length
-            });
-          }
-        }
-      }
-    };
-  }, [currentUser, profileUser, viewStartTime]);
-
   const { data: profileUser, isLoading, error } = useQuery({
     queryKey: ['profileUser', userId],
     queryFn: async () => {
@@ -83,6 +54,20 @@ export default function PerfilUsuario() {
     retry: 1,
     ...CACHE_CONFIG.MEDIUM,
   });
+
+  // Capturar visualização de perfil — after profileUser is declared
+  useEffect(() => {
+    if (!currentUser || !profileUser) return;
+    return () => {
+      const duration = (Date.now() - viewStartTime) / 1000;
+      if (duration > 5) {
+        captureArtistProfileView(duration, {
+          organizer_id: profileUser.is_organizer ? userId : null,
+          is_organizer: profileUser.is_organizer
+        });
+      }
+    };
+  }, [currentUser?.id, profileUser?.id, viewStartTime]);
 
   const { data: followers = [] } = useQuery({
     queryKey: ['followers', userId],
@@ -257,7 +242,10 @@ export default function PerfilUsuario() {
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <Button
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (window.history.length > 1) navigate(-1);
+                else navigate(createPageUrl('Feed'));
+              }}
               variant="ghost"
               size="icon"
               className="text-white hover:bg-gray-900"

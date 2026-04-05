@@ -385,6 +385,10 @@ export default function MapView({
           
           const event = cluster.events[0];
           const color = getGenreColor(event.genre);
+          const shortTitle = event.title?.length > 14 ? event.title.slice(0, 12) + '…' : (event.title || '');
+          const imgHtml = event.image_url
+            ? `<img src="${event.image_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+            : `<span style="font-size:18px;">🎵</span>`;
           
           return (
             <Marker
@@ -393,15 +397,53 @@ export default function MapView({
               icon={L.divIcon({
                 className: 'custom-marker',
                 html: `
-                  <div class="relative cursor-pointer transform hover:scale-110 transition-transform">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-2xl border-2 border-white" 
-                         style="background: ${color}; box-shadow: 0 0 20px ${color}80;">
-                      ${cluster.count}
+                  <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;">
+                    <!-- Pulse ring -->
+                    <div style="position:relative;width:52px;height:52px;">
+                      <div style="
+                        position:absolute;inset:-6px;
+                        border-radius:50%;
+                        background:${color}33;
+                        animation:pulse-ring 2s ease-in-out infinite;
+                      "></div>
+                      <div style="
+                        position:absolute;inset:-3px;
+                        border-radius:50%;
+                        border:2px solid ${color}99;
+                        animation:pulse-ring 2s ease-in-out infinite 0.5s;
+                      "></div>
+                      <!-- Avatar -->
+                      <div style="
+                        width:52px;height:52px;
+                        border-radius:50%;
+                        border:3px solid ${color};
+                        box-shadow:0 0 18px ${color}cc, 0 4px 16px rgba(0,0,0,0.8);
+                        overflow:hidden;
+                        background:#111;
+                        display:flex;align-items:center;justify-content:center;
+                        position:relative;z-index:2;
+                      ">${imgHtml}</div>
                     </div>
+                    <!-- Label -->
+                    <div style="
+                      margin-top:5px;
+                      background:rgba(0,0,0,0.88);
+                      border:1px solid ${color}88;
+                      border-radius:8px;
+                      padding:2px 7px;
+                      font-size:10px;
+                      font-weight:700;
+                      color:#fff;
+                      white-space:nowrap;
+                      box-shadow:0 0 8px ${color}66;
+                      max-width:90px;
+                      overflow:hidden;
+                      text-overflow:ellipsis;
+                    ">${shortTitle}</div>
                   </div>
                 `,
-                iconSize: [40, 40],
-                iconAnchor: [20, 20]
+                iconSize: [72, 80],
+                iconAnchor: [36, 80]
               })}
               eventHandlers={{
                 click: () => onPinClick(event.id)
@@ -450,16 +492,12 @@ export default function MapView({
 
       <style>{`
         .custom-marker, .custom-cluster {
-          background: none;
-          border: none;
+          background: none !important;
+          border: none !important;
         }
-        .leaflet-popup-content-wrapper {
-          background: white;
-          border-radius: 12px;
-          padding: 8px;
-        }
-        .leaflet-popup-tip {
-          background: white;
+        @keyframes pulse-ring {
+          0%, 100% { transform: scale(1); opacity: 0.6; }
+          50% { transform: scale(1.25); opacity: 0; }
         }
       `}</style>
     </div>

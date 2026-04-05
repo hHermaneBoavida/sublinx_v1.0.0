@@ -37,7 +37,7 @@ export default function ComprarIngresso() {
   const [abandonmentCount, setAbandonmentCount] = useState(0);
   
   const searchParams = new URLSearchParams(location.search);
-  const eventId = searchParams.get('eventId');
+  const eventId = searchParams.get('id') || searchParams.get('eventId');
   const isGuestList = searchParams.get('guestList') === 'true';
 
   const { data: user, isLoading: loadingUser } = useQuery({
@@ -307,6 +307,13 @@ export default function ComprarIngresso() {
   return (
     <div className="min-h-screen bg-black text-white p-4 pb-24 md:pb-8">
       <div className="max-w-4xl mx-auto">
+        {/* Back button */}
+        <button
+          onClick={() => { if (window.history.length > 1) navigate(-1); else navigate(createPageUrl('Feed')); }}
+          className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 mb-4 font-semibold"
+        >
+          <span style={{fontSize:20}}>&larr;</span> Voltar
+        </button>
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
