@@ -28,6 +28,8 @@ export default function EventDetailsModal({ event, onClose }) {
   const [showShareComment, setShowShareComment] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
   const [showAddReview, setShowAddReview] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
@@ -68,6 +70,16 @@ export default function EventDetailsModal({ event, onClose }) {
     enabled: !!event,
     initialData: [],
   });
+
+  // Verificar se já fez solicitação
+  const { data: existingRequest } = useQuery({
+    queryKey: ['eventRequest', user?.id, event.id],
+    queryFn: () => base44.entities.EventRequest.filter({ user_id: user.id, event_id: event.id }),
+    enabled: !!user?.id,
+    initialData: [],
+  });
+
+  const alreadyRequested = existingRequest?.length > 0;
 
   const hasTicket = userTickets.length > 0;
   const hasReviewed = eventReviews.some(r => r.user_id === user?.id);
@@ -545,29 +557,66 @@ export default function EventDetailsModal({ event, onClose }) {
               )}
 
               {/* Main CTA */}
-              <Button
-                onClick={() => {
-                  navigate(createPageUrl("Feed"));
-                  onClose();
-                }}
-                className="w-full h-14 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-base shadow-xl relative overflow-hidden group"
-              >
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
-                  animate={{
-                    x: ['-100%', '200%']
+              {event.requires_approval ? (
+                <Button
+                  disabled={requesting || alreadyRequested || requestSent}
+                  onClick={async () => {
+                    if (!user) { navigate(createPageUrl("BemVindo")); return; }
+                    setRequesting(true);
+                    try {
+                      await base44.entities.EventRequest.create({
+                        user_id: user.id,
+                        event_id: event.id,
+                        organizer_id: event.organizer_id,
+                        status: 'pending',
+                        applicant_data: {
+                          full_name: user.full_name || user.email,
+                          email: user.email,
+                        }
+                      });
+                      // Notifica o organizador
+                      await base44.entities.Notification.create({
+                        user_id: event.organizer_id,
+                        type: 'request_approved',
+                        title: '📋 Nova Solicitação',
+                        message: `${user.full_name || user.email} quer participar de "${event.title}"`,
+                        event_id: event.id,
+                        is_read: false,
+                      });
+                      // Notifica o próprio usuário
+                      await base44.entities.Notification.create({
+                        user_id: user.id,
+                        type: 'event_alert',
+                        title: '✅ Solicitação Enviada',
+                        message: `Sua solicitação para "${event.title}" foi enviada ao organizador.`,
+                        event_id: event.id,
+                        is_read: false,
+                      });
+                      setRequestSent(true);
+                      queryClient.invalidateQueries(['eventRequest', user.id, event.id]);
+                    } catch (e) {
+                      console.error(e);
+                    } finally {
+                      setRequesting(false);
+                    }
                   }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "linear"
+                  className="w-full h-14 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-base shadow-xl relative overflow-hidden"
+                >
+                  <Zap className="w-5 h-5 mr-2" />
+                  {requesting ? 'Enviando...' : (alreadyRequested || requestSent) ? '✅ Solicitação Enviada' : 'Solicitar Acesso'}
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    navigate(createPageUrl("ComprarIngresso") + `?id=${event.id}`);
+                    onClose();
                   }}
-                />
-                <Zap className="w-5 h-5 mr-2 relative z-10" />
-                <span className="relative z-10">
-                  {event.requires_approval ? 'Solicitar Acesso' : 'Comprar Ingresso'}
-                </span>
-              </Button>
+                  className="w-full h-14 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-base shadow-xl relative overflow-hidden"
+                >
+                  <Zap className="w-5 h-5 mr-2" />
+                  Comprar Ingresso
+                </Button>
+              )}
             </CardContent>
           </Card>
         </motion.div>

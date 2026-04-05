@@ -91,18 +91,15 @@ export default function Mapa() {
   }, []);
 
   const { data: eventsData, isLoading: isLoadingEvents, error: eventsError } = useQuery({
-    queryKey: ['nearbyEvents', userLocation?.lat, userLocation?.lng],
+    queryKey: ['nearbyEvents'],
     queryFn: async () => {
       try {
         const allEvents = await base44.entities.Event.list("-date", 100);
         
-        if (!Array.isArray(allEvents)) {
-          console.error("Events is not an array:", allEvents);
-          return { events: [] };
-        }
+        if (!Array.isArray(allEvents)) return { events: [] };
         
         const futureEvents = allEvents.filter(e => {
-          if (!e?.date || !e?.location) return false;
+          if (!e?.date || !e?.location?.lat || !e?.location?.lng) return false;
           try {
             const eventDate = new Date(e.date);
             return eventDate > new Date() && !isNaN(eventDate.getTime());
@@ -118,7 +115,7 @@ export default function Mapa() {
       }
     },
     staleTime: 3 * 60 * 1000,
-    enabled: !!userLocation,
+    enabled: true,
     retry: 2,
     initialData: { events: [] },
     retryDelay: 1000,
@@ -152,7 +149,7 @@ export default function Mapa() {
       const vibeMatch = matchesVibe(event, activeVibe);
 
       let distanceMatch = true;
-      if (userLocation) {
+      if (userLocation && event.location?.lat && event.location?.lng) {
         const distance = calculateDistance(
           userLocation.lat,
           userLocation.lng,
@@ -264,32 +261,8 @@ export default function Mapa() {
     );
   }
 
-  if (locationError || !userLocation) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900/20 px-4">
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="max-w-md bg-gray-900/80 backdrop-blur-xl border border-red-500/30 rounded-2xl p-8 text-center"
-        >
-          <MapPin className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-3">
-            Localização Necessária
-          </h2>
-          <p className="text-gray-300 mb-6">
-            Permita acesso à localização para descobrir eventos próximos
-          </p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 h-12 text-lg rounded-lg text-white font-semibold"
-          >
-            <MapPin className="w-5 h-5 mr-2 inline" />
-            Tentar Novamente
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
+  // Se não tiver localização, usa São Paulo como fallback — não bloqueia o mapa
+  const effectiveLocation = userLocation || { lat: -23.5505, lng: -46.6333 };
 
   if (eventsError) {
     return (
@@ -344,7 +317,7 @@ export default function Mapa() {
             >
               <MapView 
                 events={filteredEvents} 
-                userLocation={userLocation}
+                userLocation={effectiveLocation}
                 onPinClick={handlePinClick} 
                 onPinDetailsClick={handlePinDetailsClick}
                 onOpenFilters={() => {}}

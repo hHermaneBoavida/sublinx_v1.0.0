@@ -1,52 +1,32 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Search, PlusCircle, PlayCircle, User } from "lucide-react";
+import { MapPin, Search, PlusCircle, PlayCircle, User, Users } from "lucide-react";
 import { createPageUrl } from "@/utils";
 
-export default function BottomNav({ navigationItems, location, isOrganizer, isGuest }) {
-  // Build the 5-item pill nav (Instagram-style)
-  const items = [
-    { title: "Mapa", icon: MapPin, url: createPageUrl("Mapa") },
-    { title: "Explorar", icon: Search, url: createPageUrl("Feed") },
-    ...(isOrganizer
-      ? [{ title: "Criar", icon: PlusCircle, url: createPageUrl("CriarEvento"), isAction: true }]
-      : [{ title: "Reels", icon: PlayCircle, url: createPageUrl("Mapa") + "?view=reels", isAction: false }]
-    ),
-    { title: "Reels", icon: PlayCircle, url: createPageUrl("Mapa") + "?view=reels" },
-    { title: "Perfil", icon: User, url: isGuest ? createPageUrl("BemVindo") : createPageUrl("Perfil") },
-  ];
-
-  // Deduplicate by title for non-organizers
+export default function BottomNav({ location, isOrganizer, isGuest }) {
   const navItems = isOrganizer
     ? [
         { title: "Mapa", icon: MapPin, url: createPageUrl("Mapa") },
         { title: "Explorar", icon: Search, url: createPageUrl("Feed") },
         { title: "Criar", icon: PlusCircle, url: createPageUrl("CriarEvento"), isAction: true },
-        { title: "Reels", icon: PlayCircle, url: createPageUrl("Mapa") + "?view=reels" },
+        { title: "Reels", icon: PlayCircle, url: createPageUrl("Mapa") },
         { title: "Perfil", icon: User, url: createPageUrl("Perfil") },
       ]
     : [
         { title: "Mapa", icon: MapPin, url: createPageUrl("Mapa") },
         { title: "Explorar", icon: Search, url: createPageUrl("Feed") },
-        { title: "Reels", icon: PlayCircle, url: createPageUrl("Mapa") + "?view=reels" },
-        { title: "Comunidade", icon: Search, url: createPageUrl("Comunidade") },
+        { title: "Reels", icon: PlayCircle, url: createPageUrl("Mapa") },
+        { title: "Comunidade", icon: Users, url: createPageUrl("Comunidade") },
         { title: "Perfil", icon: User, url: isGuest ? createPageUrl("BemVindo") : createPageUrl("Perfil") },
       ];
 
-  const isActive = (url) => {
-    const base = url.split("?")[0];
-    return location.pathname === base;
-  };
+  const isActive = (url) => location?.pathname === url.split("?")[0];
 
   return (
     <div
       className="md:hidden fixed z-[9999]"
-      style={{
-        bottom: 16,
-        left: 16,
-        right: 16,
-      }}
+      style={{ bottom: 16, left: 16, right: 16 }}
     >
       <div
         className="flex justify-around items-center"
@@ -65,26 +45,19 @@ export default function BottomNav({ navigationItems, location, isOrganizer, isGu
           const active = isActive(item.url);
 
           return (
-            <motion.div
-              key={item.title}
-              whileTap={{ scale: 0.88 }}
-              style={{ flex: 1 }}
-            >
+            <motion.div key={item.title} whileTap={{ scale: 0.88 }} style={{ flex: 1 }}>
               <Link
                 to={item.url}
                 className="flex flex-col items-center justify-center gap-[3px]"
                 style={{ minHeight: 44 }}
               >
                 {item.isAction ? (
-                  /* Central action button */
                   <div
                     style={{
                       width: 42,
                       height: 42,
                       borderRadius: 14,
-                      background: active
-                        ? "linear-gradient(135deg, #7B61FF, #a855f7)"
-                        : "linear-gradient(135deg, rgba(123,97,255,0.7), rgba(168,85,247,0.7))",
+                      background: "linear-gradient(135deg, #7B61FF, #a855f7)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -96,11 +69,7 @@ export default function BottomNav({ navigationItems, location, isOrganizer, isGu
                 ) : (
                   <>
                     <motion.div
-                      animate={
-                        active
-                          ? { filter: "drop-shadow(0 0 8px rgba(123,97,255,0.8))" }
-                          : { filter: "none" }
-                      }
+                      animate={active ? { filter: "drop-shadow(0 0 8px rgba(123,97,255,0.8))" } : { filter: "none" }}
                       transition={{ duration: 0.2 }}
                     >
                       <item.icon
