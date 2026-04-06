@@ -93,31 +93,25 @@ export default function Mapa() {
   const { data: eventsData, isLoading: isLoadingEvents, error: eventsError } = useQuery({
     queryKey: ['nearbyEvents'],
     queryFn: async () => {
-      try {
-        const allEvents = await base44.entities.Event.list("-date", 100);
-        
-        if (!Array.isArray(allEvents)) return { events: [] };
-        
-        const futureEvents = allEvents.filter(e => {
-          if (!e?.date || !e?.location?.lat || !e?.location?.lng) return false;
-          try {
-            const eventDate = new Date(e.date);
-            return eventDate > new Date() && !isNaN(eventDate.getTime());
-          } catch {
-            return false;
-          }
-        });
+      const allEvents = await base44.entities.Event.list("-date", 100);
+      
+      if (!Array.isArray(allEvents)) return { events: [] };
+      
+      const futureEvents = allEvents.filter(e => {
+        if (!e?.date || !e?.location?.lat || !e?.location?.lng) return false;
+        try {
+          const eventDate = new Date(e.date);
+          return eventDate > new Date() && !isNaN(eventDate.getTime());
+        } catch {
+          return false;
+        }
+      });
 
-        return { events: futureEvents };
-      } catch (error) {
-        console.error("Erro ao carregar eventos:", error);
-        return { events: [] };
-      }
+      return { events: futureEvents };
     },
     staleTime: 3 * 60 * 1000,
     enabled: true,
     retry: 2,
-    initialData: { events: [] },
     retryDelay: 1000,
   });
 
