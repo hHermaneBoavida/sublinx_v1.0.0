@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -62,58 +63,21 @@ export default function DashboardOrganizador() {
     ...CACHE_CONFIG.STATIC,
   });
 
-  // Busca direta nas entities (sem backend function)
-  const { data: events = [], isLoading: loadingEvents } = useQuery({
-    queryKey: ['myEvents', user?.id],
+  // SSR: Fetch dashboard metrics from backend function
+  const { data: dashboardData, isLoading: loadingMetrics } = useQuery({
+    queryKey: ['dashboardMetrics', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
-      return await base44.entities.Event.filter({ organizer_id: user.id }, '-date', 50);
+      const response = await base44.functions.invoke('getDashboardMetrics');
+      return response.data;
     },
     enabled: !!user?.id,
     staleTime: 30000,
+    refetchInterval: 60000,
   });
 
-  const { data: tickets = [], isLoading: loadingTickets } = useQuery({
-    queryKey: ['allOrgTickets', user?.id],
-    queryFn: async () => {
-      if (!events.length) return [];
-      const eventIds = events.map(e => e.id);
-      return await base44.entities.Ticket.filter({ event_id: { $in: eventIds } }, '-created_date', 200);
-    },
-    enabled: !!user?.id && events.length > 0,
-    staleTime: 30000,
-  });
-
-  const { data: requests = [] } = useQuery({
-    queryKey: ['allOrgRequests', user?.id],
-    queryFn: async () => {
-      if (!events.length) return [];
-      const eventIds = events.map(e => e.id);
-      return await base44.entities.EventRequest.filter({ organizer_id: user.id }, '-created_date', 100);
-    },
-    enabled: !!user?.id && events.length > 0,
-    staleTime: 30000,
-  });
-
-  const loadingMetrics = loadingEvents || loadingTickets;
-
-  const metrics = useMemo(() => {
-    const validTickets = tickets.filter(t => t.status !== 'cancelled');
-    const totalRevenue = validTickets.reduce((sum, t) => sum + (t.price || 0), 0);
-    const totalSold = validTickets.length;
-    const totalCapacity = events.reduce((sum, e) => sum + (e.max_capacity || 0), 0);
-    const occupancyRate = totalCapacity > 0 ? Math.round((totalSold / totalCapacity) * 100) : 0;
-    const avgPrice = totalSold > 0 ? totalRevenue / totalSold : 0;
-    return { totalRevenue, totalSold, totalCapacity, occupancyRate, avgPrice, engagement: 0, totalLikes: 0, totalComments: 0 };
-  }, [tickets, events]);
-
-  const chartData = useMemo(() => {
-    const revenueByEvent = events.slice(0, 5).map(e => ({
-      name: e.title?.slice(0, 12) + (e.title?.length > 12 ? '…' : ''),
-      receita: tickets.filter(t => t.event_id === e.id && t.status !== 'cancelled').reduce((s, t) => s + (t.price || 0), 0)
-    }));
-    return { revenueByEvent, last30Days: [], ticketTypesData: [], revenueGrowth: 0 };
-  }, [events, tickets]);
+  const metrics = dashboardData?.metrics || {};
+  const chartData = dashboardData?.charts || {};
+  const { events = [], tickets = [], requests = [], comments = [] } = dashboardData?.rawData || {};
 
   React.useEffect(() => {
     if (user && events.length === 0 && !localStorage.getItem('onboarding_completed')) {
@@ -176,24 +140,11 @@ export default function DashboardOrganizador() {
     return alertList.filter(alert => !dismissedAlerts.has(alert.id));
   }, [events, tickets, requests, dismissedAlerts, thresholds, navigate]);
 
-  const handleExportReport = (reportType) => {
+  const handleExportReport = async (reportType) => {
     try {
-      let data = [];
-      let headers = [];
-
-      if (reportType === 'sales') {
-        headers = ['ID,Evento,Tipo,Preco,Status,Data'];
-        data = tickets.map(t => `${t.id},${events.find(e => e.id === t.event_id)?.title || ''},${t.ticket_type || ''},${t.price || 0},${t.status},${t.created_date}`);
-      } else if (reportType === 'attendees') {
-        headers = ['Nome,Email,Telefone,Evento'];
-        data = tickets.map(t => `${t.attendee_info?.full_name || ''},${t.attendee_info?.email || ''},${t.attendee_info?.phone || ''},${events.find(e => e.id === t.event_id)?.title || ''}`);
-      } else {
-        headers = ['ID,Titulo,Data,Capacidade,Vendidos'];
-        data = events.map(e => `${e.id},${e.title},${e.date},${e.max_capacity || 0},${tickets.filter(t => t.event_id === e.id).length}`);
-      }
-
-      const csv = [...headers, ...data].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
+      const response = await base44.functions.invoke('exportDashboardReport', { reportType });
+      
+      const blob = new Blob([response.data], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -203,6 +154,7 @@ export default function DashboardOrganizador() {
       window.URL.revokeObjectURL(url);
       a.remove();
     } catch (error) {
+      console.error('Erro ao exportar:', error);
       alert('Erro ao exportar relatório');
     }
   };
