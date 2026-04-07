@@ -18,13 +18,15 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-function MapUpdater({ center, zoom }) {
+function MapUpdater({ center }) {
   const map = useMap();
+  const initializedRef = useRef(false);
   useEffect(() => {
-    if (center) {
-      map.setView(center, zoom);
+    if (center && !initializedRef.current) {
+      initializedRef.current = true;
+      map.setView(center, map.getZoom());
     }
-  }, [center, zoom, map]);
+  }, [center, map]);
   return null;
 }
 
@@ -354,7 +356,7 @@ export default function MapView({
         />
         
         <ZoomControl position="bottomright" />
-        <MapUpdater center={center} zoom={zoom} />
+        <MapUpdater center={center} />
         <ZoomTracker onZoomChange={setZoomLevel} />
 
         {userLocation && (
