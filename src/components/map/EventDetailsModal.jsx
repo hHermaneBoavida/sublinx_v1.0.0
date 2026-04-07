@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -560,8 +561,12 @@ export default function EventDetailsModal({ event, onClose }) {
               {event.requires_approval ? (
                 <Button
                   disabled={requesting || alreadyRequested || requestSent}
-                  onClick={async () => {
-                    if (!user) { navigate(createPageUrl("BemVindo")); return; }
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!user) {
+                      toast.error('Faça login para solicitar acesso');
+                      return;
+                    }
                     setRequesting(true);
                     try {
                       await base44.entities.EventRequest.create({
@@ -574,7 +579,6 @@ export default function EventDetailsModal({ event, onClose }) {
                           email: user.email,
                         }
                       });
-                      // Notifica o organizador
                       await base44.entities.Notification.create({
                         user_id: event.organizer_id,
                         type: 'request_approved',
@@ -583,7 +587,6 @@ export default function EventDetailsModal({ event, onClose }) {
                         event_id: event.id,
                         is_read: false,
                       });
-                      // Notifica o próprio usuário
                       await base44.entities.Notification.create({
                         user_id: user.id,
                         type: 'event_alert',
@@ -594,8 +597,10 @@ export default function EventDetailsModal({ event, onClose }) {
                       });
                       setRequestSent(true);
                       queryClient.invalidateQueries(['eventRequest', user.id, event.id]);
-                    } catch (e) {
-                      console.error(e);
+                      toast.success('✅ Solicitação enviada! O organizador foi notificado.');
+                    } catch (err) {
+                      console.error('Erro ao solicitar acesso:', err);
+                      toast.error('Erro ao enviar solicitação. Tente novamente.');
                     } finally {
                       setRequesting(false);
                     }
