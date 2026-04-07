@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Crown, Zap, Star, CreditCard, Loader2 } from "lucide-react";
+import { Check, Crown, Zap, Star, CreditCard, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -215,6 +215,17 @@ export default function Planos() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Back Button */}
+      <div className="mb-6">
+        <button
+          onClick={() => { if (window.history.length > 1) navigate(-1); else navigate(createPageUrl('Mapa')); }}
+          className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Voltar
+        </button>
+      </div>
+
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-lime-400 bg-clip-text mb-4">
