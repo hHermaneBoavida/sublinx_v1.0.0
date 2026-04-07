@@ -8,7 +8,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import InfiniteScrollTrigger from "../components/feed/InfiniteScrollTrigger";
 import SortControls, { SORT_OPTIONS } from "../components/feed/SortControls";
-import { Search, Heart, RefreshCw, SlidersHorizontal, Sparkles, TrendingUp, Music } from "lucide-react";
+import { Search, Heart, RefreshCw, SlidersHorizontal, Sparkles, TrendingUp, Music, Crown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
@@ -43,7 +43,8 @@ export default function Feed() {
 
   const userContext = useCurrentUser();
   const user = userContext?.user || null;
-  const isGuest = !user;
+  const isLoadingUser = userContext?.isLoading ?? true;
+  const isGuest = !isLoadingUser && !user;
 
   // Sistema de Ressonância - Captura passiva de sinais
   const { captureSilentConsumption, captureInteractionDepth } = useSignalCapture(user, {});
@@ -319,6 +320,7 @@ export default function Feed() {
                 Entrar
               </Button>
             )}
+            {!isGuest && !isLoadingUser && null}
           </div>
         </div>
 
@@ -486,14 +488,31 @@ export default function Feed() {
       )}
 
       <div className="px-3 sm:px-4 py-2.5 border-b border-gray-800/30">
-        <Button
-          className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 h-10 text-sm font-semibold shadow-lg"
-          onClick={() => setShowShareVibe(true)}
-          disabled={isGuest}
-        >
-          <Heart className="w-4 h-4 mr-2" />
-          {isGuest ? "Entre para Compartilhar" : "Compartilhar Minha Vibe"}
-        </Button>
+        {isGuest ? (
+          <Button
+            className="w-full bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 h-10 text-sm font-semibold shadow-lg"
+            onClick={() => navigate(createPageUrl("BemVindo"))}
+          >
+            <Heart className="w-4 h-4 mr-2" />
+            Entrar para começar
+          </Button>
+        ) : (!user?.is_pro_member && !user?.is_organizer) ? (
+          <Button
+            className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 h-10 text-sm font-semibold shadow-lg"
+            onClick={() => navigate(createPageUrl("Planos"))}
+          >
+            <Crown className="w-4 h-4 mr-2" />
+            Assine para publicar eventos
+          </Button>
+        ) : (
+          <Button
+            className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 h-10 text-sm font-semibold shadow-lg"
+            onClick={() => navigate(createPageUrl("CriarEvento"))}
+          >
+            <Heart className="w-4 h-4 mr-2" />
+            Publicar Evento
+          </Button>
+        )}
       </div>
 
       <div className="space-y-0">
