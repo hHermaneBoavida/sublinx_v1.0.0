@@ -448,7 +448,7 @@ export default function MapView({
                 iconAnchor: [36, 80]
               })}
               eventHandlers={{
-                click: () => onPinClick(event.id)
+                click: () => onPinDetailsClick(event)
               }}
             >
               <Popup>
