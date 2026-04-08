@@ -1,0 +1,48 @@
+{
+  "name": "Reel",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento ao qual o reel est\u00e1 associado"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que postou o reel"
+    },
+    "video_url": {
+      "type": "string",
+      "description": "URL do v\u00eddeo"
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "URL da thumbnail do v\u00eddeo"
+    },
+    "description": {
+      "type": "string",
+      "description": "Legenda ou descri\u00e7\u00e3o do v\u00eddeo"
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0
+    },
+    "comments_count": {
+      "type": "number",
+      "default": 0
+    },
+    "view_count": {
+      "type": "number",
+      "default": 0
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora de expira\u00e7\u00e3o do reel (24h ap\u00f3s cria\u00e7\u00e3o)"
+    }
+  },
+  "required": [
+    "event_id",
+    "user_id",
+    "video_url"
+  ]
+}

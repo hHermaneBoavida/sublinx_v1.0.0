@@ -13,10 +13,17 @@ export default function ReelsView({ reels, events, initialEventId, onClose }) {
   useEffect(() => {
     const eventMap = new Map(events.map(e => [e.id, e]));
 
-    const reelsWithEventData = reels.map(reel => ({
-      ...reel,
-      event: eventMap.get(reel.event_id),
-    })).filter(reel => reel.event);
+    const now = new Date();
+    const reelsWithEventData = reels
+      .filter(reel => {
+        // Filtrar reels expirados (24h)
+        if (reel.expires_at && new Date(reel.expires_at) < now) return false;
+        return true;
+      })
+      .map(reel => ({
+        ...reel,
+        event: eventMap.get(reel.event_id) || { id: reel.event_id, title: 'Evento', genre: '' },
+      }));
     
     if (initialEventId) {
       const initialReelIndex = reelsWithEventData.findIndex(r => r.event_id === initialEventId);

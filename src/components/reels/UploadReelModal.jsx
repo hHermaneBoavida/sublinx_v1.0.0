@@ -78,10 +78,24 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
       return;
     }
 
+    // Verificar limite de 10 reels ativos
+    try {
+      const now = new Date().toISOString();
+      const myReels = await base44.entities.Reel.filter({ user_id: user.id });
+      const activeReels = myReels.filter(r => !r.expires_at || r.expires_at > now);
+      if (activeReels.length >= 10) {
+        alert("❌ Você atingiu o limite de 10 Reels ativos. Aguarde a expiração de algum para publicar novo.");
+        return;
+      }
+    } catch (e) {
+      console.error("Erro ao verificar limite de reels:", e);
+    }
+
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       await base44.entities.Reel.create({
         event_id: selectedEventId,
         user_id: user.id,
@@ -90,7 +104,8 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
         thumbnail_url: file_url,
         likes_count: 0,
         comments_count: 0,
-        view_count: 0
+        view_count: 0,
+        expires_at: expiresAt
       });
       
       setUploadSuccess(true);

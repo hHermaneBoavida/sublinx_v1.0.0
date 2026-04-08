@@ -121,14 +121,17 @@ export default function Mapa() {
     queryKey: ['mapReels'],
     queryFn: async () => {
       try {
-        const data = await base44.entities.Reel.list("-created_date", 20);
-        return data || [];
+        const data = await base44.entities.Reel.list("-created_date", 100);
+        if (!data) return [];
+        // Filtrar reels expirados (24h) no cliente
+        const now = new Date();
+        return data.filter(r => !r.expires_at || new Date(r.expires_at) > now);
       } catch (error) {
         console.error("Erro ao carregar reels:", error);
         return [];
       }
     },
-    staleTime: 15 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
     initialData: [],
   });
 
