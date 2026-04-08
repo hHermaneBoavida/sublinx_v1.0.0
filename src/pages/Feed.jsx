@@ -8,7 +8,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import InfiniteScrollTrigger from "../components/feed/InfiniteScrollTrigger";
 import SortControls, { SORT_OPTIONS } from "../components/feed/SortControls";
-import { Search, Heart, RefreshCw, SlidersHorizontal, Sparkles, TrendingUp, Music, Crown } from "lucide-react";
+import { Search, Heart, RefreshCw, SlidersHorizontal, Sparkles, TrendingUp, Music, Crown, Menu } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
@@ -312,12 +312,14 @@ export default function Feed() {
               <RefreshCw className="w-4 h-4 text-cyan-400" />
             </Button>
             {isGuest && (
-              <Button 
+              <Button
                 onClick={() => navigate(createPageUrl("BemVindo"))}
-                size="sm"
-                className="bg-gradient-to-r from-cyan-600 to-purple-600 text-xs h-8 px-3"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-gray-800 text-gray-300"
+                title="Menu"
               >
-                Entrar
+                <Menu className="w-5 h-5" />
               </Button>
             )}
             {!isGuest && !isLoadingUser && null}

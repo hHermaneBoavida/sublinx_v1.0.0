@@ -409,7 +409,7 @@ export default function PerfilUsuario() {
                   <div
                     key={event.id}
                     className="aspect-square bg-gray-900 rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => navigate(createPageUrl("Feed"))}
+                    onClick={() => navigate(createPageUrl("EventoDetalhes") + `?id=${event.id}`)}
                   >
                     {event.image_url ? (
                       <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />

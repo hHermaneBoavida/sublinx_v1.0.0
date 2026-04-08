@@ -185,7 +185,23 @@ export default function ComprarIngresso() {
     );
   }
 
-  if (!event) return null;
+  if (!eventId || (!loadingEvent && !event)) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">Evento não encontrado</h2>
+          <p className="text-gray-400 mb-6">Não foi possível carregar os dados do evento.</p>
+          <button
+            onClick={() => navigate(createPageUrl('Feed'))}
+            className="flex items-center gap-2 mx-auto text-cyan-400 hover:text-cyan-300 font-semibold"
+          >
+            ← Voltar ao Feed
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (purchaseSuccess && generatedTicket) {
     return (
