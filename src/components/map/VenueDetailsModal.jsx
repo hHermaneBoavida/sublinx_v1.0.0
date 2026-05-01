@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Phone, Mail, Globe, Instagram, Star, Users, DollarSign, Clock, Calendar } from 'lucide-react';
+import { X, MapPin, Phone, Mail, Globe, Instagram, Star, Users, DollarSign, Clock, Calendar, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';

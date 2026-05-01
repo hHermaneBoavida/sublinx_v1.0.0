@@ -46,9 +46,15 @@ export default function PerfilUsuario() {
     queryKey: ['profileUser', userId],
     queryFn: async () => {
       if (!userId) throw new Error("ID não fornecido");
-      const users = await base44.entities.User.filter({ id: userId });
-      if (!users || users.length === 0) throw new Error("Usuário não encontrado");
-      return users[0];
+      // Tentar por filter primeiro, fallback para list
+      try {
+        const users = await base44.entities.User.filter({ id: userId });
+        if (users && users.length > 0) return users[0];
+      } catch {}
+      const allUsers = await base44.entities.User.list('', 500);
+      const found = (allUsers || []).find(u => u.id === userId);
+      if (!found) throw new Error("Usuário não encontrado");
+      return found;
     },
     enabled: !!userId,
     retry: 1,

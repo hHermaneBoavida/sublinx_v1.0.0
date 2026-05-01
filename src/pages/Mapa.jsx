@@ -90,6 +90,22 @@ export default function Mapa() {
     };
   }, []);
 
+  const [eventsRealtime, setEventsRealtime] = React.useState(null);
+
+  // Subscription em tempo real para eventos
+  React.useEffect(() => {
+    const unsub = base44.entities.Event.subscribe((evt) => {
+      setEventsRealtime(prev => {
+        const current = prev || [];
+        if (evt.type === 'create') return [evt.data, ...current];
+        if (evt.type === 'update') return current.map(e => e.id === evt.id ? evt.data : e);
+        if (evt.type === 'delete') return current.filter(e => e.id !== evt.id);
+        return current;
+      });
+    });
+    return unsub;
+  }, []);
+
   const { data: eventsData, isLoading: isLoadingEvents, error: eventsError } = useQuery({
     queryKey: ['nearbyEvents'],
     queryFn: async () => {
@@ -97,11 +113,13 @@ export default function Mapa() {
       
       if (!Array.isArray(allEvents)) return { events: [] };
       
+      // Mostrar eventos até 24h após o início (em andamento incluídos)
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const futureEvents = allEvents.filter(e => {
         if (!e?.date || !e?.location?.lat || !e?.location?.lng) return false;
         try {
           const eventDate = new Date(e.date);
-          return eventDate > new Date() && !isNaN(eventDate.getTime());
+          return eventDate > cutoff && !isNaN(eventDate.getTime());
         } catch {
           return false;
         }
@@ -115,17 +133,15 @@ export default function Mapa() {
     retryDelay: 1000,
   });
 
-  const events = eventsData?.events || [];
+  const events = eventsRealtime || eventsData?.events || [];
 
-  const { data: reels = [], isLoading: isLoadingReels } = useQuery({
+  const [reelsRealtime, setReelsRealtime] = React.useState([]);
+  const { data: reelsFetched = [], isLoading: isLoadingReels } = useQuery({
     queryKey: ['mapReels'],
     queryFn: async () => {
       try {
-        const data = await base44.entities.Reel.list("-created_date", 100);
-        if (!data) return [];
-        // Filtrar reels expirados (24h) no cliente
-        const now = new Date();
-        return data.filter(r => !r.expires_at || new Date(r.expires_at) > now);
+        const data = await base44.entities.Reel.list("-created_date", 200);
+        return data || [];
       } catch (error) {
         console.error("Erro ao carregar reels:", error);
         return [];
@@ -134,6 +150,26 @@ export default function Mapa() {
     staleTime: 2 * 60 * 1000,
     initialData: [],
   });
+
+  // Subscription em tempo real para novos reels
+  React.useEffect(() => {
+    setReelsRealtime(reelsFetched);
+  }, [reelsFetched]);
+
+  React.useEffect(() => {
+    const unsub = base44.entities.Reel.subscribe((event) => {
+      if (event.type === 'create') {
+        setReelsRealtime(prev => [event.data, ...prev]);
+      } else if (event.type === 'update') {
+        setReelsRealtime(prev => prev.map(r => r.id === event.id ? event.data : r));
+      } else if (event.type === 'delete') {
+        setReelsRealtime(prev => prev.filter(r => r.id !== event.id));
+      }
+    });
+    return unsub;
+  }, []);
+
+  const reels = reelsRealtime;
 
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
@@ -146,14 +182,14 @@ export default function Mapa() {
       const vibeMatch = matchesVibe(event, activeVibe);
 
       let distanceMatch = true;
-      if (userLocation && event.location?.lat && event.location?.lng) {
+      if (event.location?.lat && event.location?.lng) {
         const distance = calculateDistance(
-          userLocation.lat,
-          userLocation.lng,
+          effectiveLocation.lat,
+          effectiveLocation.lng,
           event.location.lat,
           event.location.lng
         );
-        distanceMatch = distance <= filters.maxDistance;
+        distanceMatch = distance <= effectiveMaxDistance;
       }
 
       const attendeesMatch = (event.current_attendees || 0) >= filters.minAttendees;
@@ -260,6 +296,8 @@ export default function Mapa() {
 
   // Se não tiver localização, usa São Paulo como fallback — não bloqueia o mapa
   const effectiveLocation = userLocation || { lat: -23.5505, lng: -46.6333 };
+  // Quando não tem localização real, não filtrar por distância (mostrar todos)
+  const effectiveMaxDistance = userLocation ? filters.maxDistance : 99999;
 
   if (eventsError) {
     return (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { X, UploadCloud, Loader2, PartyPopper, CheckCircle2, MapPin, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { calculateDistance, filterFutureEvents, CACHE_CONFIG } from '../shared/helpers';
+import { calculateDistance, CACHE_CONFIG } from '../shared/helpers';
 
 export default function UploadReelModal({ onClose, onUploadComplete, events, userLocation }) {
   const [file, setFile] = useState(null);
@@ -32,8 +32,10 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
   const { data: availableEvents, isLoading: loadingEvents } = useQuery({
     queryKey: ['uploadReelEvents'],
     queryFn: async () => {
-      const data = await base44.entities.Event.list("-date", 100);
-      return filterFutureEvents(data);
+      const data = await base44.entities.Event.list("-date", 200);
+      // Mostrar todos os eventos (incluindo em andamento — até 24h após início)
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      return (data || []).filter(e => e?.id && e?.title && e?.date && new Date(e.date) > cutoff);
     },
     enabled: !events || events.length === 0,
     initialData: [],
@@ -42,16 +44,17 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
 
   const eventsList = events && events.length > 0 ? events : availableEvents;
 
-  const sortedEvents = React.useMemo(() => {
+  const sortedEvents = useMemo(() => {
     if (!eventsList || eventsList.length === 0) return [];
-    
-    return [...eventsList]
-      .filter(e => e?.location?.lat && e?.location?.lng)
-      .sort((a, b) => {
-        const distA = calculateDistance(userLocation.lat, userLocation.lng, a.location.lat, a.location.lng);
-        const distB = calculateDistance(userLocation.lat, userLocation.lng, b.location.lat, b.location.lng);
-        return distA - distB;
-      });
+    const withCoords = eventsList.filter(e => e?.location?.lat && e?.location?.lng);
+    const withoutCoords = eventsList.filter(e => !e?.location?.lat || !e?.location?.lng);
+    if (!userLocation) return [...withCoords, ...withoutCoords];
+    const sorted = [...withCoords].sort((a, b) => {
+      const distA = calculateDistance(userLocation.lat, userLocation.lng, a.location.lat, a.location.lng);
+      const distB = calculateDistance(userLocation.lat, userLocation.lng, b.location.lat, b.location.lng);
+      return distA - distB;
+    });
+    return [...sorted, ...withoutCoords];
   }, [eventsList, userLocation]);
 
   const handleFileChange = (e) => {
@@ -73,31 +76,17 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
   };
 
   const handleUpload = async () => {
-    if (!file || !selectedEventId || !user) {
-      alert("❌ Preencha todos os campos.");
+    if (!file || !user) {
+      alert("❌ Selecione um vídeo para publicar.");
       return;
-    }
-
-    // Verificar limite de 10 reels ativos
-    try {
-      const now = new Date().toISOString();
-      const myReels = await base44.entities.Reel.filter({ user_id: user.id });
-      const activeReels = myReels.filter(r => !r.expires_at || r.expires_at > now);
-      if (activeReels.length >= 10) {
-        alert("❌ Você atingiu o limite de 10 Reels ativos. Aguarde a expiração de algum para publicar novo.");
-        return;
-      }
-    } catch (e) {
-      console.error("Erro ao verificar limite de reels:", e);
     }
 
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       await base44.entities.Reel.create({
-        event_id: selectedEventId,
+        event_id: selectedEventId || 'global',
         user_id: user.id,
         video_url: file_url,
         description: description || "",
@@ -105,7 +94,7 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
         likes_count: 0,
         comments_count: 0,
         view_count: 0,
-        expires_at: expiresAt
+        // Sem expires_at — reels ficam permanentes (filtrar apenas por data do evento se necessário)
       });
       
       setUploadSuccess(true);
@@ -195,7 +184,7 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
               />
               
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Selecione o Evento *</label>
+                <label className="text-xs text-gray-400 mb-1 block">Selecione o Evento (opcional)</label>
                 {loadingEvents ? (
                   <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 text-center">
                     <Loader2 className="w-5 h-5 animate-spin text-cyan-400 mx-auto mb-2" />
@@ -258,7 +247,7 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
               
               <Button 
                 onClick={handleUpload} 
-                disabled={uploading || !file || !selectedEventId} 
+                disabled={uploading || !file} 
                 className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 disabled:opacity-50 text-sm sm:text-base h-10 sm:h-11"
               >
                 {uploading ? (

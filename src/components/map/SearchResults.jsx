@@ -24,8 +24,6 @@ export default function SearchResults({
   const [priceRange, setPriceRange] = useState([0, 200]);
   const [genreFilter, setGenreFilter] = useState('all');
 
-  if (!searchData && !isLoading) return null;
-
   const { query, normalized_query, detected_type, search_intent, results = [], suggestions = [] } = searchData || {};
 
   // Aplicar filtros
@@ -138,6 +136,8 @@ export default function SearchResults({
   }, [results]);
 
   const hasActiveFilters = dateFilter !== 'all' || priceRange[0] > 0 || priceRange[1] < 200 || genreFilter !== 'all';
+
+  if (!searchData && !isLoading) return null;
 
   return (
     <motion.div

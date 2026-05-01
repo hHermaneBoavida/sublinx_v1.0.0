@@ -1,25 +1,65 @@
-import React from "react";
+import React, { useCallback, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { MapPin, Info, AlertCircle } from "lucide-react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapPin, Info, AlertCircle, Search } from "lucide-react";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 function LocationMarker({ position, setPosition }) {
   useMapEvents({
     click(e) {
-      setPosition({
-        lat: e.latlng.lat,
-        lng: e.latlng.lng
-      });
+      setPosition({ lat: e.latlng.lat, lng: e.latlng.lng });
     },
   });
-
   return position ? <Marker position={[position.lat, position.lng]} /> : null;
 }
 
+function MapRecenter({ lat, lng }) {
+  const map = useMap();
+  React.useEffect(() => {
+    if (lat && lng) map.setView([lat, lng], 15);
+  }, [lat, lng]);
+  return null;
+}
+
 export default function LocationStep({ formData, errors, onInputChange }) {
+  const [geocoding, setGeocoding] = React.useState(false);
+  const [geocodeError, setGeocodeError] = React.useState('');
+  const geocodeTimerRef = useRef(null);
+
+  const geocodeAddress = useCallback(async (address, city, state) => {
+    const query = [address, city, state, 'Brasil'].filter(Boolean).join(', ');
+    if (!query.trim() || query.trim() === 'Brasil') return;
+    setGeocoding(true);
+    setGeocodeError('');
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+        { headers: { 'Accept-Language': 'pt-BR' } }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        onInputChange('location.lat', parseFloat(data[0].lat));
+        onInputChange('location.lng', parseFloat(data[0].lon));
+      } else {
+        setGeocodeError('Endereço não encontrado. Clique no mapa para marcar manualmente.');
+      }
+    } catch {
+      setGeocodeError('Erro ao buscar localização. Clique no mapa para marcar manualmente.');
+    } finally {
+      setGeocoding(false);
+    }
+  }, [onInputChange]);
+
+  const triggerGeocode = useCallback((field, value) => {
+    const loc = { ...formData.location, [field]: value };
+    clearTimeout(geocodeTimerRef.current);
+    geocodeTimerRef.current = setTimeout(() => {
+      geocodeAddress(loc.address, loc.city, loc.state);
+    }, 1000);
+  }, [formData.location, geocodeAddress]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
@@ -45,12 +85,26 @@ export default function LocationStep({ formData, errors, onInputChange }) {
 
       <div>
         <Label className="text-gray-300 mb-2 block">Endereço Completo *</Label>
-        <Input
-          value={formData.location.address}
-          onChange={(e) => onInputChange('location.address', e.target.value)}
-          placeholder="Rua, número, bairro"
-          className="bg-gray-800 border-gray-600 text-white"
-        />
+        <div className="relative">
+          <Input
+            value={formData.location.address}
+            onChange={(e) => {
+              onInputChange('location.address', e.target.value);
+              triggerGeocode('address', e.target.value);
+            }}
+            placeholder="Rua, número, bairro"
+            className="bg-gray-800 border-gray-600 text-white pr-9"
+          />
+          {geocoding && (
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 animate-pulse" />
+          )}
+        </div>
+        {geocodeError && (
+          <p className="text-yellow-400 text-xs mt-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            {geocodeError}
+          </p>
+        )}
         {errors.address && (
           <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
@@ -64,7 +118,10 @@ export default function LocationStep({ formData, errors, onInputChange }) {
           <Label className="text-gray-300 mb-2 block">Cidade *</Label>
           <Input
             value={formData.location.city}
-            onChange={(e) => onInputChange('location.city', e.target.value)}
+            onChange={(e) => {
+              onInputChange('location.city', e.target.value);
+              triggerGeocode('city', e.target.value);
+            }}
             placeholder="São Paulo"
             className="bg-gray-800 border-gray-600 text-white"
           />
@@ -102,7 +159,7 @@ export default function LocationStep({ formData, errors, onInputChange }) {
         </Label>
         <div className="h-96 rounded-lg overflow-hidden border-2 border-gray-700">
           <MapContainer
-            center={[formData.location.lat, formData.location.lng]}
+            center={[formData.location.lat || -23.5505, formData.location.lng || -46.6333]}
             zoom={13}
             style={{ height: '100%', width: '100%' }}
           >
@@ -110,6 +167,7 @@ export default function LocationStep({ formData, errors, onInputChange }) {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
+            <MapRecenter lat={formData.location.lat} lng={formData.location.lng} />
             <LocationMarker
               position={formData.location}
               setPosition={(pos) => {

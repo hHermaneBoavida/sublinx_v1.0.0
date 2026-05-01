@@ -49,8 +49,9 @@ export function isValidEvent(event) {
 
 export function filterFutureEvents(events) {
   if (!Array.isArray(events)) return [];
-  const now = Date.now();
-  return events.filter(e => isValidEvent(e) && new Date(e.date).getTime() > now);
+  // Incluir eventos em andamento (até 24h após o início)
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  return events.filter(e => isValidEvent(e) && new Date(e.date).getTime() > cutoff);
 }
 
 export function filterPastEvents(events) {

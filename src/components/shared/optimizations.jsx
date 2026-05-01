@@ -1,4 +1,6 @@
 // ====================================
+import { useEffect, useState } from 'react';
+
 // CONFIGURAÇÕES DE CACHE OTIMIZADAS - V2
 // ====================================
 
@@ -315,13 +317,13 @@ export function createIntersectionObserver(callback, options = {}) {
 // ====================================
 
 export function useMemoryCleanup(callback, deps = []) {
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (typeof callback === 'function') {
         callback();
       }
     };
-  }, deps);
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 // ====================================
@@ -329,7 +331,7 @@ export function useMemoryCleanup(callback, deps = []) {
 // ====================================
 
 export function useVirtualization(items, containerHeight, itemHeight) {
-  const [scrollTop, setScrollTop] = React.useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
   
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - 5);
   const endIndex = Math.min(
