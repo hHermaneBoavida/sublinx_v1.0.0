@@ -171,6 +171,10 @@ export default function Mapa() {
 
   const reels = reelsRealtime;
 
+  // Declarar aqui para que o useMemo possa acessar (antes de qualquer early return)
+  const effectiveLocation = userLocation || { lat: -23.5505, lng: -46.6333 };
+  const effectiveMaxDistance = userLocation ? filters.maxDistance : 99999;
+
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
     
@@ -293,11 +297,6 @@ export default function Mapa() {
       </div>
     );
   }
-
-  // Se não tiver localização, usa São Paulo como fallback — não bloqueia o mapa
-  const effectiveLocation = userLocation || { lat: -23.5505, lng: -46.6333 };
-  // Quando não tem localização real, não filtrar por distância (mostrar todos)
-  const effectiveMaxDistance = userLocation ? filters.maxDistance : 99999;
 
   if (eventsError) {
     return (
