@@ -252,7 +252,7 @@ export default function Mapa() {
     }
 
     return filtered;
-  }, [events, filters, searchTerm, activeVibe, userLocation]);
+  }, [events, filters, searchTerm, activeVibe, userLocation, effectiveLocation, effectiveMaxDistance]);
 
   const handlePinClick = useCallback((eventId) => {
     setSelectedEventId(eventId);
