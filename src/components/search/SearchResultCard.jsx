@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   Calendar, MapPin, Navigation, Users, DollarSign,
-  Clock, Music, TrendingUp, ExternalLink, Zap
+  Clock, Music, TrendingUp, ExternalLink, Zap, Building2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -130,6 +130,44 @@ export default function SearchResultCard({
     </div>
   );
 
+  const renderVenueCard = () => (
+    <div className="flex gap-4">
+      <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center border border-slate-600">
+        {result.image_url ? (
+          <img src={result.image_url} alt={result.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+        ) : (
+          <Building2 className="w-8 h-8 text-slate-400" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="text-base font-bold text-white mb-1 line-clamp-1 group-hover:text-slate-300 transition-colors pr-14">
+          {result.name}
+        </h3>
+        <div className="space-y-1 text-sm">
+          {result.category && (
+            <div className="flex items-center gap-2 text-gray-400">
+              <Building2 className="w-4 h-4 text-slate-400" />
+              <span className="capitalize">{result.category}</span>
+            </div>
+          )}
+          {result.address && (
+            <div className="flex items-center gap-2 text-gray-400">
+              <MapPin className="w-4 h-4 text-purple-400" />
+              <span className="truncate text-xs">{result.address}</span>
+            </div>
+          )}
+          {result.distance && (
+            <Badge className="bg-slate-600/20 border-slate-500/30 text-slate-300 text-[10px]">
+              <Navigation className="w-3 h-3 mr-1" />
+              {result.distance}
+            </Badge>
+          )}
+        </div>
+        <p className="text-xs text-gray-500 mt-1">Sem evento ativo agora</p>
+      </div>
+    </div>
+  );
+
   const renderCommunityCard = () => (
     <div className="flex gap-4">
       <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-green-600 to-emerald-600 flex items-center justify-center">
@@ -191,7 +229,20 @@ export default function SearchResultCard({
         />
 
         <CardContent className="p-4 relative z-10">
+          {/* Type tag */}
+          <div className="absolute top-3 right-3 z-20">
+            {result.type === 'event' && (
+              <Badge className="text-[9px] px-1.5 py-0.5 font-bold bg-cyan-600/90 text-white border-cyan-500">Evento</Badge>
+            )}
+            {result.type === 'venue' && (
+              <Badge className="text-[9px] px-1.5 py-0.5 font-bold bg-slate-600/90 text-gray-200 border-slate-500">Local</Badge>
+            )}
+            {result.type === 'artist' && (
+              <Badge className="text-[9px] px-1.5 py-0.5 font-bold bg-purple-600/90 text-white border-purple-500">DJ/Artista</Badge>
+            )}
+          </div>
           {result.type === 'event' && renderEventCard()}
+          {result.type === 'venue' && renderVenueCard()}
           {result.type === 'artist' && renderArtistCard()}
           {result.type === 'community' && renderCommunityCard()}
         </CardContent>

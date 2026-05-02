@@ -116,6 +116,8 @@ export default function SearchResults({
         console.error('❌ ID de artista inválido:', result);
         alert('Perfil não disponível');
       }
+    } else if (result.type === 'venue') {
+      onEventClick && onEventClick(result); // delegate to parent to show venue details
     } else if (result.type === 'community') {
       navigate(createPageUrl("Comunidade"));
       onClose();

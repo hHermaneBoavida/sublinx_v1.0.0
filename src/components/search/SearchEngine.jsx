@@ -15,7 +15,9 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function SearchEngine({ 
   onSearch, 
   userLocation,
-  placeholder = "Buscar eventos...",
+  events = [],
+  venues = [],
+  placeholder = "Buscar eventos, locais, vibe...",
   autoFocus = false 
 }) {
   const [query, setQuery] = useState("");
@@ -87,12 +89,51 @@ export default function SearchEngine({
 
     saveToHistory(searchQuery);
     setShowSuggestions(false);
-    
+
+    const lower = searchQuery.toLowerCase();
+
+    // Busca local client-side (sem API): eventos + venues
+    const eventResults = (events || [])
+      .filter(e => {
+        if (!e?.title) return false;
+        return e.title.toLowerCase().includes(lower) ||
+          e.location?.venue_name?.toLowerCase().includes(lower) ||
+          e.genre?.toLowerCase().includes(lower) ||
+          e.type?.toLowerCase().includes(lower);
+      })
+      .map(e => ({
+        ...e,
+        type: 'event',
+        name: e.title,
+        location: e.location?.venue_name || e.location?.city || '',
+        _score: e.title?.toLowerCase().includes(lower) ? 100 : 60,
+      }));
+
+    const venueResults = (venues || [])
+      .filter(v => {
+        if (!v?.name) return false;
+        return v.name.toLowerCase().includes(lower) ||
+          v.category?.toLowerCase().includes(lower) ||
+          v.vibe_tags?.some(t => t.toLowerCase().includes(lower));
+      })
+      .map(v => ({
+        ...v,
+        type: 'venue',
+        name: v.name,
+        address: v.location?.address || v.location?.city || '',
+        _score: v.name?.toLowerCase().includes(lower) ? 80 : 50,
+      }));
+
+    // Eventos com evento ativo num venue têm prioridade
+    const combined = [...eventResults, ...venueResults].sort((a, b) => (b._score || 0) - (a._score || 0));
+
     onSearch({
       query: searchQuery,
-      userLocation
+      userLocation,
+      results: combined,
+      suggestions: [],
     });
-  }, [saveToHistory, onSearch, userLocation]);
+  }, [saveToHistory, onSearch, userLocation, events, venues]);
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
