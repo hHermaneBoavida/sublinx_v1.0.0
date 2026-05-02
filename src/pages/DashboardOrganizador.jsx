@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -194,12 +193,12 @@ export default function DashboardOrganizador() {
             </h1>
             <p className="text-gray-400">Analise e otimize seus eventos em tempo real</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-row gap-2 flex-wrap justify-end">
             <Button
               onClick={() => navigate(createPageUrl("AnalyticsOrganizador"))}
               variant="outline"
               size="sm"
-              className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-900/20"
+              className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-900/20 whitespace-nowrap"
             >
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
@@ -208,7 +207,7 @@ export default function DashboardOrganizador() {
               onClick={() => setShowSettings(true)}
               variant="outline"
               size="sm"
-              className="border-gray-600 text-gray-400 hover:bg-gray-900"
+              className="border-gray-600 text-gray-400 hover:bg-gray-900 whitespace-nowrap"
             >
               <SettingsIcon className="w-4 h-4 mr-2" />
               Alertas
@@ -217,14 +216,14 @@ export default function DashboardOrganizador() {
               onClick={() => setShowOnboarding(true)}
               variant="outline"
               size="sm"
-              className="border-purple-500/30 text-purple-400 hover:bg-purple-900/20"
+              className="border-purple-500/30 text-purple-400 hover:bg-purple-900/20 whitespace-nowrap"
             >
               <Zap className="w-4 h-4 mr-2" />
               Tutorial
             </Button>
             <Button
               onClick={() => navigate(createPageUrl("CriarEvento"))}
-              className="bg-gradient-to-r from-cyan-600 to-purple-600"
+              className="bg-gradient-to-r from-cyan-600 to-purple-600 whitespace-nowrap"
             >
               Criar Evento
             </Button>
