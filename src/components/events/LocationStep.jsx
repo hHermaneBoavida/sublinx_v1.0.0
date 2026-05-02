@@ -28,36 +28,55 @@ export default function LocationStep({ formData, errors, onInputChange }) {
   const [geocodeError, setGeocodeError] = React.useState('');
   const geocodeTimerRef = useRef(null);
 
-  const geocodeAddress = useCallback(async (address, city, state) => {
-    const query = [address, city, state, 'Brasil'].filter(Boolean).join(', ');
-    if (!query.trim() || query.trim() === 'Brasil') return;
+  const geocodeAddress = useCallback(async (loc) => {
+    // Estratégia 1: CEP (mais preciso)
+    // Estratégia 2: endereço + cidade + estado
+    // Estratégia 3: nome do local + cidade
+    const queries = [];
+    
+    if (loc.postal_code && loc.postal_code.replace(/\D/g, '').length >= 8) {
+      queries.push(loc.postal_code.replace(/\D/g, '') + ', Brasil');
+    }
+    if (loc.address && loc.city) {
+      queries.push([loc.address, loc.city, loc.state, 'Brasil'].filter(Boolean).join(', '));
+    }
+    if (loc.venue_name && loc.city) {
+      queries.push([loc.venue_name, loc.city, loc.state, 'Brasil'].filter(Boolean).join(', '));
+    }
+
+    if (queries.length === 0) return;
+
     setGeocoding(true);
     setGeocodeError('');
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
-        { headers: { 'Accept-Language': 'pt-BR' } }
-      );
-      const data = await res.json();
-      if (data && data.length > 0) {
-        onInputChange('location.lat', parseFloat(data[0].lat));
-        onInputChange('location.lng', parseFloat(data[0].lon));
-      } else {
-        setGeocodeError('Endereço não encontrado. Clique no mapa para marcar manualmente.');
+
+    for (const query of queries) {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`,
+          { headers: { 'Accept-Language': 'pt-BR' } }
+        );
+        const data = await res.json();
+        if (data && data.length > 0) {
+          onInputChange('location.lat', parseFloat(data[0].lat));
+          onInputChange('location.lng', parseFloat(data[0].lon));
+          setGeocoding(false);
+          return;
+        }
+      } catch {
+        // tenta próxima estratégia
       }
-    } catch {
-      setGeocodeError('Erro ao buscar localização. Clique no mapa para marcar manualmente.');
-    } finally {
-      setGeocoding(false);
     }
+
+    setGeocodeError('Endereço não encontrado. Clique no mapa para marcar manualmente.');
+    setGeocoding(false);
   }, [onInputChange]);
 
   const triggerGeocode = useCallback((field, value) => {
     const loc = { ...formData.location, [field]: value };
     clearTimeout(geocodeTimerRef.current);
     geocodeTimerRef.current = setTimeout(() => {
-      geocodeAddress(loc.address, loc.city, loc.state);
-    }, 1000);
+      geocodeAddress(loc);
+    }, 800);
   }, [formData.location, geocodeAddress]);
 
   return (
@@ -146,7 +165,10 @@ export default function LocationStep({ formData, errors, onInputChange }) {
           <Label className="text-gray-300 mb-2 block">CEP</Label>
           <Input
             value={formData.location.postal_code}
-            onChange={(e) => onInputChange('location.postal_code', e.target.value)}
+            onChange={(e) => {
+              onInputChange('location.postal_code', e.target.value);
+              triggerGeocode('postal_code', e.target.value);
+            }}
             placeholder="00000-000"
             className="bg-gray-800 border-gray-600 text-white"
           />

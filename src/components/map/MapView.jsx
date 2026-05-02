@@ -256,21 +256,26 @@ export default function MapView({
     }
   }, [onMapReady, mapReady]);
 
-  // Filtrar eventos com filtros avançados
+  // Filtrar eventos — localSearch é a fonte única de verdade para busca
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
-    // Usar localSearch para filtro imediato (sem esperar debounce da prop)
-    const activeSearch = localSearch || searchTerm;
-    return events.filter(event => {
+
+    let filtered = events.filter(event => {
       if (!event?.location?.lat || !event?.location?.lng) return false;
-      if (activeSearch) {
-        const lower = activeSearch.toLowerCase();
-        const match = event.title?.toLowerCase().includes(lower) ||
+
+      // Busca textual
+      if (localSearch) {
+        const lower = localSearch.toLowerCase();
+        const match =
+          event.title?.toLowerCase().includes(lower) ||
           event.location?.venue_name?.toLowerCase().includes(lower) ||
           event.genre?.toLowerCase().includes(lower) ||
-          event.type?.toLowerCase().includes(lower);
+          event.type?.toLowerCase().includes(lower) ||
+          event.location?.city?.toLowerCase().includes(lower);
         if (!match) return false;
       }
+
+      // Filtro de data
       if (advancedFilters.dateRange !== 'all') {
         const eventDate = new Date(event.date);
         const now = new Date();
@@ -284,12 +289,24 @@ export default function MapView({
           if (eventDate > monthFromNow) return false;
         }
       }
+
       if ((event.current_attendees || 0) < advancedFilters.minAttendees) return false;
-      const eventPrice = event.price || 0;
-      if (advancedFilters.maxPrice < 500 && eventPrice > advancedFilters.maxPrice) return false;
+      if (advancedFilters.maxPrice < 500 && (event.price || 0) > advancedFilters.maxPrice) return false;
+
       return true;
     });
-  }, [events, searchTerm, advancedFilters]);
+
+    // Ordenar por proximidade ao usuário (eventos mais próximos primeiro)
+    if (userLocation) {
+      filtered = filtered.sort((a, b) => {
+        const dA = Math.pow(a.location.lat - userLocation.lat, 2) + Math.pow(a.location.lng - userLocation.lng, 2);
+        const dB = Math.pow(b.location.lat - userLocation.lat, 2) + Math.pow(b.location.lng - userLocation.lng, 2);
+        return dA - dB;
+      });
+    }
+
+    return filtered;
+  }, [events, localSearch, advancedFilters, userLocation]);
 
   // IDs de locais que JÁ TÊM evento — para não duplicar pin
   const venueIdsWithEvent = useMemo(() => {
@@ -303,20 +320,19 @@ export default function MapView({
   // Venues a exibir (sem evento ativo)
   const visibleVenues = useMemo(() => {
     if (!venues || venues.length === 0) return [];
-    const activeSearch = localSearch || searchTerm;
     return venues.filter(v => {
       if (!v?.location?.lat || !v?.location?.lng) return false;
       const key = (v.name || '').toLowerCase().trim();
       if (venueIdsWithEvent.has(key)) return false;
-      if (activeSearch) {
-        const lower = activeSearch.toLowerCase();
+      if (localSearch) {
+        const lower = localSearch.toLowerCase();
         return v.name?.toLowerCase().includes(lower) ||
           v.category?.toLowerCase().includes(lower) ||
-          v.vibe_tags?.some(t => t.toLowerCase().includes(lower));
+          v.genres?.some(g => g.toLowerCase().includes(lower));
       }
       return true;
     });
-  }, [venues, venueIdsWithEvent, searchTerm]);
+  }, [venues, venueIdsWithEvent, localSearch]);
 
   // Clustering de eventos
   const eventClusters = useMemo(() => clusterEvents(filteredEvents, zoomLevel), [filteredEvents, zoomLevel]);

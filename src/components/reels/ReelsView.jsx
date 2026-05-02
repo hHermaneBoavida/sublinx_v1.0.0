@@ -15,12 +15,11 @@ export default function ReelsView({ reels, events, initialEventId, onClose }) {
 
     // Feed global: todos os reels, com ou sem evento
     const reelsWithEventData = reels
-      .filter(r => r?.id && r?.video_url)
+      .filter(r => r?.id && r?.video_url && r.video_url.trim() !== '')
       .map(reel => ({
         ...reel,
         event: reel.event_id ? (eventMap.get(reel.event_id) || null) : null,
       }))
-      // Ordenar por mais recente
       .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
     
     if (initialEventId) {
