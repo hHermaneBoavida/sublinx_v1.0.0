@@ -259,10 +259,12 @@ export default function MapView({
   // Filtrar eventos com filtros avançados
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
+    // Usar localSearch para filtro imediato (sem esperar debounce da prop)
+    const activeSearch = localSearch || searchTerm;
     return events.filter(event => {
       if (!event?.location?.lat || !event?.location?.lng) return false;
-      if (searchTerm) {
-        const lower = searchTerm.toLowerCase();
+      if (activeSearch) {
+        const lower = activeSearch.toLowerCase();
         const match = event.title?.toLowerCase().includes(lower) ||
           event.location?.venue_name?.toLowerCase().includes(lower) ||
           event.genre?.toLowerCase().includes(lower) ||
@@ -301,12 +303,13 @@ export default function MapView({
   // Venues a exibir (sem evento ativo)
   const visibleVenues = useMemo(() => {
     if (!venues || venues.length === 0) return [];
+    const activeSearch = localSearch || searchTerm;
     return venues.filter(v => {
       if (!v?.location?.lat || !v?.location?.lng) return false;
       const key = (v.name || '').toLowerCase().trim();
       if (venueIdsWithEvent.has(key)) return false;
-      if (searchTerm) {
-        const lower = searchTerm.toLowerCase();
+      if (activeSearch) {
+        const lower = activeSearch.toLowerCase();
         return v.name?.toLowerCase().includes(lower) ||
           v.category?.toLowerCase().includes(lower) ||
           v.vibe_tags?.some(t => t.toLowerCase().includes(lower));
