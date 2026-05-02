@@ -86,7 +86,7 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       
       await base44.entities.Reel.create({
-        event_id: selectedEventId || 'global',
+        event_id: selectedEventId || null,
         user_id: user.id,
         video_url: file_url,
         description: description || "",
@@ -94,7 +94,8 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
         likes_count: 0,
         comments_count: 0,
         view_count: 0,
-        // Sem expires_at — reels ficam permanentes (filtrar apenas por data do evento se necessário)
+        is_public: true,
+        visible: true,
       });
       
       setUploadSuccess(true);

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Crown, Calendar, Ticket, Edit2, Share2, CheckCircle,
-  Settings, Shield, Music, BarChart3, MessageCircle
+  Settings, Shield, Music, BarChart3, MessageCircle, Video, Play
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -93,6 +93,18 @@ export default function Perfil() {
       }
     },
     enabled: !!user?.id && !!user?.is_organizer,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: userReels = [] } = useQuery({
+    queryKey: ['userReels', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        return await base44.entities.Reel.filter({ user_id: user.id }, "-created_date", 20);
+      } catch { return []; }
+    },
+    enabled: !!user?.id,
     staleTime: 2 * 60 * 1000,
   });
 
@@ -268,9 +280,12 @@ export default function Perfil() {
         </div>
 
         <Tabs defaultValue={user.is_organizer ? "eventos" : "ingressos"} className="w-full">
-          <TabsList className="w-full grid grid-cols-3 bg-black border-b border-gray-800 rounded-none h-auto p-0">
+          <TabsList className="w-full grid grid-cols-4 bg-black border-b border-gray-800 rounded-none h-auto p-0">
             <TabsTrigger value={user.is_organizer ? "eventos" : "ingressos"} className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3">
               {user.is_organizer ? <Calendar className="w-4 h-4" /> : <Ticket className="w-4 h-4" />}
+            </TabsTrigger>
+            <TabsTrigger value="reels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-pink-500 data-[state=active]:bg-transparent py-3">
+              <Video className="w-4 h-4" />
             </TabsTrigger>
             <TabsTrigger value="music" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3">
               <Music className="w-4 h-4" />
@@ -317,6 +332,32 @@ export default function Perfil() {
                   <Button onClick={() => navigate(createPageUrl("Feed"))} className="bg-cyan-600 hover:bg-cyan-700">Ver Eventos</Button>
                 </div>
               )
+            )}
+          </TabsContent>
+
+          <TabsContent value="reels" className="mt-4">
+            {userReels.length > 0 ? (
+              <div className="grid grid-cols-3 gap-1">
+                {userReels.map((reel) => (
+                  <div key={reel.id} className="aspect-square bg-gray-900 rounded overflow-hidden relative group">
+                    {reel.thumbnail_url ? (
+                      <img src={reel.thumbnail_url} alt="reel" className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900 to-pink-900">
+                        <Play className="w-8 h-8 text-white" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Play className="w-8 h-8 text-white drop-shadow-lg" fill="white" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Video className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-400 text-sm">Nenhum reel publicado</p>
+              </div>
             )}
           </TabsContent>
 

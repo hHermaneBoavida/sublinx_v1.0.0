@@ -88,12 +88,13 @@ export default function Mapa() {
     queryFn: async () => {
       const allEvents = await base44.entities.Event.list("-date", 150);
       if (!Array.isArray(allEvents)) return { events: [] };
-      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      // Mostrar: em andamento agora + até 7 dias futuros + com atividade recente (até 48h passados)
+      const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
       const valid = allEvents.filter(e => {
         if (!e?.date) return false;
-        // Aceitar eventos com ou sem coordenadas (fallback via venue)
         try {
-          return new Date(e.date) > cutoff && !isNaN(new Date(e.date).getTime());
+          const d = new Date(e.date);
+          return !isNaN(d.getTime()) && d > cutoff;
         } catch { return false; }
       });
       return { events: valid };

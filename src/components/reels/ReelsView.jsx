@@ -11,29 +11,24 @@ export default function ReelsView({ reels, events, initialEventId, onClose }) {
   const [dragProgress, setDragProgress] = useState(0); // NOVO: Progresso do drag
 
   useEffect(() => {
-    const eventMap = new Map(events.map(e => [e.id, e]));
+    const eventMap = new Map((events || []).map(e => [e.id, e]));
 
+    // Feed global: todos os reels, com ou sem evento
     const reelsWithEventData = reels
       .filter(r => r?.id && r?.video_url)
       .map(reel => ({
         ...reel,
-        event: reel.event_id && reel.event_id !== 'global'
-          ? (eventMap.get(reel.event_id) || null)
-          : null,
-      }));
+        event: reel.event_id ? (eventMap.get(reel.event_id) || null) : null,
+      }))
+      // Ordenar por mais recente
+      .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
     
     if (initialEventId) {
-      const initialReelIndex = reelsWithEventData.findIndex(r => r.event_id === initialEventId);
-      if (initialReelIndex > -1) {
-        const initialReel = reelsWithEventData.splice(initialReelIndex, 1)[0];
-        setSortedReels([initialReel, ...reelsWithEventData]);
-        
-        if (containerRef.current) {
-          containerRef.current.scrollTop = 0;
-        }
-      } else {
-        setSortedReels(reelsWithEventData);
-      }
+      // Colocar reels do evento selecionado no topo
+      const eventReels = reelsWithEventData.filter(r => r.event_id === initialEventId);
+      const otherReels = reelsWithEventData.filter(r => r.event_id !== initialEventId);
+      setSortedReels([...eventReels, ...otherReels]);
+      if (containerRef.current) containerRef.current.scrollTop = 0;
     } else {
       setSortedReels(reelsWithEventData);
     }
