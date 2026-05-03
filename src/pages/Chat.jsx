@@ -155,6 +155,8 @@ export default function Chat() {
     setSelectedChat(chat);
     setMessages(mockMessages);
     setShowChatList(false);
+    // Zerar contador de não lidas ao abrir o chat
+    setChats(prev => prev.map(c => c.id === chat.id ? { ...c, unreadCount: 0 } : c));
   };
 
   const handleSendMessage = () => {

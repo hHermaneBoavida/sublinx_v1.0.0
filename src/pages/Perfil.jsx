@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Crown, Calendar, Ticket, Edit2, Share2, CheckCircle,
-  Settings, Shield, Music, BarChart3, MessageCircle, Video, Play
+  Settings, Shield, Music, BarChart3, MessageCircle, Video, Play, Building2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -253,26 +253,31 @@ export default function Perfil() {
             </div>
 
             {user.is_organizer && (
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => navigate(createPageUrl("DashboardOrganizador"))} 
+                    className="flex-1 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 shadow-lg border border-cyan-500/30"
+                    style={{ boxShadow: '0 0 20px rgba(6, 182, 212, 0.3)' }}
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </Button>
+                  <Button 
+                    onClick={() => navigate(createPageUrl("ChatOrganizadores"))} 
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg border border-purple-500/30"
+                    style={{ boxShadow: '0 0 20px rgba(168, 85, 247, 0.3)' }}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Chat
+                  </Button>
+                </div>
                 <Button 
-                  onClick={() => navigate(createPageUrl("DashboardOrganizador"))} 
-                  className="flex-1 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 shadow-lg border border-cyan-500/30"
-                  style={{
-                    boxShadow: '0 0 20px rgba(6, 182, 212, 0.3)'
-                  }}
+                  onClick={() => navigate(createPageUrl("MeusEstabelecimentos"))} 
+                  className="w-full bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 border border-gray-600"
                 >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Button>
-                <Button 
-                  onClick={() => navigate(createPageUrl("ChatOrganizadores"))} 
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg border border-purple-500/30"
-                  style={{
-                    boxShadow: '0 0 20px rgba(168, 85, 247, 0.3)'
-                  }}
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Chat
+                  <Building2 className="w-4 h-4 mr-2" />
+                  Meus Estabelecimentos
                 </Button>
               </div>
             )}

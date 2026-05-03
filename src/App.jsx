@@ -8,6 +8,8 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import Checklist from './pages/Checklist';
+import CadastrarEstabelecimento from './pages/CadastrarEstabelecimento';
+import MeusEstabelecimentos from './pages/MeusEstabelecimentos';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -51,6 +53,8 @@ const AuthenticatedApp = () => {
           <Route key={path} path={`/${path}`} element={<Page />} />
         ))}
         <Route path="/Checklist" element={<LayoutWrapper currentPageName="Checklist"><Checklist /></LayoutWrapper>} />
+        <Route path="/CadastrarEstabelecimento" element={<LayoutWrapper currentPageName="CadastrarEstabelecimento"><CadastrarEstabelecimento /></LayoutWrapper>} />
+        <Route path="/MeusEstabelecimentos" element={<LayoutWrapper currentPageName="MeusEstabelecimentos"><MeusEstabelecimentos /></LayoutWrapper>} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </LayoutWrapper>
