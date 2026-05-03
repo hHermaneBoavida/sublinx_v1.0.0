@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -247,289 +246,260 @@ export default function Chat() {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] md:h-[calc(100vh-120px)] overflow-hidden">
+    <div className="h-[calc(100vh-80px)] md:h-[calc(100vh-120px)] overflow-hidden flex flex-col"
+      style={{ background: 'linear-gradient(135deg, #0a0f1e 0%, #000000 60%, #0d0d1f 100%)' }}>
+
       {/* Header Mobile */}
-      <div className="md:hidden p-3 sm:p-4 border-b border-gray-700 bg-gray-900/50 backdrop-blur-sm">
+      <div className="md:hidden px-4 py-3 border-b flex-shrink-0"
+        style={{ borderColor: 'rgba(6,182,212,0.2)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(12px)' }}>
         {selectedChat && !showChatList ? (
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowChatList(true)}
-              className="text-gray-400"
-            >
+            <Button variant="ghost" size="icon" onClick={() => setShowChatList(true)} className="text-cyan-400 hover:bg-cyan-500/10 h-9 w-9">
               <X className="w-5 h-5" />
             </Button>
-            <img src={selectedChat.avatar} alt={selectedChat.name} className="w-10 h-10 rounded-full object-cover" />
+            <img src={selectedChat.avatar} alt={selectedChat.name} className="w-9 h-9 rounded-full object-cover border border-cyan-500/40" />
             <div className="flex-1 min-w-0">
-              <h2 className="font-semibold text-white truncate">{selectedChat.name}</h2>
-              {selectedChat.type === 'group' && (
-                <p className="text-xs text-gray-400">{selectedChat.participants} membros</p>
-              )}
+              <h2 className="font-bold text-white truncate text-sm">{selectedChat.name}</h2>
+              {selectedChat.type === 'group' && <p className="text-[10px] text-cyan-400">{selectedChat.participants} membros</p>}
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
-              Chat Underground
-            </h1>
-            <Button size="icon" className="bg-gradient-to-r from-cyan-600 to-purple-600">
-              <Plus className="w-5 h-5" />
+            <div className="flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-cyan-400" style={{ filter: 'drop-shadow(0 0 6px rgba(6,182,212,0.8))' }} />
+              <h1 className="text-lg font-bold" style={{ background: 'linear-gradient(to right, #22d3ee, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Chat Underground
+              </h1>
+            </div>
+            <Button size="icon" className="h-9 w-9 rounded-full" style={{ background: 'linear-gradient(135deg, #0891b2, #7c3aed)', boxShadow: '0 0 14px rgba(6,182,212,0.5)' }}>
+              <Plus className="w-4 h-4" />
             </Button>
           </div>
         )}
       </div>
 
       {/* Desktop Header */}
-      <div className="hidden md:flex justify-between items-center p-4 md:p-6 border-b border-gray-700">
-        <div>
-          <h1 className="flex items-center gap-3 text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text mb-2">
-            <MessageCircle className="w-6 h-6 md:w-8 md:h-8" />
-            Chat Underground
-          </h1>
-          <p className="text-sm text-gray-400">
-            Conecte-se com outros organizadores e membros da comunidade
-          </p>
+      <div className="hidden md:flex justify-between items-center px-6 py-4 border-b flex-shrink-0"
+        style={{ borderColor: 'rgba(6,182,212,0.2)', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(168,85,247,0.2))', border: '1.5px solid rgba(6,182,212,0.5)', boxShadow: '0 0 20px rgba(6,182,212,0.3)' }}>
+            <MessageCircle className="w-5 h-5 text-cyan-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold" style={{ background: 'linear-gradient(to right, #22d3ee, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Chat Underground
+            </h1>
+            <p className="text-xs text-gray-500">Conecte-se com organizadores e membros da cena</p>
+          </div>
         </div>
-        <Button className="bg-gradient-to-r from-cyan-600 to-purple-600">
+        <Button className="rounded-xl font-bold text-sm px-4 h-9"
+          style={{ background: 'linear-gradient(135deg, #0891b2, #7c3aed)', boxShadow: '0 0 20px rgba(6,182,212,0.4)', border: '1px solid rgba(6,182,212,0.4)' }}>
           <Plus className="w-4 h-4 mr-2" />
           Nova Conversa
         </Button>
       </div>
 
-      <div className="flex h-[calc(100%-64px)] md:h-[calc(100%-100px)]">
-        {/* Lista de Chats - Mobile/Desktop Responsivo */}
-        <div className={`${showChatList ? 'block' : 'hidden'} md:block w-full md:w-80 lg:w-96 border-r border-gray-700 bg-gray-900/30 flex flex-col`}>
-          {/* Search Bar */}
-          <div className="p-3 sm:p-4 border-b border-gray-700">
+      <div className="flex flex-1 overflow-hidden">
+        {/* Lista de Chats */}
+        <div className={`${showChatList ? 'flex' : 'hidden'} md:flex w-full md:w-72 lg:w-80 flex-col flex-shrink-0 border-r`}
+          style={{ borderColor: 'rgba(6,182,212,0.15)', background: 'rgba(0,0,0,0.4)' }}>
+
+          {/* Search */}
+          <div className="p-3 border-b flex-shrink-0" style={{ borderColor: 'rgba(6,182,212,0.1)' }}>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <Input
                 placeholder="Buscar conversas..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-gray-800 border-gray-600 pl-10 text-white text-sm"
+                className="pl-9 text-sm text-white placeholder:text-gray-600 h-9"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: '10px' }}
               />
             </div>
           </div>
 
           {/* Chat List */}
           <div className="flex-1 overflow-y-auto">
-            {filteredChats.map((chat) => (
-              <div
-                key={chat.id}
-                onClick={() => handleSelectChat(chat)}
-                className={`p-3 sm:p-4 border-b border-gray-700 cursor-pointer hover:bg-gray-800/50 transition-colors ${
-                  selectedChat?.id === chat.id ? 'bg-cyan-900/20 border-l-4 border-l-cyan-500' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-shrink-0">
-                    <img src={chat.avatar} alt={chat.name} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover" />
-                    {chat.type === 'group' && (
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center">
-                        <Users className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-semibold text-white truncate text-sm sm:text-base">{chat.name}</h3>
-                      <span className="text-[10px] sm:text-xs text-gray-400 flex-shrink-0 ml-2">
-                        {formatMessageTime(chat.lastMessageTime)}
-                      </span>
-                    </div>
-                    {chat.type === 'group' && (
-                      <p className="text-xs text-gray-500 mb-1">{chat.participants} membros</p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs sm:text-sm text-gray-300 truncate flex-1">{chat.lastMessage}</p>
-                      {chat.unreadCount > 0 && (
-                        <Badge className="bg-cyan-600 text-white min-w-[20px] h-5 rounded-full p-0 flex items-center justify-center text-[10px] ml-2 flex-shrink-0">
-                          {chat.unreadCount}
-                        </Badge>
+            {filteredChats.map((chat) => {
+              const isActive = selectedChat?.id === chat.id;
+              return (
+                <div key={chat.id} onClick={() => handleSelectChat(chat)}
+                  className="px-3 py-3 cursor-pointer transition-all duration-200 border-b relative"
+                  style={{
+                    borderColor: 'rgba(6,182,212,0.08)',
+                    background: isActive ? 'linear-gradient(90deg, rgba(6,182,212,0.1), rgba(168,85,247,0.05))' : 'transparent',
+                    borderLeft: isActive ? '3px solid #06b6d4' : '3px solid transparent',
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-shrink-0">
+                      <img src={chat.avatar} alt={chat.name} className="w-11 h-11 rounded-full object-cover"
+                        style={{ border: isActive ? '2px solid rgba(6,182,212,0.6)' : '2px solid rgba(255,255,255,0.1)' }} />
+                      {chat.type === 'group' && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
+                          style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', border: '1.5px solid #000' }}>
+                          <Users className="w-2.5 h-2.5 text-white" />
+                        </div>
                       )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <h3 className="font-semibold text-sm truncate" style={{ color: isActive ? '#22d3ee' : '#f1f5f9' }}>
+                          {chat.name}
+                        </h3>
+                        <span className="text-[10px] text-gray-600 flex-shrink-0 ml-2">{formatMessageTime(chat.lastMessageTime)}</span>
+                      </div>
+                      {chat.type === 'group' && <p className="text-[10px] text-gray-600 mb-0.5">{chat.participants} membros</p>}
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-500 truncate flex-1">{chat.lastMessage}</p>
+                        {chat.unreadCount > 0 && (
+                          <span className="ml-2 flex-shrink-0 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                            style={{ background: 'linear-gradient(135deg, #06b6d4, #7c3aed)', boxShadow: '0 0 8px rgba(6,182,212,0.6)' }}>
+                            {chat.unreadCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* Área de Mensagens - Mobile/Desktop Responsivo */}
-        <div className={`${!showChatList ? 'block' : 'hidden'} md:block flex-1 flex flex-col bg-gray-900/50`}>
+        {/* Área de Mensagens */}
+        <div className={`${!showChatList ? 'flex' : 'hidden'} md:flex flex-1 flex-col overflow-hidden`}
+          style={{ background: 'rgba(0,0,0,0.2)' }}>
           {selectedChat ? (
             <>
-              {/* Header do Chat - Desktop Only */}
-              <div className="hidden md:flex items-center gap-3 p-4 border-b border-gray-700">
-                <img src={selectedChat.avatar} alt={selectedChat.name} className="w-12 h-12 rounded-full object-cover" />
+              {/* Chat Header Desktop */}
+              <div className="hidden md:flex items-center gap-3 px-5 py-3 border-b flex-shrink-0"
+                style={{ borderColor: 'rgba(6,182,212,0.15)', background: 'rgba(0,0,0,0.3)' }}>
+                <img src={selectedChat.avatar} alt={selectedChat.name} className="w-10 h-10 rounded-full object-cover"
+                  style={{ border: '2px solid rgba(6,182,212,0.5)' }} />
                 <div className="flex-1">
-                  <h2 className="font-semibold text-white">{selectedChat.name}</h2>
-                  {selectedChat.type === 'group' && (
-                    <p className="text-sm text-gray-400">{selectedChat.participants} membros</p>
-                  )}
+                  <h2 className="font-bold text-white text-sm">{selectedChat.name}</h2>
+                  {selectedChat.type === 'group' && <p className="text-xs text-cyan-400/70">{selectedChat.participants} membros</p>}
                 </div>
+                <div className="w-2 h-2 rounded-full bg-green-400" style={{ boxShadow: '0 0 8px rgba(74,222,128,0.8)' }} />
+                <span className="text-xs text-green-400">Online</span>
               </div>
 
-              {/* Área de Mensagens */}
-              <div 
-                ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4"
-                style={{ 
-                  overflowY: 'auto',
-                  WebkitOverflowScrolling: 'touch',
-                  scrollBehavior: 'smooth'
-                }}
-              >
+              {/* Messages */}
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4"
+                style={{ scrollBehavior: 'smooth' }}>
                 {messages.map((msg) => (
-                  <div key={msg.id} className={`flex gap-2 sm:gap-3 ${msg.isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div key={msg.id} className={`flex gap-3 ${msg.isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                     {!msg.isMe && (
-                      <img 
-                        src={msg.sender_avatar} 
-                        alt={msg.sender_name}
-                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
-                      />
+                      <img src={msg.sender_avatar} alt={msg.sender_name}
+                        className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1"
+                        style={{ border: '1.5px solid rgba(168,85,247,0.5)' }} />
                     )}
-                    <div className={`flex flex-col max-w-[75%] sm:max-w-[70%] ${msg.isMe ? 'items-end' : 'items-start'}`}>
-                      {!msg.isMe && (
-                        <span className="text-xs text-gray-400 mb-1 px-2">{msg.sender_name}</span>
-                      )}
-                      
-                      {/* Reply Preview */}
+                    <div className={`flex flex-col max-w-[72%] ${msg.isMe ? 'items-end' : 'items-start'}`}>
+                      {!msg.isMe && <span className="text-xs text-purple-400 mb-1 px-1">{msg.sender_name}</span>}
+
                       {msg.reply_to && (
-                        <div className="px-3 py-2 bg-gray-700/30 border-l-2 border-cyan-500 rounded-lg mb-1 text-xs text-gray-400 max-w-full">
-                          <p className="font-semibold text-gray-300">{msg.reply_to.sender_name}</p>
-                          <p className="truncate">{msg.reply_to.message}</p>
+                        <div className="px-3 py-1.5 mb-1 rounded-lg text-xs border-l-2 border-cyan-500 max-w-full"
+                          style={{ background: 'rgba(6,182,212,0.08)' }}>
+                          <p className="font-semibold text-cyan-400">{msg.reply_to.sender_name}</p>
+                          <p className="truncate text-gray-500">{msg.reply_to.message}</p>
                         </div>
                       )}
 
                       <div className="relative group">
-                        <div className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl ${
-                          msg.isMe 
-                            ? 'bg-gradient-to-r from-cyan-600 to-purple-600 text-white' 
-                            : 'bg-gray-800 text-white'
-                        }`}>
-                          <p className="text-sm sm:text-base break-words">{msg.message}</p>
-                        </div>
-                        
-                        {/* Message Actions */}
-                        <div className={`absolute ${msg.isMe ? 'left-0' : 'right-0'} top-1/2 -translate-y-1/2 ${msg.isMe ? '-translate-x-full' : 'translate-x-full'} px-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className={`h-8 w-8 rounded-full ${msg.liked_by_me ? 'text-red-500' : 'text-gray-400'} hover:text-red-500 bg-gray-800/90`}
-                            onClick={() => handleLikeMessage(msg.id)}
-                          >
-                            <Heart className={`w-4 h-4 ${msg.liked_by_me ? 'fill-current' : ''}`} />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 rounded-full text-gray-400 hover:text-cyan-400 bg-gray-800/90"
-                            onClick={() => handleReplyToMessage(msg)}
-                          >
-                            <Reply className="w-4 h-4" />
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 rounded-full text-gray-400 hover:text-white bg-gray-800/90"
-                              >
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                              <DropdownMenuItem className="text-gray-300">Copiar</DropdownMenuItem>
-                              <DropdownMenuItem className="text-gray-300">Encaminhar</DropdownMenuItem>
-                              {msg.isMe && <DropdownMenuItem className="text-red-400">Deletar</DropdownMenuItem>}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                        <div className={`px-4 py-2.5 rounded-2xl text-sm break-words`}
+                          style={msg.isMe ? {
+                            background: 'linear-gradient(135deg, #0891b2, #7c3aed)',
+                            boxShadow: '0 0 15px rgba(6,182,212,0.3)',
+                            color: '#fff'
+                          } : {
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            color: '#e2e8f0'
+                          }}>
+                          {msg.message}
                         </div>
 
-                        {/* Likes Count */}
+                        {/* Actions on hover */}
+                        <div className={`absolute ${msg.isMe ? 'right-full mr-2' : 'left-full ml-2'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1`}>
+                          <button onClick={() => handleLikeMessage(msg.id)}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center ${msg.liked_by_me ? 'text-red-400' : 'text-gray-500'} hover:text-red-400 transition-colors`}
+                            style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <Heart className={`w-3.5 h-3.5 ${msg.liked_by_me ? 'fill-current' : ''}`} />
+                          </button>
+                          <button onClick={() => handleReplyToMessage(msg)}
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-500 hover:text-cyan-400 transition-colors"
+                            style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <Reply className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
                         {msg.likes > 0 && (
-                          <div className={`absolute -bottom-2 ${msg.isMe ? 'left-2' : 'right-2'} bg-gray-800 border border-gray-700 rounded-full px-2 py-0.5 flex items-center gap-1`}>
-                            <Heart className="w-3 h-3 text-red-500 fill-current" />
-                            <span className="text-[10px] text-gray-300">{msg.likes}</span>
+                          <div className={`absolute -bottom-2 ${msg.isMe ? 'left-2' : 'right-2'} flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px]`}
+                            style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <Heart className="w-2.5 h-2.5 text-red-400 fill-current" />
+                            <span className="text-gray-400">{msg.likes}</span>
                           </div>
                         )}
                       </div>
 
-                      <span className="text-[10px] text-gray-500 mt-1 px-2">
+                      <span className="text-[10px] text-gray-600 mt-1 px-1">
                         {format(msg.time, 'HH:mm', { locale: ptBR })}
                       </span>
                     </div>
                   </div>
                 ))}
-                {/* Scroll anchor */}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
-              <div className="p-3 sm:p-4 border-t border-gray-700 bg-gray-900/70 backdrop-blur-sm">
-                {/* Reply Preview */}
+              {/* Input */}
+              <div className="flex-shrink-0 p-3 border-t" style={{ borderColor: 'rgba(6,182,212,0.15)', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)' }}>
                 {replyingTo && (
-                  <div className="mb-2 p-2 bg-gray-800 border-l-2 border-cyan-500 rounded flex items-start justify-between">
+                  <div className="mb-2 px-3 py-2 rounded-lg flex items-center justify-between border-l-2 border-cyan-500"
+                    style={{ background: 'rgba(6,182,212,0.08)' }}>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-cyan-400 font-semibold">Respondendo a {replyingTo.sender_name}</p>
-                      <p className="text-xs text-gray-400 truncate">{replyingTo.message}</p>
+                      <p className="text-xs text-cyan-400 font-semibold">↩ {replyingTo.sender_name}</p>
+                      <p className="text-xs text-gray-500 truncate">{replyingTo.message}</p>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6 text-gray-400"
-                      onClick={() => setReplyingTo(null)}
-                    >
+                    <button onClick={() => setReplyingTo(null)} className="text-gray-500 hover:text-white ml-2">
                       <X className="w-4 h-4" />
-                    </Button>
+                    </button>
                   </div>
                 )}
-
-                <div className="flex gap-2">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-gray-400 hover:text-cyan-400 flex-shrink-0"
-                  >
-                    <ImageIcon className="w-5 h-5" />
+                <div className="flex gap-2 items-center">
+                  <Button size="icon" variant="ghost" className="text-gray-600 hover:text-cyan-400 flex-shrink-0 h-9 w-9">
+                    <ImageIcon className="w-4 h-4" />
                   </Button>
-                  <Input
+                  <input
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Digite sua mensagem..."
-                    className="bg-gray-800 border-gray-600 text-white text-sm sm:text-base"
+                    placeholder="Mensagem..."
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    className="flex-1 bg-transparent outline-none text-white text-sm placeholder:text-gray-600 px-2"
+                    style={{ borderBottom: '1px solid rgba(6,182,212,0.2)' }}
                   />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-gray-400 hover:text-yellow-400 flex-shrink-0"
-                  >
-                    <Smile className="w-5 h-5" />
+                  <Button size="icon" variant="ghost" className="text-gray-600 hover:text-yellow-400 flex-shrink-0 h-9 w-9">
+                    <Smile className="w-4 h-4" />
                   </Button>
-                  <Button
-                    onClick={handleSendMessage}
-                    size="icon"
-                    className="bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 flex-shrink-0"
-                  >
-                    <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </Button>
+                  <button onClick={handleSendMessage}
+                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all hover:scale-110"
+                    style={{ background: 'linear-gradient(135deg, #0891b2, #7c3aed)', boxShadow: '0 0 14px rgba(6,182,212,0.5)' }}>
+                    <Send className="w-4 h-4 text-white" />
+                  </button>
                 </div>
               </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <MessageCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-400 mb-2">
-                  Selecione uma conversa
-                </h3>
-                <p className="text-gray-500">
-                  Escolha uma conversa da lista para começar a trocar mensagens.
-                </p>
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(168,85,247,0.1))', border: '1.5px solid rgba(6,182,212,0.2)' }}>
+                  <MessageCircle className="w-9 h-9 text-cyan-500/50" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-500 mb-1">Selecione uma conversa</h3>
+                <p className="text-sm text-gray-700">Escolha da lista ao lado para começar</p>
               </div>
             </div>
           )}

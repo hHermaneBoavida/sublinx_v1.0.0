@@ -300,14 +300,16 @@ export default function Perfil() {
               myEvents.length > 0 ? (
                 <div className="grid grid-cols-3 gap-1">
                   {myEvents.map((event) => (
-                    <div key={event.id} className="aspect-square bg-gray-900 rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate(createPageUrl("MeusEventos"))}>
+                    <div key={event.id} className="aspect-square bg-gray-900 rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity relative group" onClick={() => navigate(createPageUrl("MeusEventos"))}>
                       {event.image_url ? (
-                        <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-900">
-                          <Calendar className="w-8 h-8 text-gray-600" />
-                        </div>
-                      )}
+                        <img src={event.image_url} alt={event.title} className="w-full h-full object-cover"
+                          onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                      ) : null}
+                      <div className="w-full h-full flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 p-2 gap-1"
+                        style={{ display: event.image_url ? 'none' : 'flex' }}>
+                        <Calendar className="w-7 h-7 text-cyan-600/50" />
+                        <span className="text-[9px] text-gray-600 text-center line-clamp-2 leading-tight">{event.title}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -338,20 +340,28 @@ export default function Perfil() {
           <TabsContent value="reels" className="mt-4">
             {userReels.length > 0 ? (
               <div className="grid grid-cols-3 gap-1">
-                {userReels.map((reel) => (
-                  <div key={reel.id} className="aspect-square bg-gray-900 rounded overflow-hidden relative group">
-                    {reel.thumbnail_url ? (
-                      <img src={reel.thumbnail_url} alt="reel" className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900 to-pink-900">
-                        <Play className="w-8 h-8 text-white" />
+                {userReels.map((reel) => {
+                  // thumbnail_url pode ser igual ao video_url — detectar se é imagem real
+                  const isImageUrl = reel.thumbnail_url && /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(reel.thumbnail_url);
+                  return (
+                    <div key={reel.id} className="aspect-square bg-gray-900 rounded overflow-hidden relative group">
+                      {isImageUrl ? (
+                        <img src={reel.thumbnail_url} alt="reel" className="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
+                          onError={(e) => { e.target.style.display = 'none'; }} />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-purple-900/80 to-pink-900/80 gap-2">
+                          <Video className="w-8 h-8 text-white/60" />
+                          <span className="text-white/40 text-[10px] text-center px-2 leading-tight truncate w-full text-center">
+                            {reel.description?.slice(0, 20) || 'Reel'}
+                          </span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                        <Play className="w-8 h-8 text-white drop-shadow-lg" fill="white" />
                       </div>
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Play className="w-8 h-8 text-white drop-shadow-lg" fill="white" />
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12">
