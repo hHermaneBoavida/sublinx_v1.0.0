@@ -1,0 +1,162 @@
+{
+  "name": "Venue",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do local"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do local"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "bar",
+        "discoteca",
+        "restaurante",
+        "cafe",
+        "lounge_bar",
+        "pub",
+        "club",
+        "padaria",
+        "warehouse",
+        "rooftop",
+        "studio",
+        "gallery",
+        "underground_space",
+        "cultural_center"
+      ],
+      "description": "Tipo do local"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number",
+          "description": "Latitude"
+        },
+        "lng": {
+          "type": "number",
+          "description": "Longitude"
+        },
+        "address": {
+          "type": "string",
+          "description": "Endere\u00e7o completo"
+        },
+        "city": {
+          "type": "string",
+          "description": "Cidade"
+        },
+        "state": {
+          "type": "string",
+          "description": "Estado"
+        },
+        "neighborhood": {
+          "type": "string",
+          "description": "Bairro"
+        }
+      },
+      "required": [
+        "lat",
+        "lng",
+        "address"
+      ]
+    },
+    "contact": {
+      "type": "object",
+      "properties": {
+        "phone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        },
+        "instagram": {
+          "type": "string"
+        }
+      }
+    },
+    "genres": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "G\u00eaneros musicais do local"
+    },
+    "capacity": {
+      "type": "number",
+      "description": "Capacidade do local"
+    },
+    "average_price": {
+      "type": "number",
+      "description": "Pre\u00e7o m\u00e9dio de entrada"
+    },
+    "opening_hours": {
+      "type": "object",
+      "properties": {
+        "monday": {
+          "type": "string"
+        },
+        "tuesday": {
+          "type": "string"
+        },
+        "wednesday": {
+          "type": "string"
+        },
+        "thursday": {
+          "type": "string"
+        },
+        "friday": {
+          "type": "string"
+        },
+        "saturday": {
+          "type": "string"
+        },
+        "sunday": {
+          "type": "string"
+        }
+      }
+    },
+    "amenities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Comodidades (bar, fum\u00f3dromo, \u00e1rea externa, etc)"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Imagem do local"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se o local foi verificado pela SUBLINX"
+    },
+    "rating": {
+      "type": "number",
+      "default": 0,
+      "description": "Avalia\u00e7\u00e3o m\u00e9dia (0-5)"
+    },
+    "total_reviews": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de avalia\u00e7\u00f5es"
+    },
+    "upcoming_events_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de eventos futuros neste local"
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "location"
+  ]
+}

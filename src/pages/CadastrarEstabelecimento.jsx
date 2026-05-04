@@ -10,8 +10,14 @@ import { ArrowLeft, Building2, MapPin, Phone, Mail, Globe, Instagram, Check, Loa
 import { motion, AnimatePresence } from "framer-motion";
 
 const VENUE_TYPES = [
+  { value: "bar", label: "Bar", emoji: "🍸" },
+  { value: "discoteca", label: "Discoteca", emoji: "🪩" },
+  { value: "restaurante", label: "Restaurante", emoji: "🍽️" },
+  { value: "cafe", label: "Café", emoji: "☕" },
+  { value: "lounge_bar", label: "Lounge Bar", emoji: "🛋️" },
+  { value: "pub", label: "Pub", emoji: "🍺" },
   { value: "club", label: "Club / Balada", emoji: "🎉" },
-  { value: "bar", label: "Bar / Lounge", emoji: "🍸" },
+  { value: "padaria", label: "Padaria", emoji: "🥐" },
   { value: "warehouse", label: "Warehouse", emoji: "🏭" },
   { value: "rooftop", label: "Rooftop", emoji: "🏙️" },
   { value: "studio", label: "Estúdio", emoji: "🎧" },

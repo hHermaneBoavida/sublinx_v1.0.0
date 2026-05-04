@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, Plus, MapPin, Star, Users, ArrowLeft, Edit, Calendar, Phone, Globe, Instagram, Loader2 } from "lucide-react";
 
 const TYPE_LABELS = {
-  club: "Club", bar: "Bar", warehouse: "Warehouse", rooftop: "Rooftop",
-  studio: "Estúdio", gallery: "Galeria", underground_space: "Underground", cultural_center: "Centro Cultural"
+  bar: "Bar", discoteca: "Discoteca", restaurante: "Restaurante", cafe: "Café",
+  lounge_bar: "Lounge Bar", pub: "Pub", club: "Club", padaria: "Padaria",
+  warehouse: "Warehouse", rooftop: "Rooftop", studio: "Estúdio",
+  gallery: "Galeria", underground_space: "Underground", cultural_center: "Centro Cultural"
 };
 
 export default function MeusEstabelecimentos() {
