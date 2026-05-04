@@ -135,31 +135,7 @@ export default function Layout({ children, currentPageName }) {
 
   const showFAB = user?.is_organizer && ![createPageUrl("CriarEvento"), createPageUrl("Mapa")].includes(location.pathname);
 
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('/service-worker.js')
-          .then((registration) => {
-            console.log('✅ Service Worker registrado:', registration.scope);
-            
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              console.log('🔄 Nova versão do Service Worker encontrada');
-              
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('✨ Nova versão disponível! Recarregue para atualizar.');
-                }
-              });
-            });
-          })
-          .catch((error) => {
-            console.error('❌ Erro ao registrar Service Worker:', error);
-          });
-      });
-    }
-  }, []);
+
 
   const showNotificationPrompt = !isGuest && currentPageName !== "Mapa";
 
