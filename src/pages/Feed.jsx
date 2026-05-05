@@ -119,16 +119,12 @@ export default function Feed() {
     initialData: [],
   });
 
-  // Recomendações IA personalizadas
+  // Recomendações IA personalizadas (backend functions indisponíveis no plano atual)
   const { data: recommendations, isLoading: isLoadingRecs, refetch: refetchRecs } = useQuery({
     queryKey: ['personalizedRecommendations', user?.id],
-    queryFn: async () => {
-      if (!user) return { personalized: [], popular: [], trending: [] };
-      const response = await base44.functions.invoke('getPersonalizedRecommendations');
-      return response.data;
-    },
-    enabled: !!user,
-    staleTime: 300000, // 5min
+    queryFn: async () => ({ personalized: [], popular: [], trending: [] }),
+    enabled: false,
+    staleTime: Infinity,
     initialData: { personalized: [], popular: [], trending: [] },
   });
 
@@ -139,17 +135,8 @@ export default function Feed() {
 
   const { data: interactions = { likes: {}, comments: {}, requests: {} } } = useQuery({
     queryKey: queryKeys.feedInteractions(user?.id, visibleEventIds.length),
-    queryFn: async () => {
-      if (!user || visibleEventIds.length === 0) return { likes: {}, comments: {}, requests: {} };
-
-      const response = await base44.functions.invoke('getFeedInteractionsOptimized', {
-        event_ids: visibleEventIds // Apenas eventos visíveis
-      });
-
-      return response.data;
-    },
-    enabled: !!user && visibleEventIds.length > 0,
-    ...CACHE_CONFIG.REALTIME,
+    queryFn: async () => ({ likes: {}, comments: {}, requests: {} }),
+    enabled: false,
     initialData: { likes: {}, comments: {}, requests: {} },
   });
 

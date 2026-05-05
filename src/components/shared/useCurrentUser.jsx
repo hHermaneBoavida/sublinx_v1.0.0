@@ -17,7 +17,7 @@ export default function useCurrentUser() {
     retry: false,
     ...CACHE_CONFIG.STATIC,
     staleTime: Infinity,
-    cacheTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
