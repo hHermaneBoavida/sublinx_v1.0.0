@@ -68,30 +68,9 @@ export default function Mapa() {
     };
   }, []);
 
-  // Real-time events — inicia vazio, só sobrescreve após dados iniciais carregados
+  // Real-time events
   const [eventsRealtime, setEventsRealtime] = useState(null);
   const eventsDataRef = useRef(null);
-
-  useEffect(() => {
-    if (eventsData?.events) {
-      eventsDataRef.current = eventsData.events;
-      // Só inicializa realtime com dados do fetch se ainda não foi populado
-      setEventsRealtime(prev => prev === null ? eventsData.events : prev);
-    }
-  }, [eventsData]);
-
-  useEffect(() => {
-    const unsub = base44.entities.Event.subscribe((evt) => {
-      setEventsRealtime(prev => {
-        const current = prev ?? eventsDataRef.current ?? [];
-        if (evt.type === 'create') return [evt.data, ...current];
-        if (evt.type === 'update') return current.map(e => e.id === evt.id ? evt.data : e);
-        if (evt.type === 'delete') return current.filter(e => e.id !== evt.id);
-        return current;
-      });
-    });
-    return unsub;
-  }, []);
 
   const { data: eventsData, isLoading: isLoadingEvents, error: eventsError } = useQuery({
     queryKey: ['mapEvents'],
@@ -113,6 +92,28 @@ export default function Mapa() {
     retry: 2,
     retryDelay: 1000,
   });
+
+  // Sincroniza eventsData → eventsRealtime (uma vez) e mantém ref atualizada
+  useEffect(() => {
+    if (eventsData?.events) {
+      eventsDataRef.current = eventsData.events;
+      setEventsRealtime(prev => prev === null ? eventsData.events : prev);
+    }
+  }, [eventsData]);
+
+  // Subscrição realtime de eventos
+  useEffect(() => {
+    const unsub = base44.entities.Event.subscribe((evt) => {
+      setEventsRealtime(prev => {
+        const current = prev ?? eventsDataRef.current ?? [];
+        if (evt.type === 'create') return [evt.data, ...current];
+        if (evt.type === 'update') return current.map(e => e.id === evt.id ? evt.data : e);
+        if (evt.type === 'delete') return current.filter(e => e.id !== evt.id);
+        return current;
+      });
+    });
+    return unsub;
+  }, []);
 
   // Buscar venues
   const { data: venuesData = [] } = useQuery({
