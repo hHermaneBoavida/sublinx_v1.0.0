@@ -1,6 +1,5 @@
 // ====================================
 import { useEffect, useState } from 'react';
-
 // CONFIGURAÇÕES DE CACHE OTIMIZADAS - V2
 // ====================================
 

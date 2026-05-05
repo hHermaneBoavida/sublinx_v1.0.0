@@ -16,8 +16,8 @@ export function UserProvider({ children }) {
       }
     },
     retry: 1,
-    staleTime: Infinity, // Cache infinito
-    cacheTime: Infinity,
+    staleTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });

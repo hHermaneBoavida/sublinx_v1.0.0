@@ -26,10 +26,10 @@ export default function Mapa() {
   const [loadingLocation, setLoadingLocation] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeVibe, setActiveVibe] = useState('all');
-  const [filters] = useState({
+  const filters = useMemo(() => ({
     genre: 'all', type: 'all', dateRange: 'all',
     maxDistance: 50, minAttendees: 0, sortBy: 'distance'
-  });
+  }), []);
   const queryClient = useQueryClient();
   const mapCleanupRef = useRef(null);
 
@@ -68,12 +68,22 @@ export default function Mapa() {
     };
   }, []);
 
-  // Real-time events
+  // Real-time events — inicia vazio, só sobrescreve após dados iniciais carregados
   const [eventsRealtime, setEventsRealtime] = useState(null);
+  const eventsDataRef = useRef(null);
+
+  useEffect(() => {
+    if (eventsData?.events) {
+      eventsDataRef.current = eventsData.events;
+      // Só inicializa realtime com dados do fetch se ainda não foi populado
+      setEventsRealtime(prev => prev === null ? eventsData.events : prev);
+    }
+  }, [eventsData]);
+
   useEffect(() => {
     const unsub = base44.entities.Event.subscribe((evt) => {
       setEventsRealtime(prev => {
-        const current = prev || [];
+        const current = prev ?? eventsDataRef.current ?? [];
         if (evt.type === 'create') return [evt.data, ...current];
         if (evt.type === 'update') return current.map(e => e.id === evt.id ? evt.data : e);
         if (evt.type === 'delete') return current.filter(e => e.id !== evt.id);
@@ -129,7 +139,15 @@ export default function Mapa() {
     initialData: [],
   });
 
-  useEffect(() => { setReelsRealtime(reelsFetched); }, [reelsFetched]);
+  // Sincroniza reels do fetch apenas uma vez (evita re-renders desnecessários)
+  const reelsInitialized = useRef(false);
+  useEffect(() => {
+    if (!reelsInitialized.current && reelsFetched.length > 0) {
+      reelsInitialized.current = true;
+      setReelsRealtime(reelsFetched);
+    }
+  }, [reelsFetched]);
+
   useEffect(() => {
     const unsub = base44.entities.Reel.subscribe((evt) => {
       if (evt.type === 'create') setReelsRealtime(prev => [evt.data, ...prev]);
@@ -139,7 +157,8 @@ export default function Mapa() {
     return unsub;
   }, []);
 
-  const rawEvents = eventsRealtime || eventsData?.events || [];
+  // eventsRealtime é null até os dados do fetch chegarem (evita mostrar vazio durante loading)
+  const rawEvents = eventsRealtime ?? eventsData?.events ?? [];
 
   // Fallback de localização: usar coordenada do venue vinculado se evento não tiver lat/lng
   const events = useMemo(() => {
