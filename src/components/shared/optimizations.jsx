@@ -1,5 +1,5 @@
-// ====================================
 import { useEffect, useState } from 'react';
+
 // CONFIGURAÇÕES DE CACHE OTIMIZADAS - V2
 // ====================================
 
@@ -224,15 +224,10 @@ export function preloadImages(urls) {
 // ====================================
 
 export const SafeStorage = {
-  set(key, value, maxAge = 86400000) { // 24h default
+  set(key, value, maxAge = 86400000) {
     try {
-      const item = {
-        value,
-        timestamp: Date.now(),
-        maxAge
-      };
+      const item = { value, timestamp: Date.now(), maxAge };
       localStorage.setItem(key, JSON.stringify(item));
-      
       this.cleanup();
     } catch (e) {
       console.warn('LocalStorage full, clearing old items');
@@ -249,14 +244,11 @@ export const SafeStorage = {
     try {
       const item = localStorage.getItem(key);
       if (!item) return null;
-      
       const { value, timestamp, maxAge } = JSON.parse(item);
-      
       if (Date.now() - timestamp > maxAge) {
         localStorage.removeItem(key);
         return null;
       }
-      
       return value;
     } catch (e) {
       return null;
@@ -266,7 +258,6 @@ export const SafeStorage = {
   cleanup(force = false) {
     const keys = Object.keys(localStorage);
     const now = Date.now();
-    
     keys.forEach(key => {
       try {
         const item = JSON.parse(localStorage.getItem(key));
@@ -288,31 +279,27 @@ export function measurePerformance(name, fn) {
   const start = performance.now();
   const result = fn();
   const end = performance.now();
-  
   if (end - start > 16) {
     console.warn(`⚠️ Slow operation: ${name} took ${(end - start).toFixed(2)}ms`);
   }
-  
   return result;
 }
 
 // ====================================
-// INTERSECTION OBSERVER HOOK
+// INTERSECTION OBSERVER
 // ====================================
 
 export function createIntersectionObserver(callback, options = {}) {
-  const defaultOptions = {
+  return new IntersectionObserver(callback, {
     root: null,
     rootMargin: '50px',
     threshold: 0.1,
     ...options
-  };
-  
-  return new IntersectionObserver(callback, defaultOptions);
+  });
 }
 
 // ====================================
-// MEMORY CLEANUP
+// REACT HOOKS
 // ====================================
 
 export function useMemoryCleanup(callback, deps = []) {
@@ -324,10 +311,6 @@ export function useMemoryCleanup(callback, deps = []) {
     };
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
 }
-
-// ====================================
-// VIRTUALIZATION HELPER
-// ====================================
 
 export function useVirtualization(items, containerHeight, itemHeight) {
   const [scrollTop, setScrollTop] = useState(0);
@@ -348,10 +331,6 @@ export function useVirtualization(items, containerHeight, itemHeight) {
     onScroll: (e) => setScrollTop(e.target.scrollTop)
   };
 }
-
-// ====================================
-// EXPORTS
-// ====================================
 
 export default {
   CACHE_CONFIG,
