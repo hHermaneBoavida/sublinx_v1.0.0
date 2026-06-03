@@ -46,19 +46,17 @@ export default function PerfilUsuario() {
     queryKey: ['profileUser', userId],
     queryFn: async () => {
       if (!userId) throw new Error("ID não fornecido");
-      // Tentar por filter primeiro, fallback para list
-      try {
-        const users = await base44.entities.User.filter({ id: userId });
-        if (users && users.length > 0) return users[0];
-      } catch {}
-      const allUsers = await base44.entities.User.list('', 500);
-      const found = (allUsers || []).find(u => u.id === userId);
+      // O campo 'id' é built-in e pode ser filtrado diretamente
+      const users = await base44.entities.User.list('', 200);
+      const found = (users || []).find(u => u.id === userId);
       if (!found) throw new Error("Usuário não encontrado");
       return found;
     },
     enabled: !!userId,
-    retry: 1,
-    ...CACHE_CONFIG.MEDIUM,
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   // Capturar visualização de perfil — after profileUser is declared
@@ -335,6 +333,7 @@ export default function PerfilUsuario() {
               <FollowButton
                 targetUserId={userId}
                 currentUserId={currentUser.id}
+                targetUserName={profileUser?.full_name}
                 size="default"
               />
             )}
@@ -415,7 +414,7 @@ export default function PerfilUsuario() {
                   <div
                     key={event.id}
                     className="aspect-square bg-gray-900 rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => navigate(createPageUrl("EventoDetalhes") + `?id=${event.id}`)}
+                    onClick={() => navigate(createPageUrl("Feed") + `?event=${event.id}`)}
                   >
                     {event.image_url ? (
                       <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />

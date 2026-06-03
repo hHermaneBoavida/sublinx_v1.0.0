@@ -1,0 +1,67 @@
+{
+  "name": "VibePreference",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "current_vibe": {
+      "type": "string",
+      "enum": [
+        "relaxar",
+        "dan\u00e7ar",
+        "eletr\u00f4nico",
+        "m\u00fasica_ao_vivo",
+        "experimentar",
+        "socializar",
+        "romance",
+        "adrenalina"
+      ],
+      "description": "Vibe atual do usu\u00e1rio"
+    },
+    "preferred_genres": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "G\u00eaneros musicais preferidos no momento"
+    },
+    "energy_level": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "N\u00edvel de energia desejado (1-10)"
+    },
+    "crowd_preference": {
+      "type": "string",
+      "enum": [
+        "intimista",
+        "moderado",
+        "lotado",
+        "qualquer"
+      ],
+      "description": "Prefer\u00eancia de p\u00fablico"
+    },
+    "budget_range": {
+      "type": "string",
+      "enum": [
+        "economico",
+        "moderado",
+        "premium",
+        "vip"
+      ],
+      "description": "Faixa de or\u00e7amento"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima atualiza\u00e7\u00e3o das prefer\u00eancias"
+    }
+  },
+  "required": [
+    "user_id",
+    "current_vibe",
+    "energy_level"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "EventLivePost",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que postou"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio"
+    },
+    "user_avatar": {
+      "type": "string",
+      "description": "Avatar do usu\u00e1rio"
+    },
+    "media_type": {
+      "type": "string",
+      "enum": [
+        "photo",
+        "video"
+      ],
+      "description": "Tipo de m\u00eddia"
+    },
+    "media_url": {
+      "type": "string",
+      "description": "URL da foto/v\u00eddeo"
+    },
+    "caption": {
+      "type": "string",
+      "description": "Legenda"
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de curtidas"
+    },
+    "is_visible": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se est\u00e1 vis\u00edvel"
+    }
+  },
+  "required": [
+    "event_id",
+    "user_id",
+    "user_name",
+    "media_type",
+    "media_url"
+  ]
+}

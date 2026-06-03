@@ -1,0 +1,23 @@
+{
+  "name": "Follow",
+  "type": "object",
+  "properties": {
+    "follower_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que est\u00e1 seguindo"
+    },
+    "following_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio sendo seguido"
+    },
+    "followed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data que come\u00e7ou a seguir"
+    }
+  },
+  "required": [
+    "follower_id",
+    "following_id"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "name": "EventCheckIn",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que fez check-in"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio"
+    },
+    "user_avatar": {
+      "type": "string",
+      "description": "Avatar do usu\u00e1rio"
+    },
+    "check_in_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Hor\u00e1rio do check-in"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        }
+      },
+      "description": "Localiza\u00e7\u00e3o do check-in"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "arrived",
+        "inside",
+        "left"
+      ],
+      "default": "arrived",
+      "description": "Status do participante"
+    }
+  },
+  "required": [
+    "event_id",
+    "user_id",
+    "user_name"
+  ]
+}

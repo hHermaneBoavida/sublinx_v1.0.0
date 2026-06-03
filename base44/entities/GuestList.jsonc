@@ -1,0 +1,77 @@
+{
+  "name": "GuestList",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "organizer_id": {
+      "type": "string",
+      "description": "ID do organizador"
+    },
+    "guest_user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio convidado"
+    },
+    "guest_email": {
+      "type": "string",
+      "description": "Email do convidado (se ainda n\u00e3o for usu\u00e1rio)"
+    },
+    "guest_name": {
+      "type": "string",
+      "description": "Nome do convidado"
+    },
+    "vip_type": {
+      "type": "string",
+      "enum": [
+        "free",
+        "discount_50",
+        "discount_75",
+        "influencer",
+        "vip_exclusive"
+      ],
+      "default": "free",
+      "description": "Tipo de acesso VIP"
+    },
+    "discount_percentage": {
+      "type": "number",
+      "default": 100,
+      "description": "Percentual de desconto (100 = gratuito)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined",
+        "used"
+      ],
+      "default": "pending",
+      "description": "Status do convite"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es do organizador sobre o convidado"
+    },
+    "special_access": {
+      "type": "boolean",
+      "default": false,
+      "description": "Acesso a \u00e1reas especiais/backstage"
+    },
+    "plus_ones": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de acompanhantes permitidos"
+    },
+    "used_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o convite foi utilizado"
+    }
+  },
+  "required": [
+    "event_id",
+    "organizer_id"
+  ]
+}

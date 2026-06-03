@@ -1,0 +1,63 @@
+{
+  "name": "CommunityBan",
+  "type": "object",
+  "properties": {
+    "community_id": {
+      "type": "string",
+      "description": "ID da comunidade"
+    },
+    "banned_user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio banido"
+    },
+    "banned_by": {
+      "type": "string",
+      "description": "ID do moderador que baniu"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Raz\u00e3o do banimento"
+    },
+    "ban_type": {
+      "type": "string",
+      "enum": [
+        "temporary",
+        "permanent",
+        "warning"
+      ],
+      "default": "temporary",
+      "description": "Tipo de banimento"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data de expira\u00e7\u00e3o (se tempor\u00e1rio)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se o banimento est\u00e1 ativo"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas adicionais do moderador"
+    },
+    "appeal_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "none",
+      "description": "Status de apela\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "community_id",
+    "banned_user_id",
+    "banned_by",
+    "reason"
+  ]
+}

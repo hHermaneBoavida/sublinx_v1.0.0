@@ -1,0 +1,97 @@
+{
+  "name": "Ticket",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio dono do ingresso"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "ticket_type": {
+      "type": "string",
+      "description": "Tipo do ingresso (ex: Pista, VIP, Early Bird)"
+    },
+    "price": {
+      "type": "number",
+      "description": "Pre\u00e7o pago pelo ingresso"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "description": "Quantidade de ingressos"
+    },
+    "qr_code_data": {
+      "type": "string",
+      "description": "Dados \u00fanicos para a gera\u00e7\u00e3o do QR Code"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "valid",
+        "used",
+        "cancelled",
+        "refunded"
+      ],
+      "default": "valid",
+      "description": "Status do ingresso"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "pix",
+        "credit_card",
+        "debit_card",
+        "cash"
+      ],
+      "description": "M\u00e9todo de pagamento utilizado"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "failed",
+        "refunded"
+      ],
+      "default": "pending",
+      "description": "Status do pagamento"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "ID da transa\u00e7\u00e3o de pagamento"
+    },
+    "attendee_info": {
+      "type": "object",
+      "properties": {
+        "full_name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "document": {
+          "type": "string"
+        }
+      },
+      "description": "Informa\u00e7\u00f5es do participante"
+    },
+    "checked_in_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora do check-in no evento"
+    }
+  },
+  "required": [
+    "user_id",
+    "event_id",
+    "ticket_type",
+    "price",
+    "qr_code_data"
+  ]
+}

@@ -26,10 +26,10 @@ export default function Mapa() {
   const [loadingLocation, setLoadingLocation] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeVibe, setActiveVibe] = useState('all');
-  const filters = useMemo(() => ({
+  const [filters, setFilters] = useState({
     genre: 'all', type: 'all', dateRange: 'all',
     maxDistance: 50, minAttendees: 0, sortBy: 'distance'
-  }), []);
+  });
   const queryClient = useQueryClient();
   const mapCleanupRef = useRef(null);
 
@@ -185,9 +185,9 @@ export default function Mapa() {
   }, [rawEvents, venuesData]);
 
   const effectiveLocation = userLocation || { lat: -23.5505, lng: -46.6333 };
-  const effectiveMaxDistance = userLocation ? filters.maxDistance : 99999;
 
   const filteredEvents = useMemo(() => {
+    const effectiveMaxDistance = userLocation ? filters.maxDistance : 99999;
     if (!events || events.length === 0) return [];
 
     let filtered = events.filter(event => {
@@ -236,7 +236,7 @@ export default function Mapa() {
     }
 
     return filtered;
-  }, [events, filters, activeVibe, userLocation, effectiveLocation, effectiveMaxDistance]);
+  }, [events, filters, activeVibe, userLocation, effectiveLocation]);
 
   const handlePinClick = useCallback((eventId) => {
     setSelectedEventId(eventId);
@@ -333,6 +333,8 @@ export default function Mapa() {
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
                 activeVibe={activeVibe}
+                filters={filters}
+                onFiltersChange={setFilters}
                 suggestedEvents={[]}
                 onMapReady={(cleanupFn) => { mapCleanupRef.current = cleanupFn; }}
               />

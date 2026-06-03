@@ -1,0 +1,68 @@
+{
+  "name": "Community",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome da comunidade"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da comunidade"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "musica",
+        "cidade",
+        "frequencia",
+        "exploradores",
+        "djs",
+        "organizadores"
+      ],
+      "description": "Tipo da comunidade"
+    },
+    "creator_id": {
+      "type": "string",
+      "description": "ID do criador da comunidade"
+    },
+    "cover_image_url": {
+      "type": "string",
+      "description": "Imagem de capa"
+    },
+    "member_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de membros"
+    },
+    "is_private": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a comunidade \u00e9 privada"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Regras da comunidade"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags da comunidade"
+    },
+    "location": {
+      "type": "string",
+      "description": "Localiza\u00e7\u00e3o se for comunidade de cidade"
+    }
+  },
+  "required": [
+    "name",
+    "description",
+    "type",
+    "creator_id"
+  ]
+}

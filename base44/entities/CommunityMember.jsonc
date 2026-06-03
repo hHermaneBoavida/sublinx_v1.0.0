@@ -1,0 +1,38 @@
+{
+  "name": "CommunityMember",
+  "type": "object",
+  "properties": {
+    "community_id": {
+      "type": "string",
+      "description": "ID da comunidade"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "member",
+        "moderator",
+        "admin"
+      ],
+      "default": "member",
+      "description": "Papel na comunidade"
+    },
+    "joined_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data de entrada"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se \u00e9 um membro ativo"
+    }
+  },
+  "required": [
+    "community_id",
+    "user_id"
+  ]
+}

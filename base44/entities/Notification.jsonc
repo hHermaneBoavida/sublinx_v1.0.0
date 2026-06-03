@@ -1,0 +1,63 @@
+{
+  "name": "Notification",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que recebe a notifica\u00e7\u00e3o"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "event_alert",
+        "surprise_event",
+        "level_up",
+        "request_approved",
+        "request_denied",
+        "new_message",
+        "new_follower"
+      ],
+      "description": "Tipo da notifica\u00e7\u00e3o"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da notifica\u00e7\u00e3o"
+    },
+    "message": {
+      "type": "string",
+      "description": "Conte\u00fado da notifica\u00e7\u00e3o"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento relacionado (opcional)"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a notifica\u00e7\u00e3o foi lida"
+    },
+    "is_surprise": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 um evento surpresa (ativa efeitos especiais)"
+    },
+    "location_match": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a notifica\u00e7\u00e3o \u00e9 baseada em localiza\u00e7\u00e3o"
+    },
+    "genre_match": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "G\u00eaneros musicais que geraram a notifica\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "user_id",
+    "type",
+    "title",
+    "message"
+  ]
+}

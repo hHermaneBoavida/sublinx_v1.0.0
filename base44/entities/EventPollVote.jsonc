@@ -1,0 +1,23 @@
+{
+  "name": "EventPollVote",
+  "type": "object",
+  "properties": {
+    "poll_id": {
+      "type": "string",
+      "description": "ID da vota\u00e7\u00e3o"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "option_id": {
+      "type": "string",
+      "description": "ID da op\u00e7\u00e3o escolhida"
+    }
+  },
+  "required": [
+    "poll_id",
+    "user_id",
+    "option_id"
+  ]
+}

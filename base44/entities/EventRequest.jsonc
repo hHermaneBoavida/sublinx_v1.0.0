@@ -1,0 +1,70 @@
+{
+  "name": "EventRequest",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio solicitante"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "organizer_id": {
+      "type": "string",
+      "description": "ID do organizador do evento"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "denied"
+      ],
+      "default": "pending",
+      "description": "Status da solicita\u00e7\u00e3o"
+    },
+    "message": {
+      "type": "string",
+      "description": "Mensagem do usu\u00e1rio para o organizador"
+    },
+    "organizer_response": {
+      "type": "string",
+      "description": "Resposta do organizador"
+    },
+    "underground_level_required": {
+      "type": "number",
+      "default": 1,
+      "description": "N\u00edvel underground m\u00ednimo para o evento"
+    },
+    "applicant_data": {
+      "type": "object",
+      "properties": {
+        "full_name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "emergency_contact": {
+          "type": "string"
+        },
+        "dietary_restrictions": {
+          "type": "string"
+        },
+        "special_needs": {
+          "type": "string"
+        }
+      },
+      "description": "Dados completos do solicitante preenchidos no formul\u00e1rio"
+    }
+  },
+  "required": [
+    "user_id",
+    "event_id",
+    "organizer_id"
+  ]
+}

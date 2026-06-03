@@ -1,0 +1,55 @@
+{
+  "name": "UserBadge",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "badge_type": {
+      "type": "string",
+      "enum": [
+        "festa_insider",
+        "explorador_baladas",
+        "dj_hunter",
+        "photo_master",
+        "social_butterfly",
+        "early_bird",
+        "night_owl",
+        "vip_member",
+        "community_leader",
+        "music_lover"
+      ],
+      "description": "Tipo do badge conquistado"
+    },
+    "badge_name": {
+      "type": "string",
+      "description": "Nome do badge"
+    },
+    "badge_description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do achievement"
+    },
+    "earned_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data que conquistou o badge"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "comum",
+        "raro",
+        "\u00e9pico",
+        "lend\u00e1rio"
+      ],
+      "description": "Raridade do badge"
+    }
+  },
+  "required": [
+    "user_id",
+    "badge_type",
+    "badge_name",
+    "badge_description"
+  ]
+}

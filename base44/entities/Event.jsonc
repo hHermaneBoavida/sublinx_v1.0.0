@@ -1,0 +1,152 @@
+{
+  "name": "Event",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Nome do evento"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do evento"
+    },
+    "genre": {
+      "type": "string",
+      "enum": [
+        "techno",
+        "house",
+        "trance",
+        "drum_bass",
+        "dubstep",
+        "ambient",
+        "experimental",
+        "acid",
+        "minimal",
+        "hardcore",
+        "funk",
+        "trap",
+        "kuduro",
+        "kizomba",
+        "samba",
+        "pagode",
+        "rap",
+        "hip_hop",
+        "reggae"
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "rave",
+        "warehouse",
+        "rooftop",
+        "underground",
+        "festival",
+        "club",
+        "secret"
+      ]
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        },
+        "address": {
+          "type": "string"
+        },
+        "venue_name": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "postal_code": {
+          "type": "string"
+        },
+        "is_secret": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_hours": {
+      "type": "number"
+    },
+    "price": {
+      "type": "number",
+      "description": "Pre\u00e7o base (usado para exibi\u00e7\u00e3o r\u00e1pida)"
+    },
+    "is_secret": {
+      "type": "boolean",
+      "default": false
+    },
+    "organizer": {
+      "type": "string",
+      "description": "Nome do organizador (cache)"
+    },
+    "organizer_id": {
+      "type": "string",
+      "description": "ID do organizador"
+    },
+    "max_capacity": {
+      "type": "number"
+    },
+    "current_attendees": {
+      "type": "number",
+      "default": 0
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "requires_approval": {
+      "type": "boolean",
+      "default": true
+    },
+    "minimum_level": {
+      "type": "number",
+      "default": 1
+    },
+    "age_restriction": {
+      "type": "string",
+      "enum": [
+        "all",
+        "16+",
+        "18+",
+        "21+"
+      ],
+      "default": "18+"
+    },
+    "refund_policy": {
+      "type": "string",
+      "enum": [
+        "flexible",
+        "moderate",
+        "strict"
+      ],
+      "default": "flexible"
+    },
+    "allow_waitlist": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "title",
+    "genre",
+    "type",
+    "location",
+    "date",
+    "organizer_id"
+  ]
+}

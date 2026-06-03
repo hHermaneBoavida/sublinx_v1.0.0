@@ -1,0 +1,58 @@
+{
+  "name": "EventMetrics",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "tickets_sold": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de ingressos vendidos"
+    },
+    "revenue": {
+      "type": "number",
+      "default": 0,
+      "description": "Receita total"
+    },
+    "attendees_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de participantes confirmados"
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de curtidas"
+    },
+    "comments_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de coment\u00e1rios"
+    },
+    "requests_pending": {
+      "type": "number",
+      "default": 0,
+      "description": "Solicita\u00e7\u00f5es pendentes"
+    },
+    "views_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Visualiza\u00e7\u00f5es do evento"
+    },
+    "shares_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Compartilhamentos"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima atualiza\u00e7\u00e3o das m\u00e9tricas"
+    }
+  },
+  "required": [
+    "event_id"
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "name": "Subscription",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "plan_type": {
+      "type": "string",
+      "enum": [
+        "free",
+        "underground_pro",
+        "organizer_elite"
+      ],
+      "default": "free",
+      "description": "Tipo do plano"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "cancelled",
+        "expired",
+        "pending"
+      ],
+      "default": "active",
+      "description": "Status da assinatura"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data de in\u00edcio da assinatura"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data de fim da assinatura"
+    },
+    "price": {
+      "type": "number",
+      "description": "Pre\u00e7o mensal da assinatura"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Recursos inclu\u00eddos no plano"
+    }
+  },
+  "required": [
+    "user_id",
+    "plan_type",
+    "start_date"
+  ]
+}

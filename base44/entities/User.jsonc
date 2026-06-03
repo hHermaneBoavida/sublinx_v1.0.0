@@ -1,0 +1,125 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "display_name": {
+      "type": "string",
+      "description": "Nome de exibi\u00e7\u00e3o do usu\u00e1rio"
+    },
+    "bio": {
+      "type": "string",
+      "description": "Biografia do usu\u00e1rio"
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "URL do avatar"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefone"
+    },
+    "birth_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de nascimento"
+    },
+    "city": {
+      "type": "string",
+      "description": "Cidade"
+    },
+    "state": {
+      "type": "string",
+      "description": "Estado"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        }
+      },
+      "description": "Localiza\u00e7\u00e3o do usu\u00e1rio"
+    },
+    "is_organizer": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 organizador de eventos"
+    },
+    "verified_organizer": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 organizador verificado"
+    },
+    "is_pro_member": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 membro PRO"
+    },
+    "underground_level": {
+      "type": "number",
+      "default": 1,
+      "description": "N\u00edvel underground do usu\u00e1rio"
+    },
+    "underground_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Pontos underground"
+    },
+    "favorite_genres": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "G\u00eaneros musicais favoritos"
+    },
+    "price_range": {
+      "type": "string",
+      "enum": [
+        "free",
+        "budget",
+        "moderate",
+        "premium",
+        "any"
+      ],
+      "description": "Faixa de pre\u00e7o preferida"
+    },
+    "preferred_event_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tipos de eventos preferidos"
+    },
+    "crowd_preference": {
+      "type": "string",
+      "enum": [
+        "intimista",
+        "moderado",
+        "lotado",
+        "qualquer"
+      ],
+      "description": "Prefer\u00eancia de p\u00fablico"
+    },
+    "email_verified": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "display_name",
+    "bio",
+    "avatar_url",
+    "phone",
+    "birth_date",
+    "city",
+    "state",
+    "location",
+    "favorite_genres",
+    "price_range",
+    "preferred_event_types",
+    "crowd_preference"
+  ]
+}

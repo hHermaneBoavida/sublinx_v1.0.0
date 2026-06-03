@@ -1,0 +1,77 @@
+{
+  "name": "EventReview",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que fez a avalia\u00e7\u00e3o"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento avaliado"
+    },
+    "venue_id": {
+      "type": "string",
+      "description": "ID do local (casa noturna)"
+    },
+    "overall_rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Avalia\u00e7\u00e3o geral (1-5)"
+    },
+    "music_rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Avalia\u00e7\u00e3o da m\u00fasica"
+    },
+    "atmosphere_rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Avalia\u00e7\u00e3o do ambiente"
+    },
+    "service_rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Avalia\u00e7\u00e3o do atendimento"
+    },
+    "sound_quality_rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Avalia\u00e7\u00e3o da qualidade do som"
+    },
+    "review_text": {
+      "type": "string",
+      "description": "Texto da review"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs das fotos da review"
+    },
+    "recommended": {
+      "type": "boolean",
+      "description": "Se recomenda o evento/local"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags da experi\u00eancia (ex: 'som alto', 'bebida cara', 'p\u00fablico jovem')"
+    }
+  },
+  "required": [
+    "user_id",
+    "event_id",
+    "overall_rating",
+    "music_rating",
+    "atmosphere_rating"
+  ]
+}

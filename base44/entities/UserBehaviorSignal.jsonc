@@ -1,0 +1,83 @@
+{
+  "name": "UserBehaviorSignal",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "signal_type": {
+      "type": "string",
+      "enum": [
+        "view_duration",
+        "silent_consumption",
+        "navigation_pattern",
+        "spontaneous_return",
+        "abandonment_point",
+        "temporal_recurrence",
+        "interaction_depth",
+        "content_resonance",
+        "artist_profile_view",
+        "organizer_attendance_pattern",
+        "purchase_abandonment",
+        "repeat_organizer_visit",
+        "genre_deep_dive"
+      ],
+      "description": "Tipo de sinal comportamental"
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "type": "string"
+        },
+        "genre": {
+          "type": "string"
+        },
+        "event_type": {
+          "type": "string"
+        },
+        "duration_seconds": {
+          "type": "number"
+        },
+        "time_of_day": {
+          "type": "string"
+        },
+        "day_of_week": {
+          "type": "string"
+        },
+        "scroll_depth": {
+          "type": "number"
+        },
+        "previous_context": {
+          "type": "string"
+        },
+        "organizer_id": {
+          "type": "string"
+        },
+        "attendance_count": {
+          "type": "number"
+        },
+        "abandonment_count": {
+          "type": "number"
+        }
+      },
+      "description": "Contexto do sinal"
+    },
+    "weight": {
+      "type": "number",
+      "default": 1.0,
+      "description": "Peso base do sinal"
+    },
+    "decay_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data para come\u00e7ar decay temporal"
+    }
+  },
+  "required": [
+    "user_id",
+    "signal_type",
+    "context"
+  ]
+}

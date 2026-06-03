@@ -1,0 +1,51 @@
+{
+  "name": "EventQuestion",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que perguntou"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio"
+    },
+    "question": {
+      "type": "string",
+      "description": "Texto da pergunta"
+    },
+    "is_answered": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se foi respondida"
+    },
+    "answer": {
+      "type": "string",
+      "description": "Resposta do organizador"
+    },
+    "votes": {
+      "type": "number",
+      "default": 0,
+      "description": "Votos na pergunta"
+    },
+    "is_anonymous": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 an\u00f4nima"
+    },
+    "answered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando foi respondida"
+    }
+  },
+  "required": [
+    "event_id",
+    "user_id",
+    "question"
+  ]
+}

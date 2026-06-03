@@ -1,0 +1,91 @@
+{
+  "name": "CommunityReport",
+  "type": "object",
+  "properties": {
+    "community_id": {
+      "type": "string",
+      "description": "ID da comunidade"
+    },
+    "reported_by": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que reportou"
+    },
+    "reported_user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio reportado (se aplic\u00e1vel)"
+    },
+    "content_type": {
+      "type": "string",
+      "enum": [
+        "message",
+        "post",
+        "user_profile",
+        "event"
+      ],
+      "description": "Tipo de conte\u00fado reportado"
+    },
+    "content_id": {
+      "type": "string",
+      "description": "ID do conte\u00fado reportado"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "spam",
+        "harassment",
+        "hate_speech",
+        "violence",
+        "explicit_content",
+        "misinformation",
+        "scam",
+        "other"
+      ],
+      "description": "Raz\u00e3o do report"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o detalhada do report"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "reviewed",
+        "action_taken",
+        "dismissed"
+      ],
+      "default": "pending",
+      "description": "Status do report"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "ID do moderador que revisou"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data da revis\u00e3o"
+    },
+    "action_taken": {
+      "type": "string",
+      "description": "A\u00e7\u00e3o tomada pelo moderador"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium",
+      "description": "Severidade do report"
+    }
+  },
+  "required": [
+    "community_id",
+    "reported_by",
+    "content_type",
+    "reason"
+  ]
+}

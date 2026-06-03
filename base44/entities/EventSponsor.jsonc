@@ -1,0 +1,53 @@
+{
+  "name": "EventSponsor",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do patrocinador/parceiro"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL do logo"
+    },
+    "website": {
+      "type": "string",
+      "description": "Website do patrocinador"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o breve do patrocinador"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "diamond",
+        "gold",
+        "silver",
+        "bronze",
+        "partner"
+      ],
+      "default": "partner",
+      "description": "N\u00edvel do patroc\u00ednio"
+    },
+    "display_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Ordem de exibi\u00e7\u00e3o"
+    },
+    "is_visible": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se est\u00e1 vis\u00edvel"
+    }
+  },
+  "required": [
+    "event_id",
+    "name",
+    "logo_url"
+  ]
+}

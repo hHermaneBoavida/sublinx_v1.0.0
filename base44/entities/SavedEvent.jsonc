@@ -1,0 +1,23 @@
+{
+  "name": "SavedEvent",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento salvo"
+    },
+    "saved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que foi salvo"
+    }
+  },
+  "required": [
+    "user_id",
+    "event_id"
+  ]
+}

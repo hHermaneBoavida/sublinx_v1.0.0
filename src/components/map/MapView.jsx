@@ -193,6 +193,8 @@ export default function MapView({
   searchTerm = "",
   onSearchChange,
   activeVibe,
+  filters: externalFilters,
+  onFiltersChange,
   suggestedEvents = [],
   onMapReady 
 }) {
@@ -205,10 +207,16 @@ export default function MapView({
   const [zoomLevel, setZoomLevel] = useState(13);
   const [mapError, setMapError] = useState(null);
   const [mapKey] = useState(0);
-  const [advancedFilters, setAdvancedFilters] = useState({
+  // Se tiver filtros externos (do pai), usa eles; senão usa estado local
+  const [localAdvancedFilters, setLocalAdvancedFilters] = useState({
     genre: 'all', type: 'all', dateRange: 'all',
-    maxDistance: 50, minAttendees: 0, maxPrice: 500
+    maxDistance: 50, minAttendees: 0, maxPrice: 500, sortBy: 'distance'
   });
+  const advancedFilters = externalFilters || localAdvancedFilters;
+  const setAdvancedFilters = (newFilters) => {
+    setLocalAdvancedFilters(newFilters);
+    if (onFiltersChange) onFiltersChange(newFilters);
+  };
   const [localSearch, setLocalSearch] = useState(searchTerm);
   const debounceRef = useRef(null);
 
@@ -349,6 +357,7 @@ export default function MapView({
     if (key === 'maxDistance') return advancedFilters[key] !== 50;
     if (key === 'maxPrice') return advancedFilters[key] !== 500;
     if (key === 'minAttendees') return advancedFilters[key] !== 0;
+    if (key === 'sortBy') return false; // sortBy não conta como filtro ativo
     return advancedFilters[key] !== 'all';
   }).length;
 

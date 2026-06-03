@@ -1,0 +1,54 @@
+{
+  "name": "TicketPurchaseIntent",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "ticket_type": {
+      "type": "string",
+      "description": "Tipo de ingresso desejado"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "description": "Quantidade de ingressos"
+    },
+    "platform": {
+      "type": "string",
+      "description": "Plataforma escolhida"
+    },
+    "external_url": {
+      "type": "string",
+      "description": "URL externa para compra"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "initiated",
+        "redirected",
+        "completed",
+        "abandoned"
+      ],
+      "default": "initiated",
+      "description": "Status da inten\u00e7\u00e3o de compra"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data de conclus\u00e3o da compra"
+    }
+  },
+  "required": [
+    "user_id",
+    "event_id",
+    "ticket_type",
+    "quantity",
+    "platform"
+  ]
+}

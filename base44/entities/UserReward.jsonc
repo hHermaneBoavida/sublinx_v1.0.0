@@ -1,0 +1,48 @@
+{
+  "name": "UserReward",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "reward_id": {
+      "type": "string",
+      "description": "ID da recompensa"
+    },
+    "reward_name": {
+      "type": "string",
+      "description": "Nome da recompensa para hist\u00f3rico"
+    },
+    "reward_type": {
+      "type": "string",
+      "description": "Tipo da recompensa"
+    },
+    "points_spent": {
+      "type": "number",
+      "description": "Pontos gastos"
+    },
+    "redeemed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando foi resgatada"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se ainda est\u00e1 ativa"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data de expira\u00e7\u00e3o (se aplic\u00e1vel)"
+    }
+  },
+  "required": [
+    "user_id",
+    "reward_id",
+    "reward_name",
+    "reward_type",
+    "points_spent"
+  ]
+}

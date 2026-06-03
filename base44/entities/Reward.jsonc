@@ -1,0 +1,76 @@
+{
+  "name": "Reward",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome da recompensa"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do benef\u00edcio"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "profile_theme",
+        "early_access",
+        "vip_badge",
+        "custom_avatar",
+        "priority_support",
+        "event_discount",
+        "premium_feature"
+      ],
+      "description": "Tipo de recompensa"
+    },
+    "points_cost": {
+      "type": "number",
+      "description": "Custo em pontos"
+    },
+    "icon_url": {
+      "type": "string",
+      "description": "\u00cdcone da recompensa"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "visual",
+        "acesso",
+        "desconto",
+        "premium"
+      ],
+      "description": "Categoria da recompensa"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se est\u00e1 dispon\u00edvel"
+    },
+    "limited_quantity": {
+      "type": "number",
+      "description": "Quantidade limitada (opcional)"
+    },
+    "redeemed_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantas vezes foi resgatada"
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "comum",
+        "raro",
+        "\u00e9pico",
+        "lend\u00e1rio"
+      ],
+      "description": "Raridade da recompensa"
+    }
+  },
+  "required": [
+    "name",
+    "description",
+    "type",
+    "points_cost",
+    "category"
+  ]
+}

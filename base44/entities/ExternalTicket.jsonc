@@ -1,0 +1,89 @@
+{
+  "name": "ExternalTicket",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento no Sublinx"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "eventbrite",
+        "ticketmaster",
+        "sympla",
+        "shotgun",
+        "custom"
+      ],
+      "description": "Plataforma de origem"
+    },
+    "external_event_id": {
+      "type": "string",
+      "description": "ID do evento na plataforma externa"
+    },
+    "external_ticket_id": {
+      "type": "string",
+      "description": "ID do ticket na plataforma externa"
+    },
+    "ticket_type": {
+      "type": "string",
+      "description": "Tipo do ingresso"
+    },
+    "price": {
+      "type": "number",
+      "description": "Pre\u00e7o do ingresso"
+    },
+    "quantity_total": {
+      "type": "number",
+      "description": "Quantidade total dispon\u00edvel"
+    },
+    "quantity_sold": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade vendida"
+    },
+    "quantity_available": {
+      "type": "number",
+      "description": "Quantidade dispon\u00edvel"
+    },
+    "purchase_url": {
+      "type": "string",
+      "description": "URL de compra na plataforma"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "sold_out",
+        "paused"
+      ],
+      "default": "available",
+      "description": "Status do ingresso"
+    },
+    "buyer_name": {
+      "type": "string",
+      "description": "Nome do comprador"
+    },
+    "buyer_email": {
+      "type": "string",
+      "description": "Email do comprador"
+    },
+    "purchase_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data da compra"
+    },
+    "synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima sincroniza\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "event_id",
+    "platform",
+    "external_event_id",
+    "ticket_type",
+    "price"
+  ]
+}

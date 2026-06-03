@@ -1,0 +1,103 @@
+{
+  "name": "Advertisement",
+  "type": "object",
+  "properties": {
+    "advertiser_name": {
+      "type": "string",
+      "description": "Nome do anunciante"
+    },
+    "ad_type": {
+      "type": "string",
+      "enum": [
+        "banner",
+        "sponsored_event",
+        "video",
+        "story"
+      ],
+      "description": "Tipo de an\u00fancio"
+    },
+    "placement": {
+      "type": "string",
+      "enum": [
+        "feed_top",
+        "feed_middle",
+        "discover_top",
+        "map_overlay",
+        "reels_between"
+      ],
+      "description": "Posicionamento do an\u00fancio"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo do an\u00fancio"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Imagem do an\u00fancio"
+    },
+    "video_url": {
+      "type": "string",
+      "description": "V\u00eddeo do an\u00fancio (opcional)"
+    },
+    "link_url": {
+      "type": "string",
+      "description": "URL de destino"
+    },
+    "target_audience": {
+      "type": "object",
+      "properties": {
+        "genres": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "age_range": {
+          "type": "string"
+        }
+      }
+    },
+    "budget": {
+      "type": "number",
+      "description": "Or\u00e7amento do an\u00fancio"
+    },
+    "impressions": {
+      "type": "number",
+      "default": 0,
+      "description": "Impress\u00f5es"
+    },
+    "clicks": {
+      "type": "number",
+      "default": 0,
+      "description": "Cliques"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "advertiser_name",
+    "ad_type",
+    "placement",
+    "title"
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "name": "Chat",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do chat/grupo"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "direct",
+        "group",
+        "event"
+      ],
+      "description": "Tipo do chat"
+    },
+    "creator_id": {
+      "type": "string",
+      "description": "ID do criador do chat"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs dos participantes"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento relacionado se aplic\u00e1vel"
+    },
+    "is_private": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 um chat privado"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do grupo"
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "URL da imagem do chat/grupo"
+    },
+    "last_message_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp da \u00faltima mensagem"
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "creator_id",
+    "participants"
+  ]
+}

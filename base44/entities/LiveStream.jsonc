@@ -1,0 +1,56 @@
+{
+  "name": "LiveStream",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "streamer_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que est\u00e1 fazendo a live"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da live"
+    },
+    "stream_url": {
+      "type": "string",
+      "description": "URL da transmiss\u00e3o"
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "Thumbnail da live"
+    },
+    "viewer_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de visualizadores"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se a live est\u00e1 ativa"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Hor\u00e1rio de in\u00edcio"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Hor\u00e1rio de fim"
+    },
+    "chat_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se o chat est\u00e1 habilitado"
+    }
+  },
+  "required": [
+    "event_id",
+    "streamer_id",
+    "title"
+  ]
+}

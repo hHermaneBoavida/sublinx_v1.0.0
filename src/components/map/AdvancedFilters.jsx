@@ -23,6 +23,7 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClose }) {
       dateRange: 'all',
       maxDistance: 50,
       minAttendees: 0,
+      maxPrice: 500,
       sortBy: 'distance'
     };
     setLocalFilters(resetFilters);

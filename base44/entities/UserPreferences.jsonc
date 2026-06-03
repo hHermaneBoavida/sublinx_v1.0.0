@@ -1,0 +1,71 @@
+{
+  "name": "UserPreferences",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "price_range": {
+      "type": "string",
+      "enum": [
+        "free",
+        "budget",
+        "moderate",
+        "premium",
+        "any"
+      ],
+      "default": "any",
+      "description": "Faixa de pre\u00e7o preferida"
+    },
+    "crowd_preference": {
+      "type": "string",
+      "enum": [
+        "intimista",
+        "moderado",
+        "lotado",
+        "qualquer"
+      ],
+      "default": "qualquer",
+      "description": "Prefer\u00eancia de tamanho do evento"
+    },
+    "show_location": {
+      "type": "boolean",
+      "default": true,
+      "description": "Mostrar localiza\u00e7\u00e3o no perfil"
+    },
+    "show_events": {
+      "type": "boolean",
+      "default": true,
+      "description": "Mostrar eventos no perfil"
+    },
+    "show_followers": {
+      "type": "boolean",
+      "default": true,
+      "description": "Mostrar seguidores no perfil"
+    },
+    "events_nearby": {
+      "type": "boolean",
+      "default": true,
+      "description": "Notifica\u00e7\u00f5es de eventos pr\u00f3ximos"
+    },
+    "event_reminders": {
+      "type": "boolean",
+      "default": true,
+      "description": "Lembretes de eventos"
+    },
+    "new_followers": {
+      "type": "boolean",
+      "default": true,
+      "description": "Notifica\u00e7\u00f5es de novos seguidores"
+    },
+    "messages": {
+      "type": "boolean",
+      "default": true,
+      "description": "Notifica\u00e7\u00f5es de mensagens"
+    }
+  },
+  "required": [
+    "user_id"
+  ]
+}

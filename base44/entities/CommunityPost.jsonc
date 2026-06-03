@@ -1,0 +1,45 @@
+{
+  "name": "CommunityPost",
+  "type": "object",
+  "properties": {
+    "community_id": {
+      "type": "string",
+      "description": "ID da comunidade"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que postou"
+    },
+    "content": {
+      "type": "string",
+      "description": "Conte\u00fado do post"
+    },
+    "media_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs de imagens/v\u00eddeos"
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Contador de likes"
+    },
+    "comments_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Contador de coment\u00e1rios"
+    },
+    "is_pinned": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se est\u00e1 fixado"
+    }
+  },
+  "required": [
+    "community_id",
+    "user_id",
+    "content"
+  ]
+}

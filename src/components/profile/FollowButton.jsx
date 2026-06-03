@@ -5,9 +5,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserPlus, UserCheck, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "../shared/helpers";
+import { useToast } from "@/components/ui/use-toast";
 
-export default function FollowButton({ targetUserId, currentUserId, size = "default" }) {
+export default function FollowButton({ targetUserId, currentUserId, targetUserName, size = "default" }) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
 
   const { data: followData, isLoading: checkingFollow } = useQuery({
@@ -38,17 +40,6 @@ export default function FollowButton({ targetUserId, currentUserId, size = "defa
       }
     },
     ...CACHE_CONFIG.STATIC,
-  });
-
-  const { data: targetUser } = useQuery({
-    queryKey: ['targetUser', targetUserId],
-    queryFn: async () => {
-      if (!targetUserId) return null;
-      const users = await base44.entities.User.filter({ id: targetUserId });
-      return users?.[0] || null;
-    },
-    enabled: !!targetUserId,
-    ...CACHE_CONFIG.MEDIUM,
   });
 
   const followMutation = useMutation({
@@ -88,7 +79,7 @@ export default function FollowButton({ targetUserId, currentUserId, size = "defa
     onError: (error) => {
       console.error('Erro ao seguir/deixar de seguir:', error);
       setIsFollowing(!isFollowing);
-      alert('❌ Erro ao processar ação. Tente novamente.');
+      toast({ title: 'Erro', description: 'Não foi possível processar. Tente novamente.', variant: 'destructive' });
     },
     onSuccess: (action) => {
       queryClient.invalidateQueries(['followStatus']);
@@ -96,9 +87,9 @@ export default function FollowButton({ targetUserId, currentUserId, size = "defa
       queryClient.invalidateQueries(['following']);
       
       if (action === 'followed') {
-        console.log(`✅ Você seguiu ${targetUser?.full_name || 'o usuário'}!`);
+        console.log(`✅ Você seguiu ${targetUserName || 'o usuário'}!`);
       } else {
-        console.log(`✅ Você deixou de seguir ${targetUser?.full_name || 'o usuário'}!`);
+        console.log(`✅ Você deixou de seguir ${targetUserName || 'o usuário'}!`);
       }
     }
   });

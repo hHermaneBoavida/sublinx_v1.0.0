@@ -1,0 +1,49 @@
+{
+  "name": "EventAnnouncement",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento"
+    },
+    "organizer_id": {
+      "type": "string",
+      "description": "ID do organizador"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo do an\u00fancio"
+    },
+    "message": {
+      "type": "string",
+      "description": "Mensagem"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "urgent",
+        "schedule_change"
+      ],
+      "description": "Tipo de an\u00fancio"
+    },
+    "is_important": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 importante"
+    },
+    "send_push": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enviar notifica\u00e7\u00e3o push"
+    }
+  },
+  "required": [
+    "event_id",
+    "organizer_id",
+    "title",
+    "message",
+    "type"
+  ]
+}
