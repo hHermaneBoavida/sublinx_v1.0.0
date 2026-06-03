@@ -273,12 +273,13 @@ export default function Perfil() {
                   </Button>
                 </div>
                 <Button 
-                  onClick={() => navigate(createPageUrl("MeusEstabelecimentos"))} 
-                  className="w-full bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 border border-gray-600"
-                >
-                  <Building2 className="w-4 h-4 mr-2" />
-                  Meus Estabelecimentos
-                </Button>
+                   onClick={() => navigate(createPageUrl("MeusEstabelecimentos"))} 
+                   className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-lg border border-orange-500/50 text-white font-semibold"
+                   style={{ boxShadow: '0 0 20px rgba(249, 115, 22, 0.4)' }}
+                 >
+                   <Building2 className="w-4 h-4 mr-2" />
+                   Meus Estabelecimentos
+                 </Button>
               </div>
             )}
           </div>
