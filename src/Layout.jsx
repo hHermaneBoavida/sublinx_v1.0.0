@@ -76,59 +76,12 @@ export default function Layout({ children, currentPageName }) {
   }, [user, isGuest]);
 
   const getNavigationItems = (currentUser, guest) => {
-    const baseItems = [
-      {
-        title: "Mapa",
-        url: createPageUrl("Mapa"),
-        icon: MapPin,
-      },
-      {
-        title: "Feed", 
-        url: createPageUrl("Feed"),
-        icon: Zap,
-      }
+    return [
+      { title: "Mapa", url: createPageUrl("Mapa"), icon: MapPin },
+      { title: "Feed", url: createPageUrl("Feed"), icon: Zap },
+      { title: "Chat", url: currentUser?.is_organizer ? createPageUrl("ChatOrganizadores") : createPageUrl("Chat"), icon: MessageCircle },
+      { title: "Perfil", url: guest ? createPageUrl("BemVindo") : createPageUrl("Perfil"), icon: UserIcon },
     ];
-
-    if (guest) {
-        return [
-            ...baseItems,
-            {
-                title: "Perfil",
-                url: createPageUrl("BemVindo"),
-                icon: UserIcon,
-            }
-        ];
-    }
-
-    if (currentUser?.is_organizer) {
-      return [
-        ...baseItems,
-        {
-          title: "Chat",
-          url: createPageUrl("Chat"),
-          icon: MessageCircle,
-        },
-        {
-          title: "Perfil",
-          url: createPageUrl("Perfil"),
-          icon: UserIcon,
-        }
-      ];
-    } else {
-      return [
-        ...baseItems,
-        {
-          title: "Comunidade",
-          url: createPageUrl("Comunidade"),
-          icon: Users,
-        },
-        {
-          title: "Perfil",
-          url: createPageUrl("Perfil"),
-          icon: UserIcon,
-        }
-      ];
-    }
   };
   
   const navigationItems = getNavigationItems(user, isGuest);

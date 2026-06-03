@@ -1,25 +1,16 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Search, PlusCircle, PlayCircle, User, Users } from "lucide-react";
+import { MapPin, Zap, MessageCircle, User } from "lucide-react";
 import { createPageUrl } from "@/utils";
 
 export default function BottomNav({ location, isOrganizer, isGuest }) {
-  const navItems = isOrganizer
-    ? [
-        { title: "Mapa", icon: MapPin, url: createPageUrl("Mapa") },
-        { title: "Explorar", icon: Search, url: createPageUrl("Feed") },
-        { title: "Criar", icon: PlusCircle, url: createPageUrl("CriarEvento"), isAction: true },
-        { title: "Reels", icon: PlayCircle, url: createPageUrl("Mapa") },
-        { title: "Perfil", icon: User, url: createPageUrl("Perfil") },
-      ]
-    : [
-        { title: "Mapa", icon: MapPin, url: createPageUrl("Mapa") },
-        { title: "Explorar", icon: Search, url: createPageUrl("Feed") },
-        { title: "Reels", icon: PlayCircle, url: createPageUrl("Mapa") },
-        { title: "Comunidade", icon: Users, url: createPageUrl("Comunidade") },
-        { title: "Perfil", icon: User, url: isGuest ? createPageUrl("BemVindo") : createPageUrl("Perfil") },
-      ];
+  const navItems = [
+    { title: "Mapa", icon: MapPin, url: createPageUrl("Mapa") },
+    { title: "Feed", icon: Zap, url: createPageUrl("Feed") },
+    { title: "Chat", icon: MessageCircle, url: isOrganizer ? createPageUrl("ChatOrganizadores") : createPageUrl("Chat") },
+    { title: "Perfil", icon: User, url: isGuest ? createPageUrl("BemVindo") : createPageUrl("Perfil") },
+  ];
 
   const isActive = (url) => location?.pathname === url.split("?")[0];
 
