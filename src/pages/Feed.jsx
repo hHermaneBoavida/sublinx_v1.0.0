@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, lazy, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import InfiniteScrollTrigger from "../components/feed/InfiniteScrollTrigger";
-import SortControls, { SORT_OPTIONS } from "../components/feed/SortControls";
-import { Search, Heart, RefreshCw, SlidersHorizontal, Sparkles, TrendingUp, Music, Crown, Menu } from "lucide-react";
+
+import { Search, Heart, Sparkles, TrendingUp, Crown, Menu, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
@@ -19,12 +19,10 @@ import FeedAIRecommendations from "../components/recommendations/FeedAIRecommend
 import { useCurrentUser } from "../components/providers/UserProvider";
 import { useBatchOrganizers } from "../components/shared/useBatchOrganizers";
 import { useSignalCapture } from "../components/resonance/SignalCapture";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+
 
 const EventFeedCard = lazy(() => import("../components/feed/EventFeedCard"));
 const ShareVibeModal = lazy(() => import("../components/feed/ShareVibeModal"));
-const MusicPreferencesModal = lazy(() => import("../components/feed/MusicPreferencesModal"));
 
 const EVENTS_PER_PAGE = 15;
 const MAX_EVENTS_FOR_INTERACTIONS = 20; // OTIMIZAÇÃO: Limitar queries
@@ -33,11 +31,7 @@ export default function Feed() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [showShareVibe, setShowShareVibe] = useState(false);
-  const [showPreferences, setShowPreferences] = useState(false);
-  const [sortBy, setSortBy] = useState('distance');
-  const [showSortPanel, setShowSortPanel] = useState(false);
   const [discoverTab, setDiscoverTab] = useState('personalized');
-  const [manualDiscoveryMode, setManualDiscoveryMode] = useState(false);
   const [showUnlockedGlow, setShowUnlockedGlow] = useState(new Set());
   const navigate = useNavigate();
 
@@ -142,64 +136,20 @@ export default function Feed() {
 
   const sortedEvents = useMemo(() => {
     if (!events?.length) return [];
-
-    let sorted = [...events];
-
-    switch (sortBy) {
-      case 'distance':
-        sorted = sortEventsByDistance(sorted, user?.location);
-        break;
-      case 'date_asc':
-        sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
-        break;
-      case 'date_desc':
-        sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
-        break;
-      case 'popularity':
-        sorted.sort((a, b) => (b.current_attendees || 0) - (a.current_attendees || 0));
-        break;
-      case 'likes':
-        sorted.sort((a, b) => {
-          const likesA = interactions.likes[a.id]?.length || 0;
-          const likesB = interactions.likes[b.id]?.length || 0;
-          return likesB - likesA;
-        });
-        break;
-      case 'price_asc':
-        sorted.sort((a, b) => {
-          const priceA = a.price || a.ticket_types?.[0]?.price || 0;
-          const priceB = b.price || b.ticket_types?.[0]?.price || 0;
-          return priceA - priceB;
-        });
-        break;
-      case 'price_desc':
-        sorted.sort((a, b) => {
-          const priceA = a.price || a.ticket_types?.[0]?.price || 0;
-          const priceB = b.price || b.ticket_types?.[0]?.price || 0;
-          return priceB - priceA;
-        });
-        break;
-      default:
-        sorted = sortEventsByDistance(sorted, user?.location);
-    }
-
-    return sorted;
-  }, [events, sortBy, user?.location, interactions.likes]);
+    return sortEventsByDistance([...events], user?.location);
+  }, [events, user?.location]);
 
   const filteredEvents = useMemo(() => {
-    let filtered = searchTerm 
-      ? sortedEvents.filter(event => {
-          const lowerSearch = searchTerm.toLowerCase();
-          return event.title?.toLowerCase().includes(lowerSearch) ||
-            event.genre?.toLowerCase().includes(lowerSearch) ||
-            event.location?.venue_name?.toLowerCase().includes(lowerSearch) ||
-            event.location?.city?.toLowerCase().includes(lowerSearch) ||
-            event.organizer?.toLowerCase().includes(lowerSearch);
-        })
-      : sortedEvents;
-
-    return filtered;
-  }, [sortedEvents, searchTerm, manualDiscoveryMode]);
+    if (!searchTerm) return sortedEvents;
+    const lowerSearch = searchTerm.toLowerCase();
+    return sortedEvents.filter(event =>
+      event.title?.toLowerCase().includes(lowerSearch) ||
+      event.genre?.toLowerCase().includes(lowerSearch) ||
+      event.location?.venue_name?.toLowerCase().includes(lowerSearch) ||
+      event.location?.city?.toLowerCase().includes(lowerSearch) ||
+      event.organizer?.toLowerCase().includes(lowerSearch)
+    );
+  }, [sortedEvents, searchTerm]);
 
   // Captura de sinal de consumo silencioso ao visualizar feed
   React.useEffect(() => {
@@ -272,48 +222,27 @@ export default function Feed() {
     <div className="max-w-xl mx-auto px-0 py-0">
       <div className="sticky top-0 z-10 bg-black/95 backdrop-blur-lg border-b border-gray-800/50 px-3 sm:px-4 py-2.5 sm:py-3">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
-            Feed
-          </h1>
           <div className="flex items-center gap-2">
-            {!isGuest && (
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => setShowPreferences(true)}
-                className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-purple-500/20"
-                title="Preferências Musicais"
-              >
-                <Music className="w-4 h-4 text-purple-400" />
-              </Button>
-            )}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => {
-                refetch();
-                if (!isGuest) refetchRecs();
-              }}
-              className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-cyan-500/20"
-            >
-              <RefreshCw className="w-4 h-4 text-cyan-400" />
-            </Button>
-            {isGuest && (
-              <Button
-                onClick={() => navigate(createPageUrl("BemVindo"))}
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 hover:bg-gray-800 text-gray-300"
-                title="Menu"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-            )}
-            {!isGuest && !isLoadingUser && null}
+            <button onClick={() => navigate(createPageUrl("Mapa"))} className="text-cyan-400 hover:text-cyan-300 p-1 transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
+              Feed
+            </h1>
           </div>
+          {isGuest && (
+            <Button
+              onClick={() => navigate(createPageUrl("BemVindo"))}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-gray-800 text-gray-300"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          )}
         </div>
 
-        <div className="relative mb-2">
+        <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             placeholder="Buscar evento, gênero, local..."
@@ -322,61 +251,6 @@ export default function Feed() {
             className="bg-gray-900/80 border-gray-700 pl-9 pr-3 text-white placeholder:text-gray-500 focus:border-cyan-500 text-sm h-9 rounded-lg"
           />
         </div>
-
-        <div className="flex items-center gap-2 justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowSortPanel(!showSortPanel)}
-              className="h-8 px-2 text-xs text-cyan-400 hover:bg-cyan-500/10"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 mr-1" />
-              Ordenar
-              {showSortPanel && <span className="ml-1">▼</span>}
-            </Button>
-
-            {sortBy !== 'distance' && (
-              <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300 text-[9px]">
-                {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
-              </Badge>
-            )}
-          </div>
-
-          {/* Modo Descoberta Manual */}
-          {!isGuest && (
-            <div className="flex items-center gap-2">
-              <Switch 
-                checked={manualDiscoveryMode}
-                onCheckedChange={setManualDiscoveryMode}
-                className="data-[state=checked]:bg-orange-500"
-              />
-              <Label htmlFor="manual-mode" className="text-xs text-gray-400 cursor-pointer">
-                Descoberta Manual
-              </Label>
-            </div>
-          )}
-        </div>
-
-        <AnimatePresence>
-          {showSortPanel && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-3 overflow-hidden"
-            >
-              <SortControls 
-                value={sortBy} 
-                onChange={(value) => {
-                  setSortBy(value);
-                  setShowSortPanel(false);
-                }} 
-                hasLocation={!!user?.location}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Seção Descubra */}
@@ -564,47 +438,13 @@ export default function Feed() {
           </Suspense>
         ) : (
           <div className="text-center py-16 bg-gradient-to-br from-gray-900/50 to-purple-900/20 rounded-lg border border-gray-700 mx-4 mt-4">
-            {manualDiscoveryMode ? (
-              <>
-                <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-400 mb-2">
-                  Nenhum evento encontrado
-                </h3>
-                <p className="text-gray-500 px-4 mb-4">
-                  {searchTerm ? "Tente ajustar sua busca" : "Ainda não há eventos futuros"}
-                </p>
-              </>
-            ) : (
-              <>
-                <motion.div
-                  animate={{ 
-                    rotate: [0, 10, -10, 0],
-                    scale: [1, 1.1, 1]
-                  }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                >
-                  <Sparkles className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-                </motion.div>
-                <h3 className="text-xl font-semibold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text mb-2">
-                  Explorando Novos Horizontes
-                </h3>
-                <p className="text-gray-400 px-6 mb-4 max-w-md mx-auto text-sm">
-                  O sistema está aprendendo suas preferências de forma silenciosa. Continue explorando e novos eventos aparecerão naturalmente.
-                </p>
-                <p className="text-gray-600 text-xs px-6 max-w-sm mx-auto">
-                  💡 Dica: Quanto mais você navega sem forçar, mais o SUBLINX entende sua vibe
-                </p>
-                {!searchTerm && events.length > 0 && (
-                  <Button
-                    variant="outline"
-                    className="mt-4 border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-                    onClick={() => setManualDiscoveryMode(true)}
-                  >
-                    Ativar Descoberta Manual
-                  </Button>
-                )}
-              </>
-            )}
+            <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-400 mb-2">
+              Nenhum evento encontrado
+            </h3>
+            <p className="text-gray-500 px-4 mb-4">
+              {searchTerm ? "Tente ajustar sua busca" : "Ainda não há eventos futuros"}
+            </p>
           </div>
         )}
       </div>
@@ -614,18 +454,6 @@ export default function Feed() {
           <ShareVibeModal
             onClose={() => setShowShareVibe(false)}
             user={user}
-          />
-        </Suspense>
-      )}
-
-      {showPreferences && user && (
-        <Suspense fallback={null}>
-          <MusicPreferencesModal
-            user={user}
-            onClose={() => setShowPreferences(false)}
-            onSave={() => {
-              refetchRecs();
-            }}
           />
         </Suspense>
       )}

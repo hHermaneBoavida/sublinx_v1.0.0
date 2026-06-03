@@ -242,7 +242,7 @@ export default function Planos() {
       </div>
 
       {/* Plans Grid */}
-      <div className="grid md:grid-cols-3 gap-8 mb-12">
+      <div className="grid md:grid-cols-3 gap-8 mb-12 items-stretch">
         {plans.map((plan) => {
           const Icon = plan.icon;
           const isActive = currentSubscription?.plan_type === plan.id;
@@ -250,7 +250,7 @@ export default function Planos() {
           return (
             <Card
               key={plan.id}
-              className={`relative overflow-hidden transition-all duration-300 hover:scale-105 flex flex-col ${
+              className={`relative overflow-hidden transition-all duration-300 hover:scale-105 flex flex-col h-full ${
                 plan.popular
                   ? "border-2 border-cyan-500 shadow-xl shadow-cyan-500/25"
                   : isActive

@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +44,10 @@ export default function CadastrarEstabelecimento() {
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const editId = urlParams.get('editId');
+  const isEditing = !!editId;
+
   const [form, setForm] = useState({
     name: "", description: "", type: "",
     location: { lat: 0, lng: 0, address: "", city: "", state: "", neighborhood: "" },
@@ -51,6 +55,28 @@ export default function CadastrarEstabelecimento() {
     capacity: "", average_price: "",
     opening_hours: {},
   });
+
+  // Carregar dados do venue para edição
+  useEffect(() => {
+    if (!editId) return;
+    base44.entities.Venue.list().then(venues => {
+      const venue = venues.find(v => v.id === editId);
+      if (!venue) return;
+      setForm({
+        name: venue.name || "",
+        description: venue.description || "",
+        type: venue.type || "",
+        location: venue.location || { lat: 0, lng: 0, address: "", city: "", state: "", neighborhood: "" },
+        contact: venue.contact || { phone: "", email: "", website: "", instagram: "" },
+        capacity: venue.capacity ? String(venue.capacity) : "",
+        average_price: venue.average_price ? String(venue.average_price) : "",
+        opening_hours: venue.opening_hours || {},
+      });
+      setSelectedGenres(venue.genres || []);
+      setSelectedAmenities(venue.amenities || []);
+      setStep(1); // Pular direto para info básica na edição
+    });
+  }, [editId]);
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }));
   const setLocation = (field, value) => setForm(f => ({ ...f, location: { ...f.location, [field]: value } }));
@@ -78,15 +104,20 @@ export default function CadastrarEstabelecimento() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.entities.Venue.create({
+      const data = {
         ...form,
         genres: selectedGenres,
         amenities: selectedAmenities,
         capacity: form.capacity ? Number(form.capacity) : undefined,
         average_price: form.average_price ? Number(form.average_price) : undefined,
-        verified: false, rating: 0, total_reviews: 0, upcoming_events_count: 0,
-      });
+      };
+      if (isEditing) {
+        await base44.entities.Venue.update(editId, data);
+      } else {
+        await base44.entities.Venue.create({ ...data, verified: false, rating: 0, total_reviews: 0, upcoming_events_count: 0 });
+      }
       queryClient.invalidateQueries(['venues']);
+      queryClient.invalidateQueries(['myVenues']);
       setSaved(true);
       setTimeout(() => navigate(createPageUrl("MeusEstabelecimentos")), 1500);
     } catch {
@@ -106,7 +137,7 @@ export default function CadastrarEstabelecimento() {
         </button>
         <div className="flex-1">
           <h1 className="text-base font-bold" style={{ background: 'linear-gradient(to right, #22d3ee, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Cadastrar Estabelecimento
+            {isEditing ? 'Editar Estabelecimento' : 'Cadastrar Estabelecimento'}
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">{STEPS[step]} — passo {step + 1} de {STEPS.length}</p>
         </div>
@@ -330,8 +361,8 @@ export default function CadastrarEstabelecimento() {
             <Button onClick={handleSave} disabled={saving || saved} className="w-full h-12 text-base font-bold rounded-xl"
               style={{ background: saved ? 'linear-gradient(135deg, #16a34a, #15803d)' : 'linear-gradient(135deg, #0891b2, #7c3aed)', boxShadow: '0 0 30px rgba(6,182,212,0.4)' }}>
               {saving ? <><Loader2 className="w-5 h-5 animate-spin mr-2" />Salvando...</>
-                : saved ? <><Check className="w-5 h-5 mr-2" />Cadastrado com sucesso!</>
-                : <><Building2 className="w-5 h-5 mr-2" />Finalizar Cadastro</>}
+                : saved ? <><Check className="w-5 h-5 mr-2" />{isEditing ? 'Atualizado!' : 'Cadastrado com sucesso!'}</>
+                : <><Building2 className="w-5 h-5 mr-2" />{isEditing ? 'Salvar Alterações' : 'Finalizar Cadastro'}</>}
             </Button>
           </motion.div>
         )}

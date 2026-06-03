@@ -75,9 +75,14 @@ export default function ComprarIngresso() {
     queryKey: ['event', eventId],
     queryFn: async () => {
       if (!eventId) return null;
-      const events = await base44.entities.Event.filter({ id: eventId });
-      if (events.length === 0) throw new Error("Evento não encontrado");
-      return events[0];
+      try {
+        const events = await base44.entities.Event.list();
+        const found = events.find(e => e.id === eventId);
+        if (!found) throw new Error("Evento não encontrado");
+        return found;
+      } catch {
+        return null;
+      }
     },
     enabled: !!eventId,
   });

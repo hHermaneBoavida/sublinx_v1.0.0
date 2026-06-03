@@ -101,7 +101,8 @@ export default function MeusEstabelecimentos() {
                           )}
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-cyan-400 flex-shrink-0">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-cyan-400 flex-shrink-0"
+                        onClick={() => navigate(createPageUrl("CadastrarEstabelecimento") + `?editId=${venue.id}`)}>
                         <Edit className="w-4 h-4" />
                       </Button>
                     </div>
