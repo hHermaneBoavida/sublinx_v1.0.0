@@ -330,12 +330,16 @@ export default function PerfilUsuario() {
 
             {/* Follow Button */}
             {currentUser && currentUser.id !== userId && (
-              <FollowButton
-                targetUserId={userId}
-                currentUserId={currentUser.id}
-                targetUserName={profileUser?.full_name}
-                size="default"
-              />
+              <div className="mt-4">
+                <FollowButton
+                  targetUserId={userId}
+                  currentUserId={currentUser.id}
+                  targetUserName={profileUser?.full_name}
+                  size="default"
+                  className="w-full font-semibold shadow-lg border border-cyan-400/60 transition-all duration-300 hover:scale-105"
+                  style={{ boxShadow: '0 0 25px rgba(6, 182, 212, 0.4)' }}
+                />
+              </div>
             )}
           </div>
         </div>
@@ -380,33 +384,36 @@ export default function PerfilUsuario() {
           </TabsList>
 
           {/* Eventos */}
-          <TabsContent value="eventos" className="mt-4">
-            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-800">
-              <Button
-                variant={eventFilter === 'all' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setEventFilter('all')}
-                className={eventFilter === 'all' ? 'bg-cyan-600 hover:bg-cyan-700' : 'text-gray-400'}
-              >
-                Todos
-              </Button>
-              <Button
-                variant={eventFilter === 'upcoming' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setEventFilter('upcoming')}
-                className={eventFilter === 'upcoming' ? 'bg-cyan-600 hover:bg-cyan-700' : 'text-gray-400'}
-              >
-                Próximos
-              </Button>
-              <Button
-                variant={eventFilter === 'past' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setEventFilter('past')}
-                className={eventFilter === 'past' ? 'bg-cyan-600 hover:bg-cyan-700' : 'text-gray-400'}
-              >
-                Passados
-              </Button>
-            </div>
+           <TabsContent value="eventos" className="mt-4">
+             <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-800">
+               <Button
+                 variant={eventFilter === 'all' ? 'default' : 'ghost'}
+                 size="sm"
+                 onClick={() => setEventFilter('all')}
+                 className={eventFilter === 'all' ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 font-semibold text-white border border-cyan-400/60 shadow-lg transition-all duration-300 hover:scale-105' : 'text-gray-400 hover:text-cyan-300 border border-gray-700 hover:border-cyan-500/50'}
+                 style={eventFilter === 'all' ? { boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)' } : {}}
+               >
+                 Todos
+               </Button>
+               <Button
+                 variant={eventFilter === 'upcoming' ? 'default' : 'ghost'}
+                 size="sm"
+                 onClick={() => setEventFilter('upcoming')}
+                 className={eventFilter === 'upcoming' ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 font-semibold text-white border border-cyan-400/60 shadow-lg transition-all duration-300 hover:scale-105' : 'text-gray-400 hover:text-cyan-300 border border-gray-700 hover:border-cyan-500/50'}
+                 style={eventFilter === 'upcoming' ? { boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)' } : {}}
+               >
+                 Próximos
+               </Button>
+               <Button
+                 variant={eventFilter === 'past' ? 'default' : 'ghost'}
+                 size="sm"
+                 onClick={() => setEventFilter('past')}
+                 className={eventFilter === 'past' ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 font-semibold text-white border border-cyan-400/60 shadow-lg transition-all duration-300 hover:scale-105' : 'text-gray-400 hover:text-cyan-300 border border-gray-700 hover:border-cyan-500/50'}
+                 style={eventFilter === 'past' ? { boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)' } : {}}
+               >
+                 Passados
+               </Button>
+             </div>
 
             {filteredEvents.length > 0 ? (
               <div className="grid grid-cols-3 gap-1">

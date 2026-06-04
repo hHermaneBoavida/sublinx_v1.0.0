@@ -257,16 +257,16 @@ export default function Perfil() {
                 <div className="flex gap-2">
                   <Button 
                     onClick={() => navigate(createPageUrl("DashboardOrganizador"))} 
-                    className="flex-1 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 shadow-lg border border-cyan-500/30"
-                    style={{ boxShadow: '0 0 20px rgba(6, 182, 212, 0.3)' }}
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 shadow-xl border border-cyan-400/60 font-semibold text-white transition-all duration-300 hover:scale-105"
+                    style={{ boxShadow: '0 0 30px rgba(6, 182, 212, 0.5), inset 0 0 15px rgba(6, 182, 212, 0.2)' }}
                   >
                     <BarChart3 className="w-4 h-4 mr-2" />
                     Dashboard
                   </Button>
                   <Button 
                     onClick={() => navigate(createPageUrl("ChatOrganizadores"))} 
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg border border-purple-500/30"
-                    style={{ boxShadow: '0 0 20px rgba(168, 85, 247, 0.3)' }}
+                    className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-xl border border-purple-400/60 font-semibold text-white transition-all duration-300 hover:scale-105"
+                    style={{ boxShadow: '0 0 30px rgba(168, 85, 247, 0.5), inset 0 0 15px rgba(168, 85, 247, 0.2)' }}
                   >
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Chat
@@ -274,8 +274,8 @@ export default function Perfil() {
                 </div>
                 <Button 
                    onClick={() => navigate(createPageUrl("MeusEstabelecimentos"))} 
-                   className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-lg border border-orange-500/50 text-white font-semibold"
-                   style={{ boxShadow: '0 0 20px rgba(249, 115, 22, 0.4)' }}
+                   className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-xl border border-orange-400/60 text-white font-semibold transition-all duration-300 hover:scale-105"
+                   style={{ boxShadow: '0 0 30px rgba(249, 115, 22, 0.6), inset 0 0 15px rgba(249, 115, 22, 0.3)' }}
                  >
                    <Building2 className="w-4 h-4 mr-2" />
                    Meus Estabelecimentos
