@@ -4,8 +4,15 @@ export default function ServiceWorkerRegistration() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
-    // Apenas registrar se houver um arquivo real /service-worker.js
-    // Blob URLs não são suportadas como ServiceWorker
+    // Never register in dev — stale SW cache causes duplicate React / null hook errors
+    if (import.meta.env.DEV) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(reg => reg.unregister());
+      });
+      caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+      return;
+    }
+
     fetch('/service-worker.js', { method: 'HEAD' })
       .then(res => {
         if (res.ok) {
@@ -21,10 +28,10 @@ export default function ServiceWorkerRegistration() {
                 });
               });
             })
-            .catch(() => {}); // silenciar erros de SW
+            .catch(() => {});
         }
       })
-      .catch(() => {}); // /service-worker.js não existe, ignorar
+      .catch(() => {});
   }, []);
 
   return null;
