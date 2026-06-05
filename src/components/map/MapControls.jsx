@@ -53,9 +53,10 @@ export default function MapControls({
           onClick={onZoomIn}
           disabled={zoomLevel >= 18}
           size="icon"
-          className="w-12 h-12 bg-transparent hover:bg-cyan-600/20 border-0 border-b border-gray-700 rounded-none disabled:opacity-30"
+          className="w-12 h-12 bg-transparent hover:bg-cyan-600/30 active:bg-cyan-600/50 border-0 border-b border-gray-700 rounded-none disabled:opacity-30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+          style={{ boxShadow: 'inset 0 0 10px rgba(6, 182, 212, 0.2)' }}
         >
-          <Plus className="w-5 h-5 text-cyan-400" />
+          <Plus className="w-5 h-5 text-cyan-400 group-hover:text-cyan-300" />
         </Button>
         
         <div className="px-3 py-2 text-center border-b border-gray-700">
@@ -67,7 +68,8 @@ export default function MapControls({
           onClick={onZoomOut}
           disabled={zoomLevel <= 10}
           size="icon"
-          className="w-12 h-12 bg-transparent hover:bg-cyan-600/20 border-0 rounded-none disabled:opacity-30"
+          className="w-12 h-12 bg-transparent hover:bg-cyan-600/30 active:bg-cyan-600/50 border-0 rounded-none disabled:opacity-30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+          style={{ boxShadow: 'inset 0 0 10px rgba(6, 182, 212, 0.2)' }}
         >
           <Minus className="w-5 h-5 text-cyan-400" />
         </Button>
@@ -84,16 +86,17 @@ export default function MapControls({
         <Button
           onClick={onRecenter}
           size="icon"
-          className="w-12 h-12 bg-black/80 backdrop-blur-xl border-2 border-purple-500/30 rounded-xl shadow-xl relative overflow-hidden group"
+          className="w-12 h-12 bg-black/80 backdrop-blur-xl border-2 border-purple-500/50 rounded-xl shadow-xl relative overflow-hidden group hover:border-purple-400 active:border-purple-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+          style={{ boxShadow: '0 0 20px rgba(168, 85, 247, 0.3)' }}
         >
           <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-purple-500/20"
+            className="absolute inset-0 bg-gradient-to-r from-cyan-500/30 to-purple-500/30"
             animate={{
               opacity: [0.3, 0.7, 0.3]
             }}
             transition={{ duration: 2, repeat: Infinity }}
           />
-          <Navigation className="w-5 h-5 text-purple-400 relative z-10" />
+          <Navigation className="w-5 h-5 text-purple-300 relative z-10 group-hover:text-purple-200 transition-colors" />
         </Button>
       </motion.div>
 
@@ -108,9 +111,10 @@ export default function MapControls({
         <Button
           onClick={onToggleLayers}
           size="icon"
-          className="w-12 h-12 bg-black/80 backdrop-blur-xl border-2 border-green-500/30 rounded-xl shadow-xl"
+          className="w-12 h-12 bg-black/80 backdrop-blur-xl border-2 border-green-500/50 rounded-xl shadow-xl hover:border-green-400 active:border-green-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+          style={{ boxShadow: '0 0 20px rgba(34, 197, 94, 0.3)' }}
         >
-          <Layers className="w-5 h-5 text-green-400" />
+          <Layers className="w-5 h-5 text-green-300 hover:text-green-200 transition-colors" />
         </Button>
       </motion.div>
     </div>
