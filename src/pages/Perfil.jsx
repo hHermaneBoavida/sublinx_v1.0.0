@@ -195,27 +195,51 @@ export default function Perfil() {
               <h1 className="text-lg font-semibold text-white">Perfil</h1>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                onClick={handleLogout} 
-                variant="ghost" 
-                size="sm"
-                className="text-red-400 hover:bg-red-500/10 hover:text-red-300 border border-red-500/30"
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(6,182,212,0.05))',
+                  border: '1.5px solid rgba(6,182,212,0.5)',
+                  color: '#67e8f9',
+                  boxShadow: '0 0 12px rgba(6,182,212,0.25)'
+                }}
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
-              <Button onClick={handleShareProfile} variant="ghost" size="icon" className="text-white hover:bg-gray-900">
-                <Share2 className="w-5 h-5" />
-              </Button>
-              <Button onClick={() => setShowEditModal(true)} variant="ghost" size="icon" className="text-cyan-400 hover:bg-cyan-500/10">
-                <Edit2 className="w-5 h-5" />
-              </Button>
+                <Edit2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Editar</span>
+              </button>
+              <button
+                onClick={handleShareProfile}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(168,85,247,0.05))',
+                  border: '1.5px solid rgba(168,85,247,0.5)',
+                  color: '#d8b4fe',
+                  boxShadow: '0 0 12px rgba(168,85,247,0.25)'
+                }}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Compartilhar</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))',
+                  border: '1.5px solid rgba(239,68,68,0.5)',
+                  color: '#fca5a5',
+                  boxShadow: '0 0 12px rgba(239,68,68,0.25)'
+                }}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sair</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-3">
         <div className="flex items-start gap-6 mb-6">
           <div className="relative flex-shrink-0">
             <img

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle, ArrowLeft, ShieldCheck } from "lucide-react";
+import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -199,15 +199,6 @@ export default function Layout({ children, currentPageName }) {
           }}>
             <div className="max-w-7xl mx-auto flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <motion.button
-                  onClick={() => window.location.href = createPageUrl('Mapa')}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="btn-back"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                  <span>Voltar</span>
-                </motion.button>
                 <Link to={createPageUrl("Mapa")} className="group flex items-center gap-2 sm:gap-3">
                   <motion.img 
                     whileHover={{ scale: 1.15, rotate: 10 }}
