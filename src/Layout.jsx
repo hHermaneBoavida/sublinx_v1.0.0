@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Zap, User as UserIcon, Users, Bell, Crown, Plus, MessageCircle, ShieldCheck } from "lucide-react";
+import { MapPin, Zap, User as UserIcon, Bell, Plus, MessageCircle, ArrowLeft, MoreVertical, Share2, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import BottomNav from "@/components/navigation/BottomNav";
@@ -20,6 +27,7 @@ import ServiceWorkerRegistration from "@/components/offline/ServiceWorkerRegistr
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState(null);
 
   const { data: user } = useQuery({
@@ -192,207 +200,130 @@ export default function Layout({ children, currentPageName }) {
             }}
           />
 
-          <header className="relative z-10 p-3 sm:p-4 md:p-6 backdrop-blur-xl border-b-2" style={{
-            background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(17,24,39,0.5))',
-            borderColor: 'rgba(6, 182, 212, 0.2)',
-            boxShadow: '0 0 30px rgba(6, 182, 212, 0.15), inset 0 -1px 0 rgba(6, 182, 212, 0.3)'
+          <header className="relative z-10 px-4 py-2 backdrop-blur-xl border-b" style={{
+            background: 'rgba(0,0,0,0.85)',
+            borderColor: 'rgba(6, 182, 212, 0.15)',
           }}>
-            <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="max-w-7xl mx-auto flex items-center justify-between h-12">
+              {/* LEFT: Voltar + Logo */}
               <div className="flex items-center gap-2">
-                <Link to={createPageUrl("Mapa")} className="group flex items-center gap-2 sm:gap-3">
-                  <motion.img 
-                    whileHover={{ scale: 1.15, rotate: 10 }}
+                <button
+                  onClick={() => navigate(-1)}
+                  className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
+                  style={{
+                    background: 'rgba(6,182,212,0.1)',
+                    border: '1.5px solid rgba(6,182,212,0.4)',
+                    color: '#67e8f9'
+                  }}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <Link to={createPageUrl("Mapa")} className="flex items-center gap-2">
+                  <motion.img
+                    whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png" 
-                    alt="SUBLINX Icon" 
-                    className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 transition-transform duration-300"
-                    style={{
-                      filter: 'drop-shadow(0 0 15px rgba(6, 182, 212, 0.7))'
-                    }}
+                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png"
+                    alt="SUBLINX"
+                    className="w-8 h-8"
+                    style={{ filter: 'drop-shadow(0 0 8px rgba(6,182,212,0.6))' }}
                   />
-                  <motion.h1 
-                    className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-lime-400 bg-clip-text text-transparent hidden xs:block"
-                    style={{
-                      textShadow: '0 0 30px rgba(6, 182, 212, 0.5)'
-                    }}
-                    whileHover={{
-                      textShadow: '0 0 40px rgba(6, 182, 212, 0.8)'
-                    }}
-                  >
+                  <span className="hidden sm:block text-base font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                     SUBLINX
-                  </motion.h1>
+                  </span>
                 </Link>
               </div>
 
-              <nav className="hidden md:flex space-x-2">
-                {navigationItems.map((item) => (
-                  <motion.div
-                    key={item.title}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Link
-                      to={item.url}
-                      className={`flex items-center space-x-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-300 relative overflow-hidden ${
-                        location.pathname === item.url
-                          ? 'text-cyan-300'
-                          : 'text-gray-300 hover:text-white'
-                      }`}
-                      style={{
-                        background: location.pathname === item.url
-                          ? 'linear-gradient(to right, rgba(6, 182, 212, 0.2), rgba(168, 85, 247, 0.2))'
-                          : 'transparent',
-                        borderColor: location.pathname === item.url ? 'rgba(6, 182, 212, 0.4)' : 'transparent',
-                        boxShadow: location.pathname === item.url 
-                          ? '0 0 20px rgba(6, 182, 212, 0.3), inset 0 0 15px rgba(6, 182, 212, 0.15)'
-                          : 'none'
-                      }}
-                    >
-                      {location.pathname === item.url && (
-                        <div 
-                          className="absolute top-0 left-0 right-0 h-1/2 rounded-t-lg"
-                          style={{
-                            background: 'linear-gradient(to bottom, rgba(255,255,255,0.15), transparent)'
-                          }}
-                        />
-                      )}
-
-                      <item.icon className="w-4 h-4 relative z-10" />
-                      <span className="text-sm lg:text-base relative z-10">{item.title}</span>
-                    </Link>
-                  </motion.div>
-                ))}
-              </nav>
-
-              <div className="flex items-center gap-2 sm:gap-3">
-                {/* Role Badge */}
-                {!isGuest && user?.is_organizer && (
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+              {/* RIGHT: Notificações + Menu */}
+              <div className="flex items-center gap-2">
+                {!isGuest && (
+                  <Link
+                    to={createPageUrl("Notificacoes")}
+                    className="relative flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
                     style={{
-                      background: 'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.25))',
-                      border: '1.5px solid rgba(251,191,36,0.6)',
-                      color: '#FBBF24',
-                      boxShadow: '0 0 14px rgba(251,191,36,0.3)'
+                      background: 'rgba(6,182,212,0.1)',
+                      border: '1.5px solid rgba(6,182,212,0.3)',
                     }}
                   >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    ORGANIZADOR
-                  </motion.div>
-                )}
-                {!isGuest && !user?.is_organizer && user?.is_pro_member && (
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(6,182,212,0.2), rgba(168,85,247,0.2))',
-                      border: '1.5px solid rgba(6,182,212,0.5)',
-                      color: '#67e8f9',
-                      boxShadow: '0 0 14px rgba(6,182,212,0.3)'
-                    }}
-                  >
-                    <Crown className="w-3.5 h-3.5" />
-                    PRO
-                  </motion.div>
-                )}
-
-                {(!user?.is_pro_member || isGuest) && (
-                  <Link to={createPageUrl("Planos")}>
-                    <motion.div whileHover={{ scale: 1.08, y: -2 }} whileTap={{ scale: 0.95 }}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="hidden sm:flex text-xs lg:text-sm font-bold relative overflow-hidden"
-                        style={{
-                          background: 'linear-gradient(to right, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2))',
-                          borderColor: 'rgba(251, 191, 36, 0.5)',
-                          color: '#FBBF24',
-                          boxShadow: '0 0 20px rgba(251, 191, 36, 0.4)'
-                        }}
+                    <Bell className="w-4 h-4 text-cyan-400" />
+                    {unreadCount > 0 && (
+                      <span
+                        className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 text-white text-[9px] font-bold flex items-center justify-center rounded-full"
+                        style={{ background: '#ef4444', boxShadow: '0 0 8px rgba(239,68,68,0.8)' }}
                       >
-                        <Crown className="w-3 h-3 lg:w-4 lg:h-4 mr-1" />
-                        <span className="hidden lg:inline">Upgrade</span>
-                        <span className="lg:hidden">Pro</span>
-                      </Button>
-                    </motion.div>
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
                   </Link>
                 )}
 
                 {!isGuest && (
-                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                    <Link
-                      to={createPageUrl("Notificacoes")}
-                      className="relative p-2 rounded-lg hover:bg-gray-800/50 transition-all duration-300 group"
-                    >
-                      <motion.div
-                        animate={unreadCount > 0 ? { rotate: [0, -15, 15, -10, 10, 0] } : {}}
-                        transition={{ duration: 0.5, repeat: unreadCount > 0 ? Infinity : 0, repeatDelay: 3 }}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
+                        style={{
+                          background: 'rgba(168,85,247,0.1)',
+                          border: '1.5px solid rgba(168,85,247,0.4)',
+                          color: '#d8b4fe'
+                        }}
                       >
-                        <Bell className="w-5 h-5 text-gray-300 group-hover:text-white" />
-                      </motion.div>
-                      {unreadCount > 0 && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute -top-1 -right-1 min-w-[18px] h-[18px] sm:min-w-[20px] sm:h-5 px-1 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center rounded-full"
-                          style={{
-                            background: 'linear-gradient(135deg, rgba(239, 68, 68, 1), rgba(220, 38, 38, 1))',
-                            boxShadow: '0 0 15px rgba(239, 68, 68, 0.8)'
-                          }}
-                        >
-                          {unreadCount > 99 ? "99+" : unreadCount}
-                        </motion.div>
-                      )}
-                      {unreadCount === 0 && (
-                        <motion.div
-                          className="absolute top-1 right-1 w-2 h-2 rounded-full"
-                          style={{ background: 'rgba(6, 182, 212, 0.6)', boxShadow: '0 0 8px rgba(6, 182, 212, 0.8)' }}
-                          animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.2, 0.8] }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                        />
-                      )}
-                    </Link>
-                  </motion.div>
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-48 border"
+                      style={{
+                        background: 'rgba(10,10,20,0.97)',
+                        borderColor: 'rgba(168,85,247,0.3)',
+                        backdropFilter: 'blur(20px)'
+                      }}
+                    >
+                      <DropdownMenuItem
+                        onClick={() => navigate(createPageUrl("Perfil"))}
+                        className="flex items-center gap-2 text-gray-200 hover:text-white focus:text-white cursor-pointer"
+                        style={{ background: 'transparent' }}
+                      >
+                        <UserIcon className="w-4 h-4 text-cyan-400" />
+                        Meu Perfil
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          const url = window.location.href;
+                          if (navigator.share) navigator.share({ url });
+                          else navigator.clipboard.writeText(url);
+                        }}
+                        className="flex items-center gap-2 text-gray-200 hover:text-white focus:text-white cursor-pointer"
+                        style={{ background: 'transparent' }}
+                      >
+                        <Share2 className="w-4 h-4 text-purple-400" />
+                        Compartilhar
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator style={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                      <DropdownMenuItem
+                        onClick={() => { base44.auth.logout(); navigate(createPageUrl("BemVindo")); }}
+                        className="flex items-center gap-2 text-red-400 hover:text-red-300 focus:text-red-300 cursor-pointer"
+                        style={{ background: 'transparent' }}
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sair
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
 
-                <div className="md:hidden">
-                  {user ? (
-                    <motion.div
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Link to={createPageUrl("Perfil")}>
-                        <img 
-                          src={user.avatar_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/5048ab8ec_perfil.png"} 
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover" 
-                          alt="User Avatar"
-                          style={{
-                            border: '2px solid rgba(6, 182, 212, 0.5)',
-                            boxShadow: '0 0 15px rgba(6, 182, 212, 0.5)'
-                          }}
-                        />
-                      </Link>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Link to={createPageUrl("BemVindo")}>
-                        <div 
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-800 flex items-center justify-center border-2 transition-all"
-                          style={{
-                            borderColor: 'rgba(6, 182, 212, 0.5)',
-                            boxShadow: '0 0 15px rgba(6, 182, 212, 0.3)'
-                          }}
-                        >
-                          <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400"/>
-                        </div>
-                      </Link>
-                    </motion.div>
-                  )}
-                </div>
+                {isGuest && (
+                  <Link
+                    to={createPageUrl("BemVindo")}
+                    className="flex items-center justify-center w-8 h-8 rounded-lg"
+                    style={{
+                      background: 'rgba(6,182,212,0.1)',
+                      border: '1.5px solid rgba(6,182,212,0.4)',
+                    }}
+                  >
+                    <UserIcon className="w-4 h-4 text-cyan-400" />
+                  </Link>
+                )}
               </div>
             </div>
           </header>
