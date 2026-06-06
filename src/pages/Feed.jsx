@@ -12,6 +12,7 @@ import { Search, Heart, Sparkles, TrendingUp, Crown, Menu, ArrowLeft } from "luc
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
+import { filterPublicEvents } from "../components/shared/eventValidation";
 import { CACHE_CONFIG, queryKeys } from "../components/shared/optimizations";
 import { motion, AnimatePresence } from "framer-motion";
 import SocialRecommendations from "../components/recommendations/SocialRecommendations";
@@ -63,7 +64,7 @@ export default function Feed() {
       const limit = EVENTS_PER_PAGE;
       const data = await base44.entities.Event.list("-date", limit + offset);
       
-      const futureEvents = filterFutureEvents(data);
+      const futureEvents = filterPublicEvents(filterFutureEvents(data));
       const pageEvents = futureEvents.slice(offset, offset + EVENTS_PER_PAGE);
       
       return {

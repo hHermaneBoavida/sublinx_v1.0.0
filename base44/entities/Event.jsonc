@@ -139,6 +139,71 @@
     "allow_waitlist": {
       "type": "boolean",
       "default": true
+    },
+    "trust_level": {
+      "type": "string",
+      "enum": [
+        "verified",
+        "confirmed",
+        "partner",
+        "pending",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "N\u00edvel de confian\u00e7a: verified=N\u00edvel1 (fonte oficial), confirmed=N\u00edvel2 (estabelecimento), partner=N\u00edvel3 (parceiro SUBLINX), pending=N\u00edvel4 (aguardando), rejected=reprovado"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "organizer",
+        "google_places",
+        "google_business",
+        "facebook",
+        "instagram",
+        "official_site",
+        "sublinx_partner",
+        "admin"
+      ],
+      "description": "Origem verific\u00e1vel do evento"
+    },
+    "source_url": {
+      "type": "string",
+      "description": "URL de origem do evento (link verific\u00e1vel)"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "ID externo do evento na fonte de origem"
+    },
+    "is_published": {
+      "type": "boolean",
+      "default": false,
+      "description": "Evento vis\u00edvel publicamente. Somente trust_level verified/confirmed/partner pode ser true."
+    },
+    "is_expired": {
+      "type": "boolean",
+      "default": false,
+      "description": "Evento com data passada (marcado automaticamente)"
+    },
+    "validation_errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de erros de valida\u00e7\u00e3o que impedem a publica\u00e7\u00e3o"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que o evento foi verificado"
+    },
+    "verified_by": {
+      "type": "string",
+      "description": "ID do admin/sistema que verificou"
+    },
+    "last_validated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima vez que os dados foram validados"
     }
   },
   "required": [
@@ -147,6 +212,8 @@
     "type",
     "location",
     "date",
-    "organizer_id"
+    "organizer_id",
+    "source",
+    "trust_level"
   ]
 }

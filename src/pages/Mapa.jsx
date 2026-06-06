@@ -10,6 +10,7 @@ import VenueDetailsModal from "../components/map/VenueDetailsModal";
 import { Loader2, MapPin, Sparkles, Play } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { matchesVibe, calculateDistance } from "../components/shared/helpers";
+import { filterPublicEvents } from "../components/shared/eventValidation";
 import { isWithinInterval, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
 
@@ -79,13 +80,13 @@ export default function Mapa() {
       if (!Array.isArray(allEvents)) return { events: [] };
       // Mostrar: em andamento agora + até 7 dias futuros + com atividade recente (até 48h passados)
       const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
-      const valid = allEvents.filter(e => {
+      const valid = filterPublicEvents(allEvents.filter(e => {
         if (!e?.date) return false;
         try {
           const d = new Date(e.date);
           return !isNaN(d.getTime()) && d > cutoff;
         } catch { return false; }
-      });
+      }));
       return { events: valid };
     },
     staleTime: 3 * 60 * 1000,

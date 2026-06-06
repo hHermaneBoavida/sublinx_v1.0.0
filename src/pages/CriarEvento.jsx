@@ -287,7 +287,12 @@ export default function CriarEvento() {
         organizer_id: user.id,
         organizer_avatar: user.avatar_url,
         current_attendees: 0,
-        audio_preview_url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav"
+        // Campos de autenticidade obrigatórios
+        source: "organizer",
+        trust_level: "pending",
+        is_published: false,
+        is_expired: false,
+        last_validated_at: new Date().toISOString(),
       });
 
       // Notificar seguidores
@@ -314,7 +319,7 @@ export default function CriarEvento() {
         console.error("Erro ao notificar:", notifError);
       }
 
-      alert(`✅ Evento "${formData.title}" criado com sucesso! 🎉`);
+      alert(`✅ Evento "${formData.title}" enviado para análise! Será publicado após validação pela equipe SUBLINX.`);
       navigate(createPageUrl("MeusEventos"));
     } catch (error) {
       console.error("Erro ao criar evento:", error);
@@ -1113,11 +1118,10 @@ export default function CriarEvento() {
                         <CheckCircle2 className="w-6 h-6 text-green-400 flex-shrink-0 mt-0.5" />
                         <div>
                           <h4 className="font-semibold text-green-300 mb-2">
-                            Pronto para Publicar!
+                            Enviar para Análise
                           </h4>
                           <p className="text-sm text-gray-300">
-                            Seu evento será publicado imediatamente e seus {formData.ticket_types.reduce((sum, t) => sum + t.quantity, 0)} ingressos 
-                            ficarão disponíveis para venda. Todos os seus seguidores serão notificados!
+                            Seu evento será enviado para análise pela equipe SUBLINX. Após validação (normalmente em até 24h), será publicado e seus seguidores serão notificados. Isso garante que apenas eventos reais e verificados apareçam na plataforma.
                           </p>
                         </div>
                       </div>
