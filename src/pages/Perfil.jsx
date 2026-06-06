@@ -189,51 +189,8 @@ export default function Perfil() {
     <div className="min-h-screen bg-black text-white pb-24 md:pb-8">
       <div className="border-b border-gray-800 bg-black/60 backdrop-blur-lg">
         <div className="max-w-4xl mx-auto px-4 py-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-base font-semibold text-white">Perfil</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(6,182,212,0.05))',
-                  border: '1.5px solid rgba(6,182,212,0.5)',
-                  color: '#67e8f9',
-                  boxShadow: '0 0 12px rgba(6,182,212,0.25)'
-                }}
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Editar</span>
-              </button>
-              <button
-                onClick={handleShareProfile}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(168,85,247,0.05))',
-                  border: '1.5px solid rgba(168,85,247,0.5)',
-                  color: '#d8b4fe',
-                  boxShadow: '0 0 12px rgba(168,85,247,0.25)'
-                }}
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Compartilhar</span>
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))',
-                  border: '1.5px solid rgba(239,68,68,0.5)',
-                  color: '#fca5a5',
-                  boxShadow: '0 0 12px rgba(239,68,68,0.25)'
-                }}
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sair</span>
-              </button>
-            </div>
+          <div className="flex items-center">
+            <h1 className="text-base font-semibold text-white">Perfil</h1>
           </div>
         </div>
       </div>
