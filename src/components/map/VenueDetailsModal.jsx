@@ -126,14 +126,14 @@ export default function VenueDetailsModal({ venue, onClose }) {
                 </div>
               )}
               
-              {venue.average_price !== undefined && (
+              {venue.average_price != null && (
                 <div className="bg-gray-800/50 rounded-lg p-3">
                   <div className="flex items-center gap-2 text-green-400 mb-1">
                     <DollarSign className="w-4 h-4" />
                     <span className="text-xs font-semibold">Entrada Média</span>
                   </div>
                   <p className="text-white font-bold">
-                    {venue.average_price === 0 ? 'Grátis' : `R$ ${venue.average_price.toFixed(2)}`}
+                    {venue.average_price === 0 ? 'Grátis' : `R$ ${Number(venue.average_price).toFixed(2)}`}
                   </p>
                 </div>
               )}
