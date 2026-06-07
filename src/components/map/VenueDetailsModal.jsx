@@ -73,7 +73,7 @@ export default function VenueDetailsModal({ venue, onClose }) {
             <div>
               <div className="flex items-start justify-between mb-2">
                 <h2 className="text-2xl sm:text-3xl font-bold text-white">{venue.name}</h2>
-                {venue.rating > 0 && (
+                {venue.rating != null && venue.rating > 0 && (
                   <div className="flex items-center gap-1 bg-yellow-600/20 px-3 py-1 rounded-full">
                     <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                     <span className="text-yellow-300 font-semibold">{venue.rating.toFixed(1)}</span>
