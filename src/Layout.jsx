@@ -23,6 +23,7 @@ import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "@/components/shared/helpers";
 import OfflineIndicator from "@/components/offline/OfflineIndicator";
+import GlobalSearch from "@/components/search/GlobalSearch";
 import ServiceWorkerRegistration from "@/components/offline/ServiceWorkerRegistration";
 
 export default function Layout({ children, currentPageName }) {
@@ -327,6 +328,8 @@ export default function Layout({ children, currentPageName }) {
               </div>
             </div>
           </header>
+
+          <GlobalSearch />
 
           {showFAB && (
             <motion.div

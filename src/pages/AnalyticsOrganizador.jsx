@@ -254,12 +254,10 @@ export default function AnalyticsOrganizador() {
 
         {/* Charts */}
         <Tabs defaultValue="revenue" className="w-full">
-          <TabsList className="flex w-full bg-gray-900/80 border border-gray-700 overflow-x-auto">
-            <TabsTrigger value="overview" className="flex-1 whitespace-nowrap text-xs sm:text-sm">Visão Geral</TabsTrigger>
-            <TabsTrigger value="sales" className="flex-1 whitespace-nowrap text-xs sm:text-sm">Vendas</TabsTrigger>
-            <TabsTrigger value="revenue" className="flex-1 whitespace-nowrap text-xs sm:text-sm">Receita</TabsTrigger>
-            <TabsTrigger value="insights" className="flex-1 whitespace-nowrap text-xs sm:text-sm">Insights</TabsTrigger>
-            <TabsTrigger value="performance" className="flex-1 whitespace-nowrap text-xs sm:text-sm">Performance</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-gray-900/80 border border-gray-700">
+            <TabsTrigger value="overview" className="whitespace-nowrap text-xs sm:text-sm">Visão Geral</TabsTrigger>
+            <TabsTrigger value="sales" className="whitespace-nowrap text-xs sm:text-sm">Vendas</TabsTrigger>
+            <TabsTrigger value="insights" className="whitespace-nowrap text-xs sm:text-sm">Insights</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4 mt-4">
@@ -322,86 +320,6 @@ export default function AnalyticsOrganizador() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="revenue" className="space-y-4 mt-4">
-            <Card className="bg-gray-900/50 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-cyan-400" />
-                  Receita - Últimos 30 Dias
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={analytics.revenueByDay}>
-                    <defs>
-                      <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorVendas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="date" stroke="#9ca3af" fontSize={10} />
-                    <YAxis stroke="#9ca3af" fontSize={11} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                    />
-                    <Legend />
-                    <Area type="monotone" dataKey="receita" stroke="#06b6d4" fillOpacity={1} fill="url(#colorReceita)" />
-                    <Area type="monotone" dataKey="vendas" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorVendas)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="performance" className="space-y-4 mt-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card className="bg-gray-900/50 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Top 10 Eventos - Receita</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={analytics.eventPerformance}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis dataKey="name" stroke="#9ca3af" fontSize={10} angle={-45} textAnchor="end" height={80} />
-                      <YAxis stroke="#9ca3af" fontSize={11} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                      />
-                      <Bar dataKey="receita" fill="#06b6d4" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gray-900/50 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Engajamento por Evento</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={analytics.eventPerformance.slice(0, 5)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis dataKey="name" stroke="#9ca3af" fontSize={10} />
-                      <YAxis stroke="#9ca3af" fontSize={11} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                      />
-                      <Legend />
-                      <Bar dataKey="likes" fill="#ec4899" />
-                      <Bar dataKey="comentarios" fill="#8b5cf6" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
 
           <TabsContent value="insights" className="space-y-4 mt-4">

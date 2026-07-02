@@ -375,10 +375,10 @@ export default function DashboardOrganizador() {
 
         {/* Charts */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 bg-gray-900/80 border border-gray-700">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-900/80 border border-gray-700">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="sales">Vendas</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
+            <TabsTrigger value="insights">Insights</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4 mt-4">
@@ -471,7 +471,7 @@ export default function DashboardOrganizador() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="performance" className="space-y-4 mt-4">
+          <TabsContent value="insights" className="space-y-4 mt-4">
             <Card className="bg-gray-900/50 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center justify-between">
