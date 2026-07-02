@@ -15,12 +15,14 @@ import FollowButton from "../components/profile/FollowButton";
 import { CACHE_CONFIG, DEFAULT_AVATAR } from "../components/shared/helpers";
 import OrganizerRating from "../components/reviews/OrganizerRating";
 import { useSignalCapture } from "../components/resonance/SignalCapture";
+import DirectMessageModal from "../components/chat/DirectMessageModal";
 
 export default function PerfilUsuario() {
   const location = useLocation();
   const navigate = useNavigate();
   const [eventFilter, setEventFilter] = useState('all');
   const [viewStartTime] = useState(Date.now());
+  const [showMessageModal, setShowMessageModal] = useState(false);
   
   const searchParams = new URLSearchParams(location.search);
   const userId = searchParams.get('id');
@@ -46,9 +48,8 @@ export default function PerfilUsuario() {
     queryKey: ['profileUser', userId],
     queryFn: async () => {
       if (!userId) throw new Error("ID não fornecido");
-      // O campo 'id' é built-in e pode ser filtrado diretamente
-      const users = await base44.entities.User.list('', 200);
-      const found = (users || []).find(u => u.id === userId);
+      const users = await base44.entities.User.filter({ id: userId });
+      const found = users?.[0];
       if (!found) throw new Error("Usuário não encontrado");
       return found;
     },
@@ -154,8 +155,18 @@ export default function PerfilUsuario() {
     switch (eventFilter) {
       case 'upcoming':
         return userEvents.filter(e => isAfter(new Date(e.date), now));
+      case 'active':
+        return userEvents.filter(e => {
+          const eventDate = new Date(e.date);
+          const endDate = new Date(eventDate.getTime() + (e.duration_hours || 8) * 60 * 60 * 1000);
+          return !isAfter(eventDate, now) && isAfter(endDate, now);
+        });
       case 'past':
-        return userEvents.filter(e => isBefore(new Date(e.date), now));
+        return userEvents.filter(e => {
+          const eventDate = new Date(e.date);
+          const endDate = new Date(eventDate.getTime() + (e.duration_hours || 8) * 60 * 60 * 1000);
+          return isBefore(endDate, now);
+        });
       default:
         return userEvents;
     }
@@ -328,17 +339,26 @@ export default function PerfilUsuario() {
               </div>
             </div>
 
-            {/* Follow Button */}
+            {/* Follow + Message Buttons */}
             {currentUser && currentUser.id !== userId && (
-              <div className="mt-4">
+              <div className="mt-4 flex gap-2">
                 <FollowButton
                   targetUserId={userId}
                   currentUserId={currentUser.id}
                   targetUserName={profileUser?.full_name}
                   size="default"
-                  className="w-full font-semibold shadow-lg border border-cyan-400/60 transition-all duration-300 hover:scale-105"
+                  className="flex-1 font-semibold shadow-lg border border-cyan-400/60 transition-all duration-300 hover:scale-105"
                   style={{ boxShadow: '0 0 25px rgba(6, 182, 212, 0.4)' }}
                 />
+                <Button
+                  onClick={() => setShowMessageModal(true)}
+                  variant="outline"
+                  size="default"
+                  className="border-cyan-500/40 text-cyan-400 hover:bg-cyan-900/20 hover:border-cyan-400"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Mensagem
+                </Button>
               </div>
             )}
           </div>
@@ -390,8 +410,7 @@ export default function PerfilUsuario() {
                  variant={eventFilter === 'all' ? 'default' : 'ghost'}
                  size="sm"
                  onClick={() => setEventFilter('all')}
-                 className={eventFilter === 'all' ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 font-semibold text-white border border-cyan-400/60 shadow-lg transition-all duration-300 hover:scale-105' : 'text-gray-400 hover:text-cyan-300 border border-gray-700 hover:border-cyan-500/50'}
-                 style={eventFilter === 'all' ? { boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)' } : {}}
+                 className={eventFilter === 'all' ? 'bg-cyan-600 hover:bg-cyan-700 font-semibold text-white' : 'text-gray-400 hover:text-cyan-300'}
                >
                  Todos
                </Button>
@@ -399,17 +418,23 @@ export default function PerfilUsuario() {
                  variant={eventFilter === 'upcoming' ? 'default' : 'ghost'}
                  size="sm"
                  onClick={() => setEventFilter('upcoming')}
-                 className={eventFilter === 'upcoming' ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 font-semibold text-white border border-cyan-400/60 shadow-lg transition-all duration-300 hover:scale-105' : 'text-gray-400 hover:text-cyan-300 border border-gray-700 hover:border-cyan-500/50'}
-                 style={eventFilter === 'upcoming' ? { boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)' } : {}}
+                 className={eventFilter === 'upcoming' ? 'bg-cyan-600 hover:bg-cyan-700 font-semibold text-white' : 'text-gray-400 hover:text-cyan-300'}
                >
                  Próximos
+               </Button>
+               <Button
+                 variant={eventFilter === 'active' ? 'default' : 'ghost'}
+                 size="sm"
+                 onClick={() => setEventFilter('active')}
+                 className={eventFilter === 'active' ? 'bg-green-600 hover:bg-green-700 font-semibold text-white' : 'text-gray-400 hover:text-green-300'}
+               >
+                 Ativos
                </Button>
                <Button
                  variant={eventFilter === 'past' ? 'default' : 'ghost'}
                  size="sm"
                  onClick={() => setEventFilter('past')}
-                 className={eventFilter === 'past' ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 font-semibold text-white border border-cyan-400/60 shadow-lg transition-all duration-300 hover:scale-105' : 'text-gray-400 hover:text-cyan-300 border border-gray-700 hover:border-cyan-500/50'}
-                 style={eventFilter === 'past' ? { boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)' } : {}}
+                 className={eventFilter === 'past' ? 'bg-gray-600 hover:bg-gray-700 font-semibold text-white' : 'text-gray-400 hover:text-gray-300'}
                >
                  Passados
                </Button>
@@ -542,6 +567,14 @@ export default function PerfilUsuario() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {showMessageModal && currentUser && profileUser && (
+        <DirectMessageModal
+          recipientUser={profileUser}
+          currentUser={currentUser}
+          onClose={() => setShowMessageModal(false)}
+        />
+      )}
     </div>
   );
 }

@@ -19,25 +19,25 @@ export default function DirectMessageModal({ recipientUser, currentUser, onClose
   const messagesEndRef = useRef(null);
   const [message, setMessage] = useState("");
 
-  // Buscar ou criar chat direto
+  // Buscar ou criar chat direto - fetch only chats created by either participant to avoid fetching all direct chats
   const { data: directChat } = useQuery({
     queryKey: ['directChat', currentUser.id, recipientUser.id],
     queryFn: async () => {
-      // Buscar chat existente
-      const chats = await base44.entities.Chat.filter({
-        type: "direct"
-      });
+      const [chatsAsCreator, chatsAsRecipient] = await Promise.all([
+        base44.entities.Chat.filter({ type: "direct", creator_id: currentUser.id }),
+        base44.entities.Chat.filter({ type: "direct", creator_id: recipientUser.id }),
+      ]);
 
-      const existingChat = chats.find(chat => 
-        chat.participants.includes(currentUser.id) &&
-        chat.participants.includes(recipientUser.id)
+      const allChats = [...(chatsAsCreator || []), ...(chatsAsRecipient || [])];
+      const existingChat = allChats.find(chat =>
+        chat.participants?.includes(currentUser.id) &&
+        chat.participants?.includes(recipientUser.id)
       );
 
       if (existingChat) {
         return existingChat;
       }
 
-      // Criar novo chat direto
       return await base44.entities.Chat.create({
         name: `${currentUser.full_name || currentUser.email} & ${recipientUser.full_name || recipientUser.email}`,
         type: "direct",

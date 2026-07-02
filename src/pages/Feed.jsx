@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -15,11 +14,10 @@ import { filterFutureEvents, sortEventsByDistance } from "../components/shared/h
 import { filterPublicEvents } from "../components/shared/eventValidation";
 import { CACHE_CONFIG, queryKeys } from "../components/shared/optimizations";
 import { motion, AnimatePresence } from "framer-motion";
-import SocialRecommendations from "../components/recommendations/SocialRecommendations";
-import FeedAIRecommendations from "../components/recommendations/FeedAIRecommendations";
 import { useCurrentUser } from "../components/providers/UserProvider";
 import { useBatchOrganizers } from "../components/shared/useBatchOrganizers";
 import { useSignalCapture } from "../components/resonance/SignalCapture";
+import { useSearch } from "../components/search/SearchContext";
 
 
 const EventFeedCard = lazy(() => import("../components/feed/EventFeedCard"));
@@ -29,8 +27,7 @@ const EVENTS_PER_PAGE = 15;
 const MAX_EVENTS_FOR_INTERACTIONS = 20; // OTIMIZAÇÃO: Limitar queries
 
 export default function Feed() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchInput, setSearchInput] = useState("");
+  const { searchQuery, setSearchQuery } = useSearch();
   const [showShareVibe, setShowShareVibe] = useState(false);
   const [discoverTab, setDiscoverTab] = useState('personalized');
   const [showUnlockedGlow, setShowUnlockedGlow] = useState(new Set());
@@ -43,12 +40,6 @@ export default function Feed() {
 
   // Sistema de Ressonância - Captura passiva de sinais
   const { captureSilentConsumption, captureInteractionDepth } = useSignalCapture(user, {});
-
-  // Debounce search
-  React.useEffect(() => {
-    const timer = setTimeout(() => setSearchTerm(searchInput), 300);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
 
   const {
     data: eventsData,
@@ -141,8 +132,8 @@ export default function Feed() {
   }, [events, user?.location]);
 
   const filteredEvents = useMemo(() => {
-    if (!searchTerm) return sortedEvents;
-    const lowerSearch = searchTerm.toLowerCase();
+    if (!searchQuery?.trim()) return sortedEvents;
+    const lowerSearch = searchQuery.toLowerCase();
     return sortedEvents.filter(event =>
       event.title?.toLowerCase().includes(lowerSearch) ||
       event.genre?.toLowerCase().includes(lowerSearch) ||
@@ -150,19 +141,19 @@ export default function Feed() {
       event.location?.city?.toLowerCase().includes(lowerSearch) ||
       event.organizer?.toLowerCase().includes(lowerSearch)
     );
-  }, [sortedEvents, searchTerm]);
+  }, [sortedEvents, searchQuery]);
 
   // Captura de sinal de consumo silencioso ao visualizar feed
   React.useEffect(() => {
     if (!user || filteredEvents.length === 0) return;
-    
+
     const timer = setTimeout(() => {
       captureSilentConsumption({
         event_count: filteredEvents.length,
         genre_distribution: filteredEvents.map(e => e.genre)
       });
     }, 5000);
-    
+
     return () => clearTimeout(timer);
   }, [user, filteredEvents.length]);
 
@@ -172,9 +163,9 @@ export default function Feed() {
 
     const currentEventIds = new Set(filteredEvents.map(e => e.id));
     const previousEventIds = new Set(events.slice(0, 50).map(e => e.id));
-    
+
     const newUnlocked = [...currentEventIds].filter(id => !previousEventIds.has(id));
-    
+
     if (newUnlocked.length > 0 && newUnlocked.length < 5) {
       setShowUnlockedGlow(new Set(newUnlocked));
       setTimeout(() => setShowUnlockedGlow(new Set()), 3000);
@@ -222,7 +213,7 @@ export default function Feed() {
   return (
     <div className="max-w-xl mx-auto px-0 py-0">
       <div className="sticky top-0 z-10 bg-black/95 backdrop-blur-lg border-b border-gray-800/50 px-3 sm:px-4 py-2.5 sm:py-3">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button onClick={() => navigate(createPageUrl("Mapa"))} className="text-cyan-400 hover:text-cyan-300 p-1 transition-colors">
               <ArrowLeft className="w-5 h-5" />
@@ -241,16 +232,6 @@ export default function Feed() {
               <Menu className="w-5 h-5" />
             </Button>
           )}
-        </div>
-
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="Buscar evento, gênero, local..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="bg-gray-900/80 border-gray-700 pl-9 pr-3 text-white placeholder:text-gray-500 focus:border-cyan-500 text-sm h-9 rounded-lg"
-          />
         </div>
       </div>
 
@@ -444,7 +425,7 @@ export default function Feed() {
               Nenhum evento encontrado
             </h3>
             <p className="text-gray-500 px-4 mb-4">
-              {searchTerm ? "Tente ajustar sua busca" : "Ainda não há eventos futuros"}
+              {searchQuery ? "Tente ajustar sua busca" : "Ainda não há eventos futuros"}
             </p>
           </div>
         )}

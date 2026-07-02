@@ -1,14 +1,18 @@
 import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Search, MapPin, Calendar, X } from "lucide-react";
 import { createPageUrl } from "@/utils";
+import { useSearch } from "./SearchContext";
 
 export default function GlobalSearch() {
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
+  const location = useLocation();
+  const { searchQuery, setSearchQuery, clearSearch } = useSearch();
   const [showResults, setShowResults] = useState(false);
+
+  const isFeedPage = location.pathname === createPageUrl("Feed");
 
   const { data: venues = [], isLoading: loadingVenues } = useQuery({
     queryKey: ['globalSearchVenues'],
@@ -23,8 +27,8 @@ export default function GlobalSearch() {
   });
 
   const results = useMemo(() => {
-    if (!query.trim()) return { venues: [], events: [] };
-    const q = query.toLowerCase().trim();
+    if (!searchQuery.trim()) return { venues: [], events: [] };
+    const q = searchQuery.toLowerCase().trim();
     return {
       venues: venues
         .filter(v =>
@@ -41,16 +45,27 @@ export default function GlobalSearch() {
         )
         .slice(0, 5),
     };
-  }, [query, venues, events]);
+  }, [searchQuery, venues, events]);
 
   const hasResults = results.venues.length > 0 || results.events.length > 0;
   const isLoading = loadingVenues || loadingEvents;
 
   const handleSelect = () => {
-    setQuery("");
     setShowResults(false);
     navigate(createPageUrl("Mapa"));
   };
+
+  const handleChange = (e) => {
+    setSearchQuery(e.target.value);
+    if (!isFeedPage) setShowResults(true);
+  };
+
+  const handleClear = () => {
+    clearSearch();
+    setShowResults(false);
+  };
+
+  const showDropdown = !isFeedPage && showResults && searchQuery.trim();
 
   return (
     <div className="relative px-4 py-2 z-20">
@@ -58,23 +73,23 @@ export default function GlobalSearch() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
         <input
           type="text"
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setShowResults(true); }}
-          onFocus={() => setShowResults(true)}
+          value={searchQuery}
+          onChange={handleChange}
+          onFocus={() => !isFeedPage && setShowResults(true)}
           onBlur={() => setTimeout(() => setShowResults(false), 200)}
           placeholder="Buscar eventos e locais..."
           className="w-full h-10 pl-10 pr-10 rounded-xl bg-black/60 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
         />
-        {query && (
+        {searchQuery && (
           <button
-            onClick={() => { setQuery(""); setShowResults(false); }}
+            onClick={handleClear}
             className="absolute right-3 top-1/2 -translate-y-1/2"
           >
             <X className="w-4 h-4 text-gray-500 hover:text-white" />
           </button>
         )}
 
-        {showResults && query.trim() && (
+        {showDropdown && (
           <div className="absolute top-full left-0 right-0 mt-1 rounded-xl bg-black/95 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto">
             {isLoading ? (
               <div className="p-4 text-center text-gray-500 text-sm">Carregando...</div>

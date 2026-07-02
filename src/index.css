@@ -324,3 +324,22 @@ a, button, [role="button"] {
   min-width: unset;
   min-height: unset;
 }
+
+/* Clear persistent focus/active states on buttons after interaction */
+button:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+button:focus-visible {
+  outline: 2px solid rgba(6, 182, 212, 0.5);
+  outline-offset: 2px;
+}
+/* Prevent stuck active state on mobile */
+button:active:not(:focus-visible) {
+  outline: none;
+}
+/* Reset ring on ghost/outline buttons after click */
+button[data-state="closed"] {
+  outline: none;
+  box-shadow: none;
+}

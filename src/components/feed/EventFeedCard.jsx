@@ -23,11 +23,14 @@ import LazyImage from "./LazyImage";
 import useRealtimeEvent from "../events/useRealtimeEvent";
 import AttendeeCounter from "../events/AttendeeCounter";
 import EventRatingDisplay from "../reviews/EventRatingDisplay";
+import UserAvatar from "../shared/UserAvatar";
+import { openUserProfile } from "@/lib/navigation";
 
 export default function EventFeedCard({
   event,
   user,
   isGuest,
+  organizer,
   initialLikes = [],
   initialComments = [],
   initialRequestStatus,
@@ -68,8 +71,8 @@ export default function EventFeedCard({
       }
     },
     ...CACHE_CONFIG.SHORT,
-    initialData: null,
-    enabled: !!event.organizer_id,
+    initialData: organizer || null,
+    enabled: !!event.organizer_id && !organizer,
   });
 
   const { data: eventReviews = [] } = useQuery({
@@ -80,14 +83,14 @@ export default function EventFeedCard({
     initialData: [],
   });
 
-  const organizerName = organizerData?.full_name || event.organizer;
+  const organizerName = organizerData?.full_name || event.organizer || 'Organizador';
   const organizerAvatar = organizerData?.avatar_url || event.organizer_avatar || `https://i.pravatar.cc/40?u=${event.organizer_id}`;
   const isEventOrganizer = user?.id === event.organizer_id;
 
   const handleNavigateToProfile = (e) => {
     e.stopPropagation();
     if (event.organizer_id) {
-      navigate(createPageUrl("PerfilUsuario") + `?id=${event.organizer_id}`);
+      openUserProfile(navigate, event.organizer_id);
     }
   };
 
@@ -233,16 +236,11 @@ export default function EventFeedCard({
         <Card className="bg-gray-900/95 border-0 text-white overflow-hidden shadow-none rounded-none relative">
           <CardHeader className="p-2.5 pb-1.5 relative z-10">
             <div className="flex items-center gap-2">
-              <motion.img
-                whileHover={{ scale: 1.15, rotate: 5 }}
-                whileTap={{ scale: 0.95 }}
-                src={organizerAvatar}
-                alt={organizerName}
-                className="w-8 h-8 rounded-full object-cover border-2 cursor-pointer"
-                style={{
-                  borderColor: 'rgba(6, 182, 212, 0.5)',
-                  boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)'
-                }}
+              <UserAvatar
+                userId={event.organizer_id}
+                userName={organizerName}
+                avatarUrl={organizerAvatar}
+                size="sm"
                 onClick={handleNavigateToProfile}
               />
               <div className="flex-1 min-w-0">
