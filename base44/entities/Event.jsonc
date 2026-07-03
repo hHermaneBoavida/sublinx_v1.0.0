@@ -6,9 +6,17 @@
       "type": "string",
       "description": "Nome do evento"
     },
+    "subtitle": {
+      "type": "string",
+      "description": "Subt\u00edtulo do evento"
+    },
     "description": {
       "type": "string",
-      "description": "Descri\u00e7\u00e3o do evento"
+      "description": "Descri\u00e7\u00e3o completa do evento"
+    },
+    "short_description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o curta para previews"
     },
     "genre": {
       "type": "string",
@@ -34,6 +42,36 @@
         "reggae"
       ]
     },
+    "category": {
+      "type": "string",
+      "enum": [
+        "musica",
+        "festa",
+        "festival",
+        "show",
+        "workshop",
+        "exposicao",
+        "esporte",
+        "gastronomia",
+        "tecnologia",
+        "negocios",
+        "cultural",
+        "social",
+        "outro"
+      ],
+      "description": "Categoria ampla do evento (agregador global)"
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "Subcategoria do evento"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags do evento"
+    },
     "type": {
       "type": "string",
       "enum": [
@@ -43,7 +81,17 @@
         "underground",
         "festival",
         "club",
-        "secret"
+        "secret",
+        "concert",
+        "show",
+        "workshop",
+        "conference",
+        "exhibition",
+        "party",
+        "sport_event",
+        "cultural_event",
+        "networking",
+        "other"
       ]
     },
     "location": {
@@ -70,6 +118,10 @@
         "postal_code": {
           "type": "string"
         },
+        "country": {
+          "type": "string",
+          "description": "Pa\u00eds (ISO 3166)"
+        },
         "is_secret": {
           "type": "boolean",
           "default": false
@@ -80,12 +132,49 @@
       "type": "string",
       "format": "date-time"
     },
+    "end_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data de t\u00e9rmino (para eventos de m\u00faltiplos dias)"
+    },
+    "timezone": {
+      "type": "string",
+      "description": "Fuso hor\u00e1rio (ex: America/Sao_Paulo)"
+    },
+    "is_recurring": {
+      "type": "boolean",
+      "default": false
+    },
+    "recurrence_pattern": {
+      "type": "string",
+      "description": "Padr\u00e3o de recorr\u00eancia (RRULE ou texto)"
+    },
     "duration_hours": {
       "type": "number"
     },
     "price": {
       "type": "number",
       "description": "Pre\u00e7o base (usado para exibi\u00e7\u00e3o r\u00e1pida)"
+    },
+    "is_free": {
+      "type": "boolean",
+      "default": false
+    },
+    "min_price": {
+      "type": "number",
+      "description": "Menor pre\u00e7o de ingresso"
+    },
+    "max_price": {
+      "type": "number",
+      "description": "Maior pre\u00e7o de ingresso"
+    },
+    "currency": {
+      "type": "string",
+      "description": "Moeda (ISO 4217, ex: BRL, USD)"
+    },
+    "ticket_url": {
+      "type": "string",
+      "description": "Link para compra de ingressos"
     },
     "is_secret": {
       "type": "boolean",
@@ -97,7 +186,31 @@
     },
     "organizer_id": {
       "type": "string",
-      "description": "ID do organizador"
+      "description": "ID do organizador (User ou ExternalOrganizer)"
+    },
+    "organizer_logo": {
+      "type": "string"
+    },
+    "organizer_website": {
+      "type": "string"
+    },
+    "organizer_instagram": {
+      "type": "string"
+    },
+    "organizer_facebook": {
+      "type": "string"
+    },
+    "organizer_tiktok": {
+      "type": "string"
+    },
+    "organizer_linkedin": {
+      "type": "string"
+    },
+    "organizer_email": {
+      "type": "string"
+    },
+    "organizer_phone": {
+      "type": "string"
     },
     "max_capacity": {
       "type": "number"
@@ -108,6 +221,28 @@
     },
     "image_url": {
       "type": "string"
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "Thumbnail do evento"
+    },
+    "gallery_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Galeria de imagens"
+    },
+    "video_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "V\u00eddeos do evento"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Logo do evento"
     },
     "requires_approval": {
       "type": "boolean",
@@ -140,6 +275,18 @@
       "type": "boolean",
       "default": true
     },
+    "event_status": {
+      "type": "string",
+      "enum": [
+        "published",
+        "cancelled",
+        "postponed",
+        "sold_out",
+        "ended"
+      ],
+      "default": "published",
+      "description": "Status do evento"
+    },
     "trust_level": {
       "type": "string",
       "enum": [
@@ -162,7 +309,17 @@
         "instagram",
         "official_site",
         "sublinx_partner",
-        "admin"
+        "admin",
+        "serpapi",
+        "ticketmaster",
+        "eventbrite",
+        "meetup",
+        "bandsintown",
+        "sympla",
+        "shotgun",
+        "ingresse",
+        "google_geocoding",
+        "google_events"
       ],
       "description": "Origem verific\u00e1vel do evento"
     },
@@ -173,6 +330,19 @@
     "source_id": {
       "type": "string",
       "description": "ID externo do evento na fonte de origem"
+    },
+    "slug": {
+      "type": "string",
+      "description": "Slug URL-friendly do evento"
+    },
+    "sync_hash": {
+      "type": "string",
+      "description": "Hash para deduplica\u00e7\u00e3o (t\u00edtulo normalizado + data + cidade)"
+    },
+    "last_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima sincroniza\u00e7\u00e3o com a fonte"
     },
     "is_published": {
       "type": "boolean",

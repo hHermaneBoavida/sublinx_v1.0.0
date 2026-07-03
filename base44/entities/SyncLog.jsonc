@@ -1,0 +1,93 @@
+{
+  "name": "SyncLog",
+  "type": "object",
+  "properties": {
+    "sync_type": {
+      "type": "string",
+      "enum": [
+        "full",
+        "incremental",
+        "cleanup",
+        "dedup",
+        "geocode",
+        "validate"
+      ],
+      "description": "Tipo de sincroniza\u00e7\u00e3o"
+    },
+    "source": {
+      "type": "string",
+      "description": "Fonte espec\u00edfica sincronizada (ou 'all' para todas)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "completed",
+        "failed",
+        "partial"
+      ],
+      "default": "running",
+      "description": "Status da sincroniza\u00e7\u00e3o"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "In\u00edcio da sincroniza\u00e7\u00e3o"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fim da sincroniza\u00e7\u00e3o"
+    },
+    "events_imported": {
+      "type": "number",
+      "default": 0
+    },
+    "events_updated": {
+      "type": "number",
+      "default": 0
+    },
+    "events_removed": {
+      "type": "number",
+      "default": 0
+    },
+    "events_ignored": {
+      "type": "number",
+      "default": 0
+    },
+    "duplicates_found": {
+      "type": "number",
+      "default": 0
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de erros"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "description": "Dura\u00e7\u00e3o total em segundos"
+    },
+    "api_calls_made": {
+      "type": "number",
+      "default": 0,
+      "description": "Chamadas de API realizadas"
+    },
+    "rate_limit_hits": {
+      "type": "number",
+      "default": 0,
+      "description": "Vezes que o rate limit foi atingido"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Resumo da sincroniza\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "sync_type",
+    "status",
+    "started_at"
+  ]
+}

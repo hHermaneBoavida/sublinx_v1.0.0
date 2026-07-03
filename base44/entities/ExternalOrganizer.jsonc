@@ -1,0 +1,85 @@
+{
+  "name": "ExternalOrganizer",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do organizador"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "ticketmaster",
+        "eventbrite",
+        "meetup",
+        "bandsintown",
+        "sympla",
+        "shotgun",
+        "ingresse",
+        "serpapi",
+        "google_places",
+        "facebook",
+        "instagram",
+        "official_site",
+        "sublinx_partner"
+      ],
+      "description": "Fonte de origem do organizador"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "ID do organizador na fonte de origem"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Logo do organizador"
+    },
+    "website": {
+      "type": "string"
+    },
+    "instagram": {
+      "type": "string"
+    },
+    "facebook": {
+      "type": "string"
+    },
+    "tiktok": {
+      "type": "string"
+    },
+    "linkedin": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string",
+      "description": "Pa\u00eds (ISO 3166)"
+    },
+    "description": {
+      "type": "string"
+    },
+    "events_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de eventos vinculados (cache)"
+    },
+    "last_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima sincroniza\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "name",
+    "source"
+  ]
+}
