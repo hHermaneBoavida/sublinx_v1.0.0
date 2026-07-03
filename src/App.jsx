@@ -10,6 +10,7 @@ import PageNotFound from './lib/PageNotFound';
 import Checklist from './pages/Checklist';
 import CadastrarEstabelecimento from './pages/CadastrarEstabelecimento';
 import MeusEstabelecimentos from './pages/MeusEstabelecimentos';
+import SyncDashboard from './pages/SyncDashboard';
 import { AuthProvider } from '@/lib/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Login from '@/pages/Login';
@@ -44,6 +45,7 @@ const AuthenticatedApp = () => {
         <Route path="/Checklist" element={<LayoutWrapper currentPageName="Checklist"><Checklist /></LayoutWrapper>} />
         <Route path="/CadastrarEstabelecimento" element={<LayoutWrapper currentPageName="CadastrarEstabelecimento"><CadastrarEstabelecimento /></LayoutWrapper>} />
         <Route path="/MeusEstabelecimentos" element={<LayoutWrapper currentPageName="MeusEstabelecimentos"><MeusEstabelecimentos /></LayoutWrapper>} />
+        <Route path="/SyncDashboard" element={<LayoutWrapper currentPageName="SyncDashboard"><SyncDashboard /></LayoutWrapper>} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />
