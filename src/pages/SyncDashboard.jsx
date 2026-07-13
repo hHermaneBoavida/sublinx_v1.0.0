@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, RefreshCw, AlertTriangle, CheckCircle, Activity, Database, Zap, Globe } from 'lucide-react';
 import { API_SOURCES } from '@/lib/aggregation';
+import SyncPanel from '@/components/sync/SyncPanel';
 
 const STAT_CARDS = [
   { key: 'total', label: 'Total de Eventos', icon: Database, iconClass: 'text-cyan-400' },
@@ -131,7 +132,7 @@ export default function SyncDashboard() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-4 overflow-x-auto">
-          {['overview', 'sources', 'logs', 'organizers'].map(tab => (
+          {['overview', 'sources', 'sincronizar', 'logs', 'organizers'].map(tab => (
             <Button
               key={tab}
               size="sm"
@@ -141,6 +142,7 @@ export default function SyncDashboard() {
             >
               {tab === 'overview' && 'Visão Geral'}
               {tab === 'sources' && 'Fontes API'}
+              {tab === 'sincronizar' && 'Sincronizar'}
               {tab === 'logs' && 'Logs'}
               {tab === 'organizers' && 'Organizadores'}
             </Button>
@@ -228,6 +230,11 @@ export default function SyncDashboard() {
               </Card>
             ))}
           </div>
+        )}
+
+        {/* Sincronizar */}
+        {selectedTab === 'sincronizar' && (
+          <SyncPanel />
         )}
 
         {/* Logs */}
