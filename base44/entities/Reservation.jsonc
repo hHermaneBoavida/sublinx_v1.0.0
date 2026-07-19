@@ -1,0 +1,124 @@
+{
+  "name": "Reservation",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que fez a reserva"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio (cache)"
+    },
+    "user_avatar_url": {
+      "type": "string"
+    },
+    "venue_id": {
+      "type": "string",
+      "description": "ID do estabelecimento"
+    },
+    "venue_name": {
+      "type": "string",
+      "description": "Nome do estabelecimento (cache)"
+    },
+    "venue_image_url": {
+      "type": "string"
+    },
+    "venue_address": {
+      "type": "string",
+      "description": "Endere\u00e7o do estabelecimento (cache)"
+    },
+    "organizer_id": {
+      "type": "string",
+      "description": "ID do organizador (dono do estabelecimento)"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento relacionado (opcional)"
+    },
+    "reservation_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e hora da reserva"
+    },
+    "duration_hours": {
+      "type": "number",
+      "default": 3,
+      "description": "Dura\u00e7\u00e3o estimada em horas"
+    },
+    "party_size": {
+      "type": "number",
+      "description": "N\u00famero de pessoas"
+    },
+    "table_type": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "mesa",
+        "vip",
+        "balcao",
+        "lounge",
+        "area_externa"
+      ],
+      "default": "standard",
+      "description": "Tipo de mesa/\u00e1rea"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "cancelled",
+        "completed",
+        "no_show"
+      ],
+      "default": "pending",
+      "description": "Status da reserva"
+    },
+    "special_requests": {
+      "type": "string",
+      "description": "Pedidos especiais (anivers\u00e1rio, dieta, etc)"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Telefone de contato do usu\u00e1rio"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o organizador confirmou"
+    },
+    "cancelled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando foi cancelada"
+    },
+    "cancelled_reason": {
+      "type": "string",
+      "description": "Motivo do cancelamento"
+    },
+    "cancelled_by": {
+      "type": "string",
+      "enum": [
+        "user",
+        "organizer"
+      ],
+      "description": "Quem cancelou"
+    },
+    "calendar_added": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se o usu\u00e1rio adicionou \u00e0 agenda"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_name",
+    "venue_id",
+    "venue_name",
+    "organizer_id",
+    "reservation_date",
+    "party_size",
+    "contact_phone"
+  ]
+}

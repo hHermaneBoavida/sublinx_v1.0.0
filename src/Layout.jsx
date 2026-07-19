@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Zap, User as UserIcon, Bell, Plus, MessageCircle, ArrowLeft, MoreVertical, Share2, LogOut } from "lucide-react";
+import { MapPin, Zap, User as UserIcon, Bell, Plus, MessageCircle, ArrowLeft, MoreVertical, Share2, LogOut, CalendarCheck, Inbox } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -288,6 +288,24 @@ export default function Layout({ children, currentPageName }) {
                         <UserIcon className="w-4 h-4 text-cyan-400" />
                         Meu Perfil
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => navigate(createPageUrl("MinhasReservas"))}
+                        className="flex items-center gap-2 text-gray-200 hover:text-white focus:text-white cursor-pointer"
+                        style={{ background: 'transparent' }}
+                      >
+                        <CalendarCheck className="w-4 h-4 text-cyan-400" />
+                        Minhas Reservas
+                      </DropdownMenuItem>
+                      {user?.is_organizer && (
+                        <DropdownMenuItem
+                          onClick={() => navigate(createPageUrl("ReservasRecebidas"))}
+                          className="flex items-center gap-2 text-gray-200 hover:text-white focus:text-white cursor-pointer"
+                          style={{ background: 'transparent' }}
+                        >
+                          <Inbox className="w-4 h-4 text-purple-400" />
+                          Reservas Recebidas
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         onClick={() => {
                           const url = window.location.href;

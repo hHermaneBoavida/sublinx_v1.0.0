@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Phone, Mail, Globe, Instagram, Star, Users, DollarSign, Clock, Calendar, Navigation } from 'lucide-react';
+import { X, MapPin, Phone, Mail, Globe, Instagram, Star, Users, DollarSign, Clock, Calendar, Navigation, CalendarCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import ReservationModal from '@/components/reservations/ReservationModal';
 
 const VENUE_TYPE_LABELS = {
   club: '🎵 Club',
@@ -17,7 +18,13 @@ const VENUE_TYPE_LABELS = {
 };
 
 export default function VenueDetailsModal({ venue, onClose }) {
+  const [showReservation, setShowReservation] = useState(false);
+
   if (!venue) return null;
+
+  if (showReservation) {
+    return <ReservationModal venue={venue} onClose={() => setShowReservation(false)} />;
+  }
 
   const openMaps = () => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.lat},${venue.location.lng}`;
@@ -105,13 +112,23 @@ export default function VenueDetailsModal({ venue, onClose }) {
                   {venue.location.neighborhood} - {venue.location.city}, {venue.location.state}
                 </p>
               )}
-              <Button
-                onClick={openMaps}
-                className="mt-3 bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
-              >
-                <Navigation className="w-4 h-4 mr-2" />
-                Como Chegar
-              </Button>
+              <div className="flex gap-2 mt-3">
+                <Button
+                  onClick={() => setShowReservation(true)}
+                  className="bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 flex-1 sm:flex-none"
+                >
+                  <CalendarCheck className="w-4 h-4 mr-2" />
+                  Reservar
+                </Button>
+                <Button
+                  onClick={openMaps}
+                  variant="outline"
+                  className="border-blue-600 text-blue-400 hover:bg-blue-900/20 flex-1 sm:flex-none"
+                >
+                  <Navigation className="w-4 h-4 mr-2" />
+                  Como Chegar
+                </Button>
+              </div>
             </div>
 
             {/* Info Grid */}
