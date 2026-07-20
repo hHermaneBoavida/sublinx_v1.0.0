@@ -40,6 +40,7 @@ function ZoomTracker({ onZoomChange }) {
   return null;
 }
 
+// Event genre colors (retained for event differentiation)
 const GENRE_COLORS = {
   techno: '#06b6d4', house: '#10b981', trance: '#8b5cf6',
   drum_bass: '#f59e0b', minimal: '#ec4899', progressive: '#84cc16',
@@ -54,137 +55,198 @@ function getGenreColor(genre) {
   return GENRE_COLORS[genre] || '#a855f7';
 }
 
-// Cria o ícone de evento (pin principal)
-function createEventIcon(event, isLive) {
+/**
+ * VENUE CATEGORY CONFIG — semantic iconography per entertainment niche.
+ * Eliminates the generic "building/hotel" icon for all venue types.
+ */
+const CATEGORY_CONFIG = {
+  // Nightlife / Clubs / Nightlife
+  discoteca:        { icon: '🎧', color: '#a855f7', label: 'Balada' },
+  club:             { icon: '🎧', color: '#a855f7', label: 'Club' },
+  underground_space:{ icon: '🎵', color: '#ec4899', label: 'Underground' },
+  warehouse:        { icon: '🏭', color: '#8b5cf6', label: 'Warehouse' },
+  // Bars / Lounges / Pubs
+  bar:              { icon: '🍸', color: '#f59e0b', label: 'Bar' },
+  lounge_bar:       { icon: '🍷', color: '#f97316', label: 'Lounge' },
+  pub:              { icon: '🍺', color: '#eab308', label: 'Pub' },
+  // Restaurants / Food
+  restaurante:      { icon: '🍽️', color: '#ef4444', label: 'Restaurante' },
+  padaria:          { icon: '🥐', color: '#f97316', label: 'Padaria' },
+  cafe:             { icon: '☕', color: '#92400e', label: 'Café' },
+  // Shows / Theaters / Cultural
+  cultural_center:  { icon: '🎭', color: '#3b82f6', label: 'Teatro' },
+  gallery:          { icon: '🎨', color: '#06b6d4', label: 'Galeria' },
+  studio:           { icon: '🎙️', color: '#10b981', label: 'Studio' },
+  rooftop:          { icon: '🌆', color: '#0ea5e9', label: 'Rooftop' },
+};
+
+function getCategoryConfig(type) {
+  return CATEGORY_CONFIG[type] || { icon: '📍', color: '#64748b', label: 'Local' };
+}
+
+/**
+ * EVENT ICON — neon glow is EXCLUSIVE to live/active event markers.
+ * Non-live events use a clean circular pin with subtle depth shadow only.
+ * Labels are conditionally rendered based on zoom level.
+ */
+function createEventIcon(event, isLive, showLabel) {
   const color = getGenreColor(event.genre);
   const shortTitle = event.title?.length > 14 ? event.title.slice(0, 12) + '…' : (event.title || '');
   const imgHtml = event.image_url
-    ? `<img src="${event.image_url}" onerror="this.style.display='none';this.parentNode.innerHTML='<span style=\\'font-size:18px;\\'>🎵</span>';" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
-    : `<span style="font-size:18px;">🎵</span>`;
+    ? `<img src="${event.image_url}" onerror="this.style.display='none';this.parentNode.innerHTML='<span style=\\'font-size:16px;\\'>🎵</span>';" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+    : `<span style="font-size:16px;">🎵</span>`;
+
+  // Neon glow ONLY for live/active events
   const liveRing = isLive ? `
-    <div style="position:absolute;inset:-10px;border-radius:50%;border:3px solid ${color};animation:live-pulse 1.2s ease-in-out infinite;"></div>
-    <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#ef4444;color:#fff;font-size:7px;font-weight:900;padding:1px 4px;border-radius:4px;white-space:nowrap;letter-spacing:0.5px;">● AO VIVO</div>
-  ` : `
-    <div style="position:absolute;inset:-6px;border-radius:50%;background:${color}33;animation:pulse-ring 2.5s ease-in-out infinite;"></div>
-    <div style="position:absolute;inset:-3px;border-radius:50%;border:2px solid ${color}88;animation:pulse-ring 2.5s ease-in-out infinite 0.7s;"></div>
-  `;
+    <div style="position:absolute;inset:-8px;border-radius:50%;border:2px solid ${color};animation:live-pulse 1.2s ease-in-out infinite;"></div>
+    <div style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);background:#ef4444;color:#fff;font-size:7px;font-weight:900;padding:1px 4px;border-radius:4px;white-space:nowrap;letter-spacing:0.5px;">● AO VIVO</div>
+  ` : '';
+
+  const shadowStyle = isLive
+    ? `box-shadow:0 0 12px ${color}88, 0 4px 12px rgba(0,0,0,0.8);`
+    : `box-shadow:0 2px 8px rgba(0,0,0,0.6);`;
+
+  const labelHtml = showLabel ? `
+    <div style="
+      margin-top:4px;background:rgba(15,23,42,0.92);
+      border:1px solid rgba(100,116,139,0.3);border-radius:6px;
+      padding:2px 6px;font-size:9px;font-weight:600;color:#e2e8f0;
+      white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;
+    ">${shortTitle}</div>
+  ` : '';
 
   return L.divIcon({
     className: 'custom-marker',
     html: `
-      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:drop-shadow(0 4px 12px ${color}66);">
-        <div style="position:relative;width:52px;height:52px;">
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;">
+        <div style="position:relative;width:40px;height:40px;">
           ${liveRing}
           <div style="
-            width:52px;height:52px;border-radius:50%;
-            border:3px solid ${color};
-            box-shadow:0 0 18px ${color}cc,0 4px 16px rgba(0,0,0,0.8);
-            overflow:hidden;background:#111;
+            width:40px;height:40px;border-radius:50%;
+            border:2px solid ${isLive ? color : 'rgba(255,255,255,0.7)'};
+            ${shadowStyle}
+            overflow:hidden;background:#1e293b;
             display:flex;align-items:center;justify-content:center;
             position:relative;z-index:2;
           ">${imgHtml}</div>
         </div>
-        <div style="
-          margin-top:5px;background:rgba(0,0,0,0.92);
-          border:1px solid ${color}88;border-radius:8px;
-          padding:2px 7px;font-size:10px;font-weight:700;color:#fff;
-          white-space:nowrap;box-shadow:0 0 8px ${color}66;
-          max-width:90px;overflow:hidden;text-overflow:ellipsis;
-        ">${shortTitle}</div>
+        ${labelHtml}
       </div>
     `,
-    iconSize: [72, 85],
-    iconAnchor: [36, 85]
+    iconSize: showLabel ? [56, 60] : [40, 40],
+    iconAnchor: showLabel ? [28, 60] : [20, 40]
   });
 }
 
-// Cria o ícone de venue (mais neutro, menor)
-function createVenueIcon(venue) {
-  const color = '#475569';
-  const accent = '#94a3b8';
+/**
+ * VENUE ICON — category-specific semantic icon, circular pin shape.
+ * Subtle background, contrasting border, NO neon glow.
+ */
+function createVenueIcon(venue, showLabel) {
+  const config = getCategoryConfig(venue.type);
   const shortName = venue.name?.length > 14 ? venue.name.slice(0, 12) + '…' : (venue.name || 'Local');
+
+  const labelHtml = showLabel ? `
+    <div style="
+      margin-top:3px;background:rgba(15,23,42,0.9);
+      border:1px solid rgba(100,116,139,0.2);border-radius:5px;
+      padding:1px 5px;font-size:9px;font-weight:500;color:#94a3b8;
+      white-space:nowrap;max-width:70px;overflow:hidden;text-overflow:ellipsis;
+    ">${shortName}</div>
+  ` : '';
 
   return L.divIcon({
     className: 'custom-marker',
     html: `
-      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;opacity:0.85;">
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;">
         <div style="
-          width:36px;height:36px;border-radius:10px;
-          border:2px solid ${accent};
-          box-shadow:0 0 8px ${color}88,0 2px 8px rgba(0,0,0,0.7);
-          background:#1e293b;
+          width:32px;height:32px;border-radius:50%;
+          border:2px solid ${config.color};
+          background:rgba(15,23,42,0.85);
           display:flex;align-items:center;justify-content:center;
           position:relative;
+          box-shadow:0 2px 6px rgba(0,0,0,0.5);
         ">
-          <span style="font-size:16px;">🏢</span>
+          <span style="font-size:14px;">${config.icon}</span>
         </div>
-        <div style="
-          margin-top:4px;background:rgba(15,23,42,0.92);
-          border:1px solid ${accent}55;border-radius:6px;
-          padding:2px 5px;font-size:9px;font-weight:600;color:${accent};
-          white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;
-        ">${shortName}</div>
+        ${labelHtml}
       </div>
     `,
-    iconSize: [60, 60],
-    iconAnchor: [30, 60]
+    iconSize: showLabel ? [50, 50] : [32, 32],
+    iconAnchor: showLabel ? [25, 50] : [16, 32]
   });
 }
 
-// Ícone de cluster
+/**
+ * CLUSTER ICON — circular badge with count, NO neon glow.
+ * Color reflects the dominant (highest-priority) category in the cluster.
+ */
 function createClusterIcon(count, color = '#06b6d4') {
+  const size = Math.min(52, 36 + Math.floor(count / 3) * 4);
   return L.divIcon({
     className: 'custom-cluster',
     html: `
       <div style="
-        width:44px;height:44px;border-radius:50%;
-        background:linear-gradient(135deg,${color},${color}88);
-        border:3px solid ${color};
+        width:${size}px;height:${size}px;border-radius:50%;
+        background:${color};
+        border:2px solid rgba(255,255,255,0.8);
         display:flex;align-items:center;justify-content:center;
-        font-size:14px;font-weight:900;color:#fff;
-        box-shadow:0 0 20px ${color}88;
+        font-size:14px;font-weight:700;color:#fff;
+        box-shadow:0 2px 10px rgba(0,0,0,0.5);
         cursor:pointer;
       ">${count}</div>
     `,
-    iconSize: [44, 44],
-    iconAnchor: [22, 22]
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2]
   });
 }
 
-// Agrupa eventos próximos por distância em graus
-function clusterEvents(events, zoomLevel) {
-  const threshold = zoomLevel >= 14 ? 0.003 : zoomLevel >= 12 ? 0.01 : 0.04;
+/**
+ * UNIFIED CLUSTERING — groups both events and venues by pixel proximity.
+ * Adaptive threshold shrinks as zoom increases so clusters disperse naturally.
+ */
+function clusterMarkers(markers, zoomLevel) {
+  const threshold = zoomLevel >= 15 ? 0.002 : zoomLevel >= 13 ? 0.008 : zoomLevel >= 11 ? 0.03 : 0.08;
   const clusters = [];
   const used = new Set();
 
-  events.forEach((event, i) => {
+  markers.forEach((marker, i) => {
     if (used.has(i)) return;
-    const cluster = [event];
+    const cluster = [marker];
     used.add(i);
 
-    events.forEach((other, j) => {
+    markers.forEach((other, j) => {
       if (used.has(j)) return;
-      const dlat = Math.abs(event.location.lat - other.location.lat);
-      const dlng = Math.abs(event.location.lng - other.location.lng);
+      const dlat = Math.abs(marker.lat - other.lat);
+      const dlng = Math.abs(marker.lng - other.lng);
       if (dlat < threshold && dlng < threshold) {
         cluster.push(other);
         used.add(j);
       }
     });
 
-    const avgLat = cluster.reduce((s, e) => s + e.location.lat, 0) / cluster.length;
-    const avgLng = cluster.reduce((s, e) => s + e.location.lng, 0) / cluster.length;
-    clusters.push({ center: [avgLat, avgLng], events: cluster, count: cluster.length });
+    const avgLat = cluster.reduce((s, m) => s + m.lat, 0) / cluster.length;
+    const avgLng = cluster.reduce((s, m) => s + m.lng, 0) / cluster.length;
+    const sorted = [...cluster].sort((a, b) => b.priority - a.priority);
+    const dominant = sorted[0];
+
+    clusters.push({
+      center: [avgLat, avgLng],
+      markers: cluster,
+      count: cluster.length,
+      dominantColor: dominant.color,
+      topMarker: dominant,
+    });
   });
 
   return clusters;
 }
 
-export default function MapView({ 
+export default function MapView({
   events = [],
   venues = [],
-  userLocation, 
-  onPinClick, 
+  userLocation,
+  onPinClick,
   onPinDetailsClick,
   onVenueClick,
   onOpenFilters,
@@ -196,7 +258,7 @@ export default function MapView({
   filters: externalFilters,
   onFiltersChange,
   suggestedEvents = [],
-  onMapReady 
+  onMapReady
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -207,7 +269,6 @@ export default function MapView({
   const [zoomLevel, setZoomLevel] = useState(13);
   const [mapError, setMapError] = useState(null);
   const [mapKey] = useState(0);
-  // Se tiver filtros externos (do pai), usa eles; senão usa estado local
   const [localAdvancedFilters, setLocalAdvancedFilters] = useState({
     genre: 'all', type: 'all', dateRange: 'all',
     maxDistance: 50, minAttendees: 0, maxPrice: 500, sortBy: 'distance'
@@ -220,7 +281,6 @@ export default function MapView({
   const [localSearch, setLocalSearch] = useState(searchTerm);
   const debounceRef = useRef(null);
 
-  // Debounce busca 300ms
   const handleSearchInput = useCallback((val) => {
     setLocalSearch(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -234,12 +294,10 @@ export default function MapView({
   const center = userLocation ? [userLocation.lat, userLocation.lng] : [-23.5505, -46.6333];
   const zoom = userLocation ? 13 : 11;
 
-  // Validate events data
   useEffect(() => {
     if (events && !Array.isArray(events)) setMapError('Erro ao carregar eventos');
   }, [events]);
 
-  // Cleanup mapa ao desmontar
   useEffect(() => {
     return () => {
       if (mapRef.current) {
@@ -264,14 +322,13 @@ export default function MapView({
     }
   }, [onMapReady, mapReady]);
 
-  // Filtrar eventos — localSearch é a fonte única de verdade para busca
+  // Filter events — localSearch is the single source of truth for search
   const filteredEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
 
     let filtered = events.filter(event => {
       if (!event?.location?.lat || !event?.location?.lng) return false;
 
-      // Busca textual
       if (localSearch) {
         const lower = localSearch.toLowerCase();
         const match =
@@ -283,7 +340,6 @@ export default function MapView({
         if (!match) return false;
       }
 
-      // Filtro de data
       if (advancedFilters.dateRange !== 'all') {
         const eventDate = new Date(event.date);
         const now = new Date();
@@ -304,7 +360,6 @@ export default function MapView({
       return true;
     });
 
-    // Ordenar por proximidade ao usuário (eventos mais próximos primeiro)
     if (userLocation) {
       filtered = filtered.sort((a, b) => {
         const dA = Math.pow(a.location.lat - userLocation.lat, 2) + Math.pow(a.location.lng - userLocation.lng, 2);
@@ -316,7 +371,7 @@ export default function MapView({
     return filtered;
   }, [events, localSearch, advancedFilters, userLocation]);
 
-  // IDs de locais que JÁ TÊM evento — para não duplicar pin
+  // IDs of venues that already have an event — to avoid duplicate pins
   const venueIdsWithEvent = useMemo(() => {
     const ids = new Set();
     filteredEvents.forEach(e => {
@@ -325,7 +380,7 @@ export default function MapView({
     return ids;
   }, [filteredEvents]);
 
-  // Venues a exibir (sem evento ativo)
+  // Venues to display (without active events)
   const visibleVenues = useMemo(() => {
     if (!venues || venues.length === 0) return [];
     return venues.filter(v => {
@@ -342,10 +397,6 @@ export default function MapView({
     });
   }, [venues, venueIdsWithEvent, localSearch]);
 
-  // Clustering de eventos
-  const eventClusters = useMemo(() => clusterEvents(filteredEvents, zoomLevel), [filteredEvents, zoomLevel]);
-
-  // Verificar se evento está ao vivo
   const isEventLive = useCallback((event) => {
     const now = Date.now();
     const start = new Date(event.date).getTime();
@@ -353,11 +404,58 @@ export default function MapView({
     return now >= start && now <= start + durationMs;
   }, []);
 
+  /**
+   * UNIFIED MARKER LIST — combines events (high priority) and venues (low priority).
+   * Priority: live event (100) > regular event (50) > venue (10).
+   * This drives both clustering dominance and Z-index collision resolution.
+   */
+  const allMarkers = useMemo(() => {
+    const markers = [];
+
+    filteredEvents.forEach(event => {
+      const live = isEventLive(event);
+      markers.push({
+        id: event.id,
+        kind: 'event',
+        data: event,
+        lat: event.location.lat,
+        lng: event.location.lng,
+        category: event.genre || 'event',
+        color: getGenreColor(event.genre),
+        priority: live ? 100 : 50,
+        isLive: live,
+      });
+    });
+
+    visibleVenues.forEach(venue => {
+      const config = getCategoryConfig(venue.type);
+      markers.push({
+        id: venue.id,
+        kind: 'venue',
+        data: venue,
+        lat: venue.location.lat,
+        lng: venue.location.lng,
+        category: venue.type || 'venue',
+        color: config.color,
+        priority: 10,
+        isLive: false,
+      });
+    });
+
+    return markers;
+  }, [filteredEvents, visibleVenues, isEventLive]);
+
+  // Cluster all markers (events + venues combined)
+  const allClusters = useMemo(() => clusterMarkers(allMarkers, zoomLevel), [allMarkers, zoomLevel]);
+
+  // Labels visible only at high zoom — reduces cognitive load at wide views
+  const showLabels = zoomLevel >= 15;
+
   const activeFiltersCount = Object.keys(advancedFilters).filter(key => {
     if (key === 'maxDistance') return advancedFilters[key] !== 50;
     if (key === 'maxPrice') return advancedFilters[key] !== 500;
     if (key === 'minAttendees') return advancedFilters[key] !== 0;
-    if (key === 'sortBy') return false; // sortBy não conta como filtro ativo
+    if (key === 'sortBy') return false;
     return advancedFilters[key] !== 'all';
   }).length;
 
@@ -366,11 +464,11 @@ export default function MapView({
   if (mapError) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-black">
-        <div className="text-center bg-gray-900/80 backdrop-blur-xl rounded-2xl p-8 border border-red-500/30 max-w-md">
+        <div className="text-center bg-gray-900/80 backdrop-blur-xl rounded-2xl p-8 border border-gray-700 max-w-md">
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-white mb-2">Erro no Mapa</h3>
           <p className="text-gray-300 text-sm mb-4">{mapError}</p>
-          <Button onClick={() => window.location.reload()} className="bg-gradient-to-r from-cyan-600 to-purple-600">
+          <Button onClick={() => window.location.reload()} className="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white">
             Recarregar
           </Button>
         </div>
@@ -378,21 +476,34 @@ export default function MapView({
     );
   }
 
-  // Live events badge count
   const liveCount = filteredEvents.filter(isEventLive).length;
+
+  // Cluster click — zoom in to disperse (pseudo-spiderfy), or open details for single
+  const handleClusterClick = (cluster) => {
+    if (cluster.count > 1 && mapRef.current) {
+      const targetZoom = Math.min(zoomLevel + 2, 18);
+      mapRef.current.flyTo(cluster.center, targetZoom, { duration: 0.5 });
+    } else if (cluster.count === 1) {
+      const marker = cluster.topMarker;
+      if (marker.kind === 'event') {
+        onPinDetailsClick?.(marker.data);
+      } else {
+        onVenueClick?.(marker.data);
+      }
+    }
+  };
 
   return (
     <div ref={containerRef} className="w-full h-full relative">
-      {/* Search Bar com debounce */}
+      {/* Search Bar — luxury minimalist, NO neon */}
       <div className="absolute top-4 left-4 right-4 z-[1000] flex gap-2">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 z-10" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
           <Input
             placeholder="Buscar eventos, locais, vibe..."
             value={localSearch}
             onChange={(e) => handleSearchInput(e.target.value)}
-            className="pl-10 h-11 bg-gray-900 border-2 border-cyan-500/60 text-white placeholder:text-gray-400 focus:border-cyan-400 shadow-lg"
-            style={{ boxShadow: '0 0 12px rgba(6,182,212,0.3)' }}
+            className="pl-10 h-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 text-white placeholder:text-gray-500 focus:border-gray-500"
           />
           {localSearch && (
             <button
@@ -406,12 +517,11 @@ export default function MapView({
         <Button
           size="icon"
           onClick={() => setShowAdvancedFilters(true)}
-          className="h-11 w-11 bg-gray-900 border-2 border-cyan-500/60 hover:bg-gray-800 hover:border-cyan-400 relative shadow-lg flex-shrink-0"
-          style={{ boxShadow: '0 0 12px rgba(6,182,212,0.3)' }}
+          className="h-11 w-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 hover:bg-gray-800 hover:border-gray-600 relative flex-shrink-0"
         >
-          <Filter className="w-5 h-5 text-cyan-400" />
+          <Filter className="w-5 h-5 text-gray-300" />
           {activeFiltersCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-cyan-500 text-[10px] text-black font-bold">
+            <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gray-700 text-[10px] text-white font-bold">
               {activeFiltersCount}
             </Badge>
           )}
@@ -419,29 +529,20 @@ export default function MapView({
         <Button
           size="icon"
           onClick={() => setShowMenu(!showMenu)}
-          className="h-11 w-11 bg-gray-900 border-2 border-purple-500/60 hover:bg-gray-800 hover:border-purple-400 shadow-lg flex-shrink-0"
-          style={{ boxShadow: '0 0 12px rgba(168,85,247,0.3)' }}
+          className="h-11 w-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 hover:bg-gray-800 hover:border-gray-600 flex-shrink-0"
         >
-          {showMenu ? <X className="w-5 h-5 text-purple-400" /> : <Menu className="w-5 h-5 text-purple-400" />}
+          {showMenu ? <X className="w-5 h-5 text-gray-300" /> : <Menu className="w-5 h-5 text-gray-300" />}
         </Button>
       </div>
 
-      {/* Live events badge */}
+      {/* Live events badge — clean, NO neon */}
       {liveCount > 0 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="absolute top-20 left-4 z-[1000]"
         >
-          <Badge
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold cursor-default"
-            style={{
-              background: 'linear-gradient(135deg, rgba(239,68,68,0.9), rgba(220,38,38,0.8))',
-              border: '1.5px solid rgba(239,68,68,0.7)',
-              boxShadow: '0 0 16px rgba(239,68,68,0.6)',
-              color: '#fff'
-            }}
-          >
+          <Badge className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold cursor-default bg-red-600/90 border border-red-500/50 text-white">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping inline-block" />
             {liveCount} AO VIVO
           </Badge>
@@ -455,35 +556,35 @@ export default function MapView({
             initial={{ opacity: 0, scale: 0.95, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -8 }}
-            className="absolute top-20 right-4 z-[2000] bg-black/95 backdrop-blur-xl border border-gray-700 rounded-xl p-2 min-w-[200px] shadow-2xl"
+            className="absolute top-20 right-4 z-[2000] bg-gray-950/95 backdrop-blur-xl border border-gray-700 rounded-xl p-2 min-w-[200px] shadow-lg"
           >
-            <Button variant="ghost" onClick={() => { onOpenVibe(); setShowMenu(false); }} className="w-full justify-start text-white hover:bg-gray-800">
+            <Button variant="ghost" onClick={() => { onOpenVibe(); setShowMenu(false); }} className="w-full justify-start text-gray-200 hover:bg-gray-800 hover:text-white">
               🎭 Vibe Selector
             </Button>
-            <Button variant="ghost" onClick={() => { onOpenUpload(); setShowMenu(false); }} className="w-full justify-start text-white hover:bg-gray-800">
+            <Button variant="ghost" onClick={() => { onOpenUpload(); setShowMenu(false); }} className="w-full justify-start text-gray-200 hover:bg-gray-800 hover:text-white">
               🎬 Upload Reel
             </Button>
             <div className="h-px bg-gray-700 my-2" />
-            <Button variant="ghost" onClick={() => navigate(createPageUrl("Feed"))} className="w-full justify-start text-white hover:bg-gray-800">
+            <Button variant="ghost" onClick={() => navigate(createPageUrl("Feed"))} className="w-full justify-start text-gray-200 hover:bg-gray-800 hover:text-white">
               ⚡ Feed
             </Button>
-            <Button variant="ghost" onClick={() => navigate(createPageUrl("Perfil"))} className="w-full justify-start text-white hover:bg-gray-800">
+            <Button variant="ghost" onClick={() => navigate(createPageUrl("Perfil"))} className="w-full justify-start text-gray-200 hover:bg-gray-800 hover:text-white">
               👤 Perfil
             </Button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Stats bar */}
+      {/* Stats bar — clean, NO neon */}
       <div className="absolute bottom-28 left-4 z-[999] flex gap-2">
         {filteredEvents.length !== events.length && (
-          <Badge className="bg-cyan-600/90 backdrop-blur-xl border-cyan-500/50 text-white text-xs">
+          <Badge className="bg-gray-800/90 backdrop-blur-md border border-gray-700 text-gray-200 text-xs">
             <Zap className="w-3 h-3 mr-1" />
             {filteredEvents.length} eventos
           </Badge>
         )}
         {visibleVenues.length > 0 && (
-          <Badge className="bg-gray-700/90 backdrop-blur-xl border-gray-600/50 text-gray-300 text-xs">
+          <Badge className="bg-gray-800/90 backdrop-blur-md border border-gray-700 text-gray-300 text-xs">
             <Building2 className="w-3 h-3 mr-1" />
             {visibleVenues.length} locais
           </Badge>
@@ -515,13 +616,13 @@ export default function MapView({
         <MapUpdater center={center} />
         <ZoomTracker onZoomChange={setZoomLevel} />
 
-        {/* Marker de localização do usuário */}
+        {/* User location marker */}
         {userLocation && (
           <Marker
             position={[userLocation.lat, userLocation.lng]}
             icon={L.divIcon({
               className: 'user-location-marker',
-              html: `<div class="relative"><div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"></div><div class="absolute inset-0 w-4 h-4 bg-blue-500 rounded-full animate-ping opacity-75"></div></div>`,
+              html: `<div class="relative"><div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white"></div><div class="absolute inset-0 w-4 h-4 bg-blue-500 rounded-full animate-ping opacity-75"></div></div>`,
               iconSize: [16, 16], iconAnchor: [8, 8]
             })}
           >
@@ -529,77 +630,93 @@ export default function MapView({
           </Marker>
         )}
 
-        {/* PINS DE VENUES (locais sem evento) */}
-        {visibleVenues.map((venue) => (
-          <Marker
-            key={`venue-${venue.id}`}
-            position={[venue.location.lat, venue.location.lng]}
-            icon={createVenueIcon(venue)}
-            eventHandlers={{
-              click: () => onVenueClick && onVenueClick(venue)
-            }}
-          >
-            <Popup>
-              <div className="p-2 min-w-[180px]">
-                <h3 className="font-bold text-sm mb-1">{venue.name}</h3>
-                <p className="text-xs text-gray-500 mb-2">{venue.category || 'Estabelecimento'}</p>
-                <Badge className="bg-gray-100 text-gray-700 text-[10px]">Sem evento agora</Badge>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-
-        {/* CLUSTERS / PINS DE EVENTOS */}
-        {eventClusters.map((cluster, index) => {
-          if (!cluster?.center || !cluster.events?.[0]) return null;
+        {/* UNIFIED CLUSTERED MARKERS — events + venues combined with Z-index priority */}
+        {allClusters.map((cluster, index) => {
+          if (!cluster?.center) return null;
 
           if (cluster.count > 1) {
-            // Cluster com múltiplos eventos
-            const topGenre = cluster.events[0].genre;
-            const color = getGenreColor(topGenre);
             return (
               <Marker
                 key={`cluster-${index}`}
                 position={cluster.center}
-                icon={createClusterIcon(cluster.count, color)}
+                icon={createClusterIcon(cluster.count, cluster.dominantColor)}
                 eventHandlers={{
-                  click: () => onPinDetailsClick(cluster.events[0])
+                  click: () => handleClusterClick(cluster)
                 }}
               >
                 <Popup>
                   <div className="p-2 min-w-[160px]">
-                    <p className="font-bold text-sm mb-2">{cluster.count} eventos nesta área</p>
-                    {cluster.events.slice(0, 3).map(e => (
-                      <div key={e.id} className="text-xs text-gray-600 py-1 border-b border-gray-100 cursor-pointer hover:text-cyan-600" onClick={() => onPinDetailsClick(e)}>
-                        {e.title}
+                    <p className="font-bold text-sm mb-2">{cluster.count} locais nesta área</p>
+                    {cluster.markers.slice(0, 5).map(m => (
+                      <div
+                        key={m.id}
+                        className="text-xs text-gray-600 py-1 border-b border-gray-100 last:border-0 cursor-pointer hover:text-cyan-600"
+                        onClick={() => m.kind === 'event' ? onPinDetailsClick?.(m.data) : onVenueClick?.(m.data)}
+                      >
+                        {m.data.title || m.data.name}
                       </div>
                     ))}
+                    {cluster.markers.length > 5 && (
+                      <p className="text-xs text-gray-400 text-center mt-1">+{cluster.markers.length - 5} mais</p>
+                    )}
                   </div>
                 </Popup>
               </Marker>
             );
           }
 
-          // Pin de evento único
-          const event = cluster.events[0];
-          const live = isEventLive(event);
+          // Single marker — Z-index based on priority (live > event > venue)
+          const marker = cluster.topMarker;
+          const zIndexOffset = marker.priority;
+
+          if (marker.kind === 'event') {
+            const event = marker.data;
+            const live = marker.isLive;
+            return (
+              <Marker
+                key={`event-${event.id || index}`}
+                position={cluster.center}
+                icon={createEventIcon(event, live, showLabels)}
+                zIndexOffset={zIndexOffset}
+                eventHandlers={{
+                  click: () => onPinDetailsClick?.(event)
+                }}
+              >
+                <Popup>
+                  <div className="p-2 min-w-[200px]">
+                    <h3 className="font-bold text-sm mb-1">{event.title}</h3>
+                    <p className="text-xs text-gray-500 mb-2">{event.location?.venue_name || 'Local não informado'}</p>
+                    {live && <Badge className="bg-red-100 text-red-700 text-[10px] mb-2">🔴 Ao Vivo</Badge>}
+                    <Button size="sm" onClick={() => onPinDetailsClick?.(event)} className="w-full bg-gray-800 hover:bg-gray-700 text-white text-xs border border-gray-600">
+                      Ver Detalhes
+                    </Button>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          }
+
+          // Venue marker — category-specific icon
+          const venue = marker.data;
+          const config = getCategoryConfig(venue.type);
           return (
             <Marker
-              key={`event-${event.id || index}`}
+              key={`venue-${venue.id || index}`}
               position={cluster.center}
-              icon={createEventIcon(event, live)}
+              icon={createVenueIcon(venue, showLabels)}
+              zIndexOffset={zIndexOffset}
               eventHandlers={{
-                click: () => onPinDetailsClick(event)
+                click: () => onVenueClick?.(venue)
               }}
             >
               <Popup>
-                <div className="p-2 min-w-[200px]">
-                  <h3 className="font-bold text-sm mb-1">{event.title}</h3>
-                  <p className="text-xs text-gray-500 mb-2">{event.location?.venue_name || 'Local não informado'}</p>
-                  {live && <Badge className="bg-red-100 text-red-700 text-[10px] mb-2">🔴 Ao Vivo</Badge>}
-                  <Button size="sm" onClick={() => onPinDetailsClick(event)} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white text-xs">
-                    Ver Detalhes
-                  </Button>
+                <div className="p-2 min-w-[180px]">
+                  <h3 className="font-bold text-sm mb-1">{venue.name}</h3>
+                  <p className="text-xs text-gray-500 mb-2">{config.label}</p>
+                  {venue.rating > 0 && (
+                    <Badge className="bg-gray-100 text-gray-700 text-[10px] mr-1">★ {venue.rating}</Badge>
+                  )}
+                  <Badge className="bg-gray-100 text-gray-700 text-[10px]">Sem evento agora</Badge>
                 </div>
               </Popup>
             </Marker>
@@ -634,13 +751,9 @@ export default function MapView({
           background: none !important;
           border: none !important;
         }
-        @keyframes pulse-ring {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.3); opacity: 0; }
-        }
         @keyframes live-pulse {
           0%, 100% { transform: scale(1); opacity: 0.9; }
-          50% { transform: scale(1.4); opacity: 0.3; }
+          50% { transform: scale(1.3); opacity: 0.3; }
         }
       `}</style>
     </div>

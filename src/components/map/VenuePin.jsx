@@ -46,10 +46,9 @@ export default function VenuePin({ venue, position, onClick }) {
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         whileHover={{ opacity: 1, y: 0 }}
-        className="absolute bottom-full mb-2 px-3 py-2 bg-black/95 backdrop-blur-xl rounded-xl text-white text-[11px] whitespace-nowrap border-2 shadow-2xl pointer-events-none"
+        className="absolute bottom-full mb-2 px-3 py-2 bg-gray-950/95 backdrop-blur-xl rounded-xl text-white text-[11px] whitespace-nowrap border border-gray-700 shadow-lg pointer-events-none"
         style={{
-          borderColor: color,
-          boxShadow: `0 0 20px ${color}`
+          borderColor: `${color}40`
         }}
       >
         <div className="font-bold text-yellow-300 mb-1 flex items-center gap-1">
@@ -73,26 +72,14 @@ export default function VenuePin({ venue, position, onClick }) {
         )}
       </motion.div>
 
-      {/* Pin Visual */}
-      <motion.div 
-        className="relative"
-        animate={{
-          boxShadow: [
-            `0 0 15px ${color}`,
-            `0 0 25px ${color}`,
-            `0 0 15px ${color}`
-          ]
-        }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          filter: `drop-shadow(0 0 6px ${color})`
-        }}
-      >
-        {/* Pin Principal - Menor que eventos */}
+      {/* Pin Visual — clean, no neon */}
+      <div className="relative">
         <div 
-          className="w-7 h-7 rounded-full border-2 border-white/80 bg-gradient-to-br flex items-center justify-center relative opacity-70 group-hover:opacity-100 transition-opacity"
+          className="w-7 h-7 rounded-full border-2 border-white/70 flex items-center justify-center relative opacity-80 group-hover:opacity-100 transition-opacity"
           style={{
-            background: `linear-gradient(135deg, ${color}, rgba(0,0,0,0.6))`
+            background: 'rgba(15,23,42,0.85)',
+            borderColor: color,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
           }}
         >
           <Icon className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
@@ -106,24 +93,7 @@ export default function VenuePin({ venue, position, onClick }) {
             </div>
           )}
         </div>
-
-        {/* Glow Sutil */}
-        <motion.div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: `radial-gradient(circle, ${color}30 0%, transparent 70%)`
-          }}
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.3, 0, 0.3]
-          }}
-          transition={{
-            duration: 2.5,
-            repeat: Infinity,
-            ease: "easeOut"
-          }}
-        />
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
