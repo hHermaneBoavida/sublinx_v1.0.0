@@ -78,6 +78,7 @@ const CATEGORY_CONFIG = {
   gallery:          { icon: '🎨', color: '#06b6d4', label: 'Galeria' },
   studio:           { icon: '🎙️', color: '#10b981', label: 'Studio' },
   rooftop:          { icon: '🌆', color: '#0ea5e9', label: 'Rooftop' },
+  hotel:            { icon: '🛏️', color: '#14b8a6', label: 'Hotel' },
 };
 
 function getCategoryConfig(type) {

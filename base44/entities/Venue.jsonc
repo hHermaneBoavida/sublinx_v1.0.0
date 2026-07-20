@@ -26,7 +26,8 @@
         "studio",
         "gallery",
         "underground_space",
-        "cultural_center"
+        "cultural_center",
+        "hotel"
       ],
       "description": "Tipo do local"
     },
