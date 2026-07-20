@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { MapPin, Zap, User as UserIcon, Bell, Plus, MessageCircle, ArrowLeft, MoreVertical, Share2, LogOut, CalendarCheck, Inbox } from "lucide-react";
+import { MapPin, Zap, User as UserIcon, Bell, MessageCircle, ArrowLeft, MoreVertical, Share2, LogOut, CalendarCheck, Inbox, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,10 +95,6 @@ export default function Layout({ children, currentPageName }) {
   
   const navigationItems = getNavigationItems(user, isGuest);
 
-  const showFAB = user?.is_organizer && ![createPageUrl("CriarEvento"), createPageUrl("Mapa")].includes(location.pathname);
-
-
-
   const showNotificationPrompt = !isGuest && currentPageName !== "Mapa";
 
   const noLayoutPages = ["BemVindo", "Mapa"];
@@ -154,50 +150,7 @@ export default function Layout({ children, currentPageName }) {
           <div 
             className="fixed inset-0 pointer-events-none"
             style={{
-              background: 'linear-gradient(135deg, #0a1628 0%, #000000 50%, #0f0f23 100%)'
-            }}
-          />
-
-          <div
-            className="fixed inset-0 pointer-events-none opacity-[0.08]"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, rgba(6, 182, 212, 0.8) 0.5px, transparent 0.5px),
-                linear-gradient(to bottom, rgba(6, 182, 212, 0.8) 0.5px, transparent 0.5px)
-              `,
-              backgroundSize: '50px 50px',
-              animation: 'grid-glow 6s ease-in-out infinite'
-            }}
-          />
-
-          <div 
-            className="fixed top-0 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none opacity-15"
-            style={{
-              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.8) 0%, transparent 70%)',
-              animation: 'pulse-glow 8s ease-in-out infinite'
-            }}
-          />
-          <div 
-            className="fixed bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none opacity-12"
-            style={{
-              background: 'radial-gradient(circle, rgba(168, 85, 247, 0.8) 0%, transparent 70%)',
-              animation: 'pulse-glow 10s ease-in-out infinite 2s'
-            }}
-          />
-
-          <div
-            className="fixed inset-0 pointer-events-none opacity-[0.04]"
-            style={{
-              backgroundImage: `
-                repeating-linear-gradient(
-                  45deg,
-                  rgba(6, 182, 212, 0.6) 0px,
-                  rgba(6, 182, 212, 0.6) 1px,
-                  transparent 1px,
-                  transparent 60px
-                )
-              `,
-              animation: 'diagonal-move 25s linear infinite'
+              background: 'linear-gradient(135deg, #0a0e1a 0%, #000000 50%, #0a0e1a 100%)'
             }}
           />
 
@@ -226,7 +179,6 @@ export default function Layout({ children, currentPageName }) {
                     src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png"
                     alt="SUBLINX"
                     className="w-8 h-8"
-                    style={{ filter: 'drop-shadow(0 0 8px rgba(6,182,212,0.6))' }}
                   />
                   <span className="hidden sm:block text-base font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                     SUBLINX
@@ -297,14 +249,24 @@ export default function Layout({ children, currentPageName }) {
                         Minhas Reservas
                       </DropdownMenuItem>
                       {user?.is_organizer && (
-                        <DropdownMenuItem
-                          onClick={() => navigate(createPageUrl("ReservasRecebidas"))}
-                          className="flex items-center gap-2 text-gray-200 hover:text-white focus:text-white cursor-pointer"
-                          style={{ background: 'transparent' }}
-                        >
-                          <Inbox className="w-4 h-4 text-purple-400" />
-                          Reservas Recebidas
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => navigate(createPageUrl("ReservasRecebidas"))}
+                            className="flex items-center gap-2 text-gray-200 hover:text-white focus:text-white cursor-pointer"
+                            style={{ background: 'transparent' }}
+                          >
+                            <Inbox className="w-4 h-4 text-purple-400" />
+                            Reservas Recebidas
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => navigate(createPageUrl("CalendarioReservas"))}
+                            className="flex items-center gap-2 text-gray-200 hover:text-white focus:text-white cursor-pointer"
+                            style={{ background: 'transparent' }}
+                          >
+                            <CalendarDays className="w-4 h-4 text-cyan-400" />
+                            Calendário de Reservas
+                          </DropdownMenuItem>
+                        </>
                       )}
                       <DropdownMenuItem
                         onClick={() => {
@@ -349,85 +311,6 @@ export default function Layout({ children, currentPageName }) {
 
           <GlobalSearch />
 
-          {showFAB && (
-            <motion.div
-              className="fixed bottom-20 sm:bottom-24 md:bottom-8 right-4 sm:right-6 md:right-8 z-30 group"
-              whileHover={{ scale: 1.15, rotate: 10 }}
-              whileTap={{ scale: 0.9, rotate: -10 }}
-            >
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background: 'radial-gradient(circle, rgba(6, 182, 212, 0.5) 0%, transparent 70%)',
-                  filter: 'blur(20px)',
-                  width: '80px',
-                  height: '80px',
-                  left: '50%',
-                  top: '50%',
-                  transform: 'translate(-50%, -50%)',
-                }}
-                animate={{
-                  scale: [1, 1.3, 1],
-                  opacity: [0.5, 0.8, 0.5]
-                }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-
-              <Link to={createPageUrl("CriarEvento")}>
-                <Button
-                  size="lg"
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-3 border-white/30 shadow-2xl relative overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(6, 182, 212, 1), rgba(168, 85, 247, 1))',
-                    boxShadow: '0 0 30px rgba(6, 182, 212, 0.7), 0 0 60px rgba(168, 85, 247, 0.5)'
-                  }}
-                >
-                  <motion.div
-                    className="absolute inset-0"
-                    style={{
-                      background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5), transparent 65%)'
-                    }}
-                    animate={{
-                      opacity: [0.3, 0.7, 0.3],
-                      scale: [1, 1.15, 1]
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  />
-
-                  <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-white relative z-10" />
-                </Button>
-              </Link>
-
-              <motion.div 
-                className="absolute bottom-full right-0 mb-2 sm:mb-3 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap backdrop-blur-xl border-2"
-                style={{
-                  background: 'rgba(0, 0, 0, 0.9)',
-                  borderColor: 'rgba(6, 182, 212, 0.5)',
-                  boxShadow: '0 0 25px rgba(6, 182, 212, 0.5)'
-                }}
-              >
-                <span 
-                  className="text-white text-xs sm:text-sm font-semibold"
-                  style={{
-                    textShadow: '0 0 10px rgba(6, 182, 212, 0.8)'
-                  }}
-                >
-                  Criar Evento
-                </span>
-                <div 
-                  className="absolute top-full right-3 sm:right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent"
-                  style={{
-                    borderTopColor: 'rgba(6, 182, 212, 0.5)'
-                  }}
-                />
-              </motion.div>
-            </motion.div>
-          )}
-
           <main className="relative z-0 pb-28 md:pb-0">
             {children}
           </main>
@@ -440,20 +323,6 @@ export default function Layout({ children, currentPageName }) {
           {!isGuest && user && userLocation && <EventProximityChecker user={user} userLocation={userLocation} />}
           {showNotificationPrompt && <NotificationPermissionPrompt />}
 
-          <style>{`
-            @keyframes grid-glow {
-              0%, 100% { opacity: 0.08; }
-              50% { opacity: 0.15; }
-            }
-            @keyframes pulse-glow {
-              0%, 100% { transform: scale(1); opacity: 0.15; }
-              50% { transform: scale(1.12); opacity: 0.25; }
-            }
-            @keyframes diagonal-move {
-              0% { background-position: 0 0; }
-              100% { background-position: 120px 120px; }
-            }
-          `}</style>
         </div>
       </WebSocketEventProvider>
     </ErrorBoundary>

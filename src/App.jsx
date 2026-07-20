@@ -13,6 +13,7 @@ import MeusEstabelecimentos from './pages/MeusEstabelecimentos';
 import SyncDashboard from './pages/SyncDashboard';
 import MinhasReservas from './pages/MinhasReservas';
 import ReservasRecebidas from './pages/ReservasRecebidas';
+import CalendarioReservas from './pages/CalendarioReservas';
 import { AuthProvider } from '@/lib/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Login from '@/pages/Login';
@@ -50,6 +51,7 @@ const AuthenticatedApp = () => {
         <Route path="/SyncDashboard" element={<LayoutWrapper currentPageName="SyncDashboard"><SyncDashboard /></LayoutWrapper>} />
         <Route path="/MinhasReservas" element={<LayoutWrapper currentPageName="MinhasReservas"><MinhasReservas /></LayoutWrapper>} />
         <Route path="/ReservasRecebidas" element={<LayoutWrapper currentPageName="ReservasRecebidas"><ReservasRecebidas /></LayoutWrapper>} />
+        <Route path="/CalendarioReservas" element={<LayoutWrapper currentPageName="CalendarioReservas"><CalendarioReservas /></LayoutWrapper>} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />
