@@ -104,20 +104,21 @@ export default function ComprarIngresso() {
   const vipDiscount = isVipGuest ? (guestStatus.discount_percentage || 100) : 0;
 
   const purchaseTicketMutation = useMutation({
-    mutationFn: async ({ ticketData }) => {
-      return await base44.entities.Ticket.create(ticketData);
+    mutationFn: async ({ payload }) => {
+      const res = await fetch(`/api/base44/functions/createTicket/invoke`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao criar ingresso');
+      return data.ticket;
     },
     onSuccess: (ticket) => {
       queryClient.invalidateQueries(['event', eventId]);
       queryClient.invalidateQueries(['userTickets']);
       setGeneratedTicket(ticket);
       setPurchaseSuccess(true);
-      
-      if (event) {
-        base44.entities.Event.update(eventId, {
-          current_attendees: (event.current_attendees || 0) + quantity
-        });
-      }
     }
   });
 
@@ -143,37 +144,17 @@ export default function ComprarIngresso() {
   const handlePaymentSuccess = async (paymentData) => {
     if (!selectedTicketType || !user || !event) return;
 
-    const qrCodeData = `SUBLINX:${Date.now()}:${user.id}:${event.id}:${selectedTicketType.id}`;
-    const finalPrice = isVipGuest 
-      ? (selectedTicketType.price * quantity * (1 - vipDiscount / 100))
-      : (selectedTicketType.price * quantity);
-
     await purchaseTicketMutation.mutateAsync({
-      ticketData: {
-        user_id: user.id,
+      payload: {
         event_id: event.id,
-        ticket_type: selectedTicketType.name + (isVipGuest ? ' (VIP)' : ''),
-        price: finalPrice,
+        ticket_type_name: selectedTicketType.name,
+        ticket_type_id: selectedTicketType.id,
         quantity: quantity,
-        qr_code_data: qrCodeData,
-        status: 'valid',
         payment_method: paymentData.method,
-        payment_status: 'confirmed',
-        transaction_id: `TXN-${Date.now()}`,
-        attendee_info: {
-          full_name: user.full_name || user.display_name,
-          email: user.email
-        }
+        transaction_id: paymentData.transaction_id || `TXN-${Date.now()}`,
+        is_vip_guest: isVipGuest
       }
     });
-
-    // Marcar guest list como usada
-    if (isVipGuest && guestStatus && guestStatus.status === 'accepted') {
-      await base44.entities.GuestList.update(guestStatus.id, {
-        status: 'used',
-        used_at: new Date().toISOString()
-      });
-    }
   };
 
   const totalAmount = selectedTicketType 
