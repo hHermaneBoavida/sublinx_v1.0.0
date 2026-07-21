@@ -94,9 +94,10 @@ Deno.serve(async (req) => {
 
     return Response.json(result, {
       headers: {
-        'Cache-Control': 'public, max-age=30',
+        'Cache-Control': 'private, max-age=30',
         'X-Processing-Time': `${Date.now() - startTime}ms`,
-        'X-Events-Count': event_ids.length.toString()
+        'X-Events-Count': event_ids.length.toString(),
+        'Vary': 'Origin'
       }
     });
 

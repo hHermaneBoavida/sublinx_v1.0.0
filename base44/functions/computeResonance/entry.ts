@@ -119,12 +119,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { userId, recomputeAll } = await req.json();
-    const targetUserId = userId || user.id;
+    const { userId } = await req.json();
+    // Segurança: apenas o próprio usuário ou admin pode computar ressonância
+    let targetUserId = user.id;
+    if (userId && userId !== user.id) {
+      if (user.role !== 'admin') {
+        return Response.json({ error: 'Forbidden: cannot compute resonance for another user' }, { status: 403 });
+      }
+      targetUserId = userId;
+    }
 
-    // Buscar sinais do usuário (últimos 90 dias)
+    // Buscar sinais do usuário (últimos 90 dias) — usa cliente autenticado, não asServiceRole
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-    const signals = await base44.asServiceRole.entities.UserBehaviorSignal.filter(
+    const signals = await base44.entities.UserBehaviorSignal.filter(
       { 
         user_id: targetUserId,
         created_date: { $gte: ninetyDaysAgo }
@@ -153,7 +160,7 @@ Deno.serve(async (req) => {
     const maturity = determinateMaturityLevel(signals.length, daysSinceFirst);
 
     // Detecção de mudança de fase comportamental
-    const existingStates = await base44.asServiceRole.entities.UserResonanceState.filter({
+    const existingStates = await base44.entities.UserResonanceState.filter({
       user_id: targetUserId
     });
 
@@ -203,12 +210,12 @@ Deno.serve(async (req) => {
 
     let resonanceState;
     if (existingStates.length > 0) {
-      resonanceState = await base44.asServiceRole.entities.UserResonanceState.update(
+      resonanceState = await base44.entities.UserResonanceState.update(
         existingStates[0].id,
         stateData
       );
     } else {
-      resonanceState = await base44.asServiceRole.entities.UserResonanceState.create(stateData);
+      resonanceState = await base44.entities.UserResonanceState.create(stateData);
     }
 
     return Response.json({
@@ -226,8 +233,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Erro ao computar ressonância:', error);
     return Response.json({ 
-      error: error.message,
-      stack: error.stack
+      error: 'Internal server error'
     }, { status: 500 });
   }
 });
