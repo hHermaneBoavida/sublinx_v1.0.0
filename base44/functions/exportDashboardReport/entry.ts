@@ -11,13 +11,13 @@ Deno.serve(async (req) => {
 
     const { reportType } = await req.json();
 
-    const [events, tickets] = await Promise.all([
-      base44.asServiceRole.entities.Event.filter({ organizer_id: user.id }),
-      base44.asServiceRole.entities.Ticket.list('', 1000)
-    ]);
-
+    const events = await base44.asServiceRole.entities.Event.filter({ organizer_id: user.id });
     const eventIds = events.map(e => e.id);
-    const organizerTickets = tickets.filter(t => eventIds.includes(t.event_id));
+
+    // SEGURANÇA: filtrar tickets no banco por event_id do organizador — nunca listar tudo.
+    const organizerTickets = eventIds.length > 0
+      ? await base44.asServiceRole.entities.Ticket.filter({ event_id: { $in: eventIds } }, '', 1000)
+      : [];
 
     let csvContent = '';
 

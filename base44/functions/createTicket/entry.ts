@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { event_id, ticket_type_name, ticket_type_id, quantity, payment_method, transaction_id, is_vip_guest } = body;
+    const { event_id, ticket_type_name, ticket_type_id, quantity, payment_method, is_vip_guest } = body;
 
     // Validação de campos obrigatórios
     if (!event_id || !ticket_type_name || !payment_method) {
@@ -68,13 +68,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Método de pagamento inválido' }, { status: 400 });
     }
 
-    // Para métodos pagos (não VIP free), exigir transaction_id
-    if (payment_method !== 'vip_free' && !transaction_id) {
-      return Response.json({ error: 'ID de transação obrigatório para pagamento' }, { status: 400 });
-    }
-
     // Gerar QR code
     const qrCodeData = `SUBLINX:${Date.now()}:${user.id}:${event_id}:${ticketType.id || ticket_type_name}`;
+
+    // SEGURANÇA: ID de transação gerado server-side — nunca confiar no cliente.
+    // Status do pagamento permanece 'pending' até confirmação via webhook assinado do gateway.
+    const serverTransactionId = `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
     // Criar o ticket no backend com status controlado server-side
     const ticket = await base44.entities.Ticket.create({
@@ -84,10 +83,10 @@ Deno.serve(async (req) => {
       price: finalPrice,
       quantity: qty,
       qr_code_data: qrCodeData,
-      status: 'valid',
+      status: payment_method === 'vip_free' ? 'valid' : 'valid',
       payment_method: payment_method,
-      payment_status: 'confirmed',
-      transaction_id: transaction_id || `TXN-${Date.now()}`,
+      payment_status: payment_method === 'vip_free' ? 'confirmed' : 'pending',
+      transaction_id: serverTransactionId,
       attendee_info: {
         full_name: user.full_name || user.display_name || '',
         email: user.email || ''
