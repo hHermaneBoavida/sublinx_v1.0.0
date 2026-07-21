@@ -77,6 +77,13 @@
           "data.creator_id": "{{user.id}}"
         },
         {
+          "data.participants": {
+            "$in": [
+              "{{user.id}}"
+            ]
+          }
+        },
+        {
           "user_condition": {
             "role": "admin"
           }

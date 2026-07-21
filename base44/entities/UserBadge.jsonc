@@ -54,11 +54,6 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "read": {
       "$or": [
         {
           "data.user_id": "{{user.id}}"
@@ -70,6 +65,7 @@
         }
       ]
     },
+    "read": {},
     "update": {
       "user_condition": {
         "role": "admin"
