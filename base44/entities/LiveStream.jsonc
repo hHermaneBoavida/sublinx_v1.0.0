@@ -52,5 +52,37 @@
     "event_id",
     "streamer_id",
     "title"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "data.streamer_id": "{{user.id}}"
+    },
+    "read": {
+      "data.is_active": true
+    },
+    "update": {
+      "$or": [
+        {
+          "data.streamer_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.streamer_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }

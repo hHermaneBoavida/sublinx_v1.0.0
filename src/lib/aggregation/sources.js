@@ -26,6 +26,8 @@ export const API_SOURCES = [
   { id: 'ingresse', name: 'Ingresse', scope: 'brasil', enabled: false },
 ];
 
+export const ALL_SOURCES = [...API_SOURCES];
+
 export function mapSerpApiEvent(raw) {
   return normalizeEvent({
     title: raw.title,
@@ -191,6 +193,62 @@ export function mapSymplaEvent(raw) {
   });
 }
 
+export function mapShotgunEvent(raw) {
+  return normalizeEvent({
+    title: raw.name,
+    description: raw.description,
+    date: raw.starts_at,
+    end_date: raw.ends_at,
+    location: {
+      address: raw.place?.address,
+      venue_name: raw.place?.name,
+      city: raw.place?.city,
+      state: raw.place?.state,
+      country: 'BR',
+      lat: parseFloat(raw.place?.lat),
+      lng: parseFloat(raw.place?.lng),
+    },
+    image_url: raw.cover_image,
+    min_price: raw.min_price,
+    max_price: raw.max_price,
+    currency: 'BRL',
+    ticket_url: raw.url,
+    organizer: raw.organizer?.name,
+    source: 'shotgun',
+    source_id: raw.id,
+    source_url: raw.url,
+    category: raw.category || 'musica',
+  });
+}
+
+export function mapIngresseEvent(raw) {
+  return normalizeEvent({
+    title: raw.name,
+    description: raw.description,
+    date: raw.startDate,
+    end_date: raw.endDate,
+    location: {
+      address: raw.venue?.address,
+      venue_name: raw.venue?.name,
+      city: raw.venue?.city,
+      state: raw.venue?.state,
+      country: 'BR',
+      lat: parseFloat(raw.venue?.latitude),
+      lng: parseFloat(raw.venue?.longitude),
+    },
+    image_url: raw.logo,
+    min_price: raw.minPrice,
+    max_price: raw.maxPrice,
+    currency: 'BRL',
+    ticket_url: raw.url,
+    organizer: raw.producer?.name,
+    source: 'ingresse',
+    source_id: raw.id,
+    source_url: raw.url,
+    category: raw.category || 'musica',
+  });
+}
+
 export const SOURCE_MAPPERS = {
   serpapi: mapSerpApiEvent,
   ticketmaster: mapTicketmasterEvent,
@@ -198,4 +256,6 @@ export const SOURCE_MAPPERS = {
   meetup: mapMeetupEvent,
   bandsintown: mapBandsintownEvent,
   sympla: mapSymplaEvent,
+  shotgun: mapShotgunEvent,
+  ingresse: mapIngresseEvent,
 };
