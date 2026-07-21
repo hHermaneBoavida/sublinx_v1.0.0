@@ -18,6 +18,28 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
+// SEGURANÇA: escapa valores não confiáveis antes de inserir em HTML bruto (Leaflet divIcon).
+// Previne XSS armazenado via campos image_url / title / name manipulados.
+function escapeHtmlAttr(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function escapeHtmlText(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+// Valida que a URL é http(s) antes de usá-la como src de imagem.
+function safeImgSrc(url) {
+  const str = String(url ?? '');
+  return /^https?:\/\//i.test(str) ? escapeHtmlAttr(str) : '';
+}
+
 function MapUpdater({ center }) {
   const map = useMap();
   const initializedRef = useRef(false);
@@ -92,9 +114,10 @@ function getCategoryConfig(type) {
  */
 function createEventIcon(event, isLive, showLabel) {
   const color = getGenreColor(event.genre);
-  const shortTitle = event.title?.length > 14 ? event.title.slice(0, 12) + '…' : (event.title || '');
-  const imgHtml = event.image_url
-    ? `<img src="${event.image_url}" onerror="this.style.display='none';this.parentNode.innerHTML='<span style=\\'font-size:16px;\\'>🎵</span>';" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+  const safeTitle = escapeHtmlText(event.title?.length > 14 ? event.title.slice(0, 12) + '…' : (event.title || ''));
+  const safeImg = safeImgSrc(event.image_url);
+  const imgHtml = safeImg
+    ? `<img src="${safeImg}" onerror="this.style.display='none';this.parentNode.innerHTML='<span style=\\'font-size:16px;\\'>🎵</span>';" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
     : `<span style="font-size:16px;">🎵</span>`;
 
   // Neon glow ONLY for live/active events
@@ -113,7 +136,7 @@ function createEventIcon(event, isLive, showLabel) {
       border:1px solid rgba(100,116,139,0.3);border-radius:6px;
       padding:2px 6px;font-size:9px;font-weight:600;color:#e2e8f0;
       white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;
-    ">${shortTitle}</div>
+    ">${safeTitle}</div>
   ` : '';
 
   return L.divIcon({
@@ -145,7 +168,7 @@ function createEventIcon(event, isLive, showLabel) {
  */
 function createVenueIcon(venue, showLabel) {
   const config = getCategoryConfig(venue.type);
-  const shortName = venue.name?.length > 14 ? venue.name.slice(0, 12) + '…' : (venue.name || 'Local');
+  const shortName = escapeHtmlText(venue.name?.length > 14 ? venue.name.slice(0, 12) + '…' : (venue.name || 'Local'));
 
   const labelHtml = showLabel ? `
     <div style="

@@ -111,9 +111,24 @@ Deno.serve(async (req) => {
     // Analisar conteúdo
     const analysis = analyzeContent(content);
 
-    // Se crítico, criar report automático
+    // Se crítico, criar report automático — mas apenas se o usuário pertencer à comunidade
     if (analysis.action === 'block') {
       try {
+        const membership = await base44.asServiceRole.entities.CommunityMember.filter({
+          community_id: communityId,
+          user_id: user.id,
+          is_active: true,
+        });
+        const isMember = Array.isArray(membership) && membership.length > 0;
+        if (!isMember && user.role !== 'admin') {
+          return Response.json({
+            allowed: analysis.action !== 'block',
+            action: analysis.action,
+            score: analysis.score,
+            flags: analysis.flags,
+            filtered_content: content
+          });
+        }
         await base44.asServiceRole.entities.CommunityReport.create({
           community_id: communityId,
           reported_by: 'system',

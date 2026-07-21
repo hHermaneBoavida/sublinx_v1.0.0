@@ -12,7 +12,30 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const fileUrl = body.file_url || 'https://media.base44.com/files/public/68a70ee66a1156f1068d2903/223e888fd_Estabelecimentos_Sacoma_ABC_100.xlsx';
 
-    const resp = await fetch(fileUrl);
+    // SEGURANÇA: valida a URL para evitar SSRF — apenas https/http em hosts permitidos,
+    // bloqueando IPs privados/locais e serviços de metadados de nuvem.
+    const ALLOWED_HOSTS = ['media.base44.com', 'qtrypzzcjebvfcihiynt.supabase.co'];
+    function validateFileUrl(raw) {
+      let parsed;
+      try { parsed = new URL(raw); } catch { return null; }
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+      const host = parsed.hostname.toLowerCase();
+      if (ALLOWED_HOSTS.length && !ALLOWED_HOSTS.includes(host)) return null;
+      // Bloqueia literais de IP privados/locais e link-local
+      const ipMatch = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+      if (ipMatch) {
+        const [, a, b] = ipMatch.map(Number);
+        if (a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a === 0 || a === 169) return null;
+      }
+      if (host === 'localhost' || host.endsWith('.local') || host.endsWith('.internal')) return null;
+      return parsed.href;
+    }
+    const safeUrl = validateFileUrl(fileUrl);
+    if (!safeUrl) {
+      return Response.json({ error: 'URL de arquivo não permitida' }, { status: 400 });
+    }
+
+    const resp = await fetch(safeUrl);
     if (!resp.ok) return Response.json({ error: 'Falha ao baixar arquivo' }, { status: 502 });
     const buf = await resp.arrayBuffer();
     const wb = XLSX.read(buf, { type: 'array' });
