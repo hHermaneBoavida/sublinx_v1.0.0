@@ -68,7 +68,7 @@
   "rls": {
     "create": {
       "user_condition": {
-        "is_organizer": true
+        "data.is_organizer": true
       }
     },
     "read": {

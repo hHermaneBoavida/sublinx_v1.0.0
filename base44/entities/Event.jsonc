@@ -404,10 +404,16 @@
           "data.is_secret": false
         },
         {
-          "data.is_secret": true,
-          "user_condition": {
-            "is_pro_member": true
-          }
+          "$and": [
+            {
+              "data.is_secret": true
+            },
+            {
+              "user_condition": {
+                "data.is_pro_member": true
+              }
+            }
+          ]
         },
         {
           "data.organizer_id": "{{user.id}}"
