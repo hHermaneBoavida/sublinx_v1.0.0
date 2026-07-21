@@ -33,7 +33,8 @@
         "valid",
         "used",
         "cancelled",
-        "refunded"
+        "refunded",
+        "pending_payment"
       ],
       "default": "valid",
       "description": "Status do ingresso"

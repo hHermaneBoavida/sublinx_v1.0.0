@@ -92,6 +92,19 @@ export default function ValidarIngresso() {
         return;
       }
 
+      // SEGURANÇA: ingresso só é válido se status=valid E pagamento confirmado
+      if (ticket.status === 'pending_payment' || ticket.payment_status !== 'confirmed') {
+        setValidationResult({
+          status: 'invalid',
+          message: 'Pagamento Pendente',
+          details: 'Este ingresso não pode ser validado — pagamento não confirmado',
+          ticket,
+          event
+        });
+        setIsValidating(false);
+        return;
+      }
+
       if (ticket.status === 'used') {
         setValidationResult({
           status: 'used',

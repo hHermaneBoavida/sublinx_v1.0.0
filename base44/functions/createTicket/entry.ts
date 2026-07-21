@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       price: finalPrice,
       quantity: qty,
       qr_code_data: qrCodeData,
-      status: payment_method === 'vip_free' ? 'valid' : 'valid',
+      status: payment_method === 'vip_free' ? 'valid' : 'pending_payment',
       payment_method: payment_method,
       payment_status: payment_method === 'vip_free' ? 'confirmed' : 'pending',
       transaction_id: serverTransactionId,
