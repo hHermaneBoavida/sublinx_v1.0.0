@@ -75,7 +75,7 @@
         },
         {
           "data.chat_id": {
-            "$in": "{{user.member_of_chat_ids}}"
+            "$exists": true
           }
         }
       ]
