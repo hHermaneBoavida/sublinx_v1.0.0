@@ -37,19 +37,11 @@ export default function BemVindo() {
     setIsLogging(true);
     setError("");
     
-    // CORREÇÃO: Contas demo funcionais
-    const demoAccounts = {
-      "organizador@sublynx.com": { password: "password123", type: "organizer" },
-      "alex@example.com": { password: "password123", type: "user" }
-    };
-    
-    if (demoAccounts[email] && password === demoAccounts[email].password) {
-      // Simular login bem-sucedido
-      setTimeout(() => {
-        navigate(createPageUrl("Mapa"));
-      }, 1000);
-    } else {
-      setError("❌ Credenciais inválidas. Use uma das contas demo abaixo.");
+    try {
+      await base44.auth.loginViaEmailPassword(email, password);
+      window.location.href = createPageUrl("Mapa");
+    } catch (err) {
+      setError("❌ Credenciais inválidas. Verifique seu email e senha.");
       setIsLogging(false);
     }
   };
@@ -197,29 +189,19 @@ export default function BemVindo() {
               </Button>
             </form>
 
-            {/* Demo Info */}
+            {/* Register link */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="mt-6 p-4 bg-gradient-to-r from-cyan-900/20 to-purple-900/20 rounded-xl border border-cyan-500/20"
+              className="mt-6 text-center"
             >
-              <p className="text-xs text-cyan-300 font-semibold mb-2 flex items-center gap-2">
-                <Zap className="w-3 h-3" />
-                Contas Demo Disponíveis:
+              <p className="text-xs text-gray-400">
+                Ainda não tem conta?{' '}
+                <a href="/register" className="text-cyan-400 hover:text-cyan-300 font-semibold">
+                  Criar conta
+                </a>
               </p>
-              <div className="space-y-2 text-xs">
-                <div className="bg-gray-800/50 rounded p-2 border border-gray-700">
-                  <p className="text-cyan-400 font-semibold">📧 Organizador:</p>
-                  <p className="text-gray-300 font-mono">organizador@sublynx.com</p>
-                  <p className="text-gray-500 text-[10px] mt-1">🔑 Senha: password123</p>
-                </div>
-                <div className="bg-gray-800/50 rounded p-2 border border-gray-700">
-                  <p className="text-purple-400 font-semibold">📧 Usuário:</p>
-                  <p className="text-gray-300 font-mono">alex@example.com</p>
-                  <p className="text-gray-500 text-[10px] mt-1">🔑 Senha: password123</p>
-                </div>
-              </div>
             </motion.div>
           </div>
         </div>

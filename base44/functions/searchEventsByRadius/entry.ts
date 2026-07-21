@@ -15,6 +15,12 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { lat, lng, radius_km = 10, city, genre, vibe, limit = 50 } = await req.json();
     
     if (!lat || !lng) {
