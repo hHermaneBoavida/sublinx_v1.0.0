@@ -63,8 +63,15 @@ Deno.serve(async (req) => {
     }
 
     // Validar método de pagamento
-    const validMethods = ['pix', 'credit_card', 'debit_card', 'cash', 'vip_free'];
-    if (!validMethods.includes(payment_method)) {
+    // SEGURANÇA: 'vip_free' só é permitido quando o preço final é zero
+    // (i.e. após validação bem-sucedida da Guest List VIP com 100% de desconto).
+    // Caso contrário, o usuário deve usar um método de pagamento real.
+    const validMethods = ['pix', 'credit_card', 'debit_card', 'cash'];
+    if (payment_method === 'vip_free') {
+      if (finalPrice > 0 || !isVip) {
+        return Response.json({ error: 'Ingresso gratuito não autorizado' }, { status: 403 });
+      }
+    } else if (!validMethods.includes(payment_method)) {
       return Response.json({ error: 'Método de pagamento inválido' }, { status: 400 });
     }
 
