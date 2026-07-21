@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { csvCell } from '../../shared/sanitize.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -30,7 +31,11 @@ Deno.serve(async (req) => {
         const date = new Date(ticket.created_date).toLocaleDateString('pt-BR');
         const buyerName = ticket.attendee_info?.full_name || 'N/A';
         
-        csvContent += `${date},"${event?.title || 'N/A'}","${ticket.ticket_type || 'Padrão'}",${ticket.quantity || 1},${ticket.price || 0},${ticket.status},"${buyerName}"\n`;
+        const safeTitle = csvCell(event?.title || 'N/A');
+        const safeType = csvCell(ticket.ticket_type || 'Padrão');
+        const safeStatus = csvCell(ticket.status);
+        const safeBuyer = csvCell(buyerName);
+        csvContent += `${date},"${safeTitle}","${safeType}",${ticket.quantity || 1},${ticket.price || 0},"${safeStatus}","${safeBuyer}"\n`;
       });
     } else if (reportType === 'attendees') {
       // Attendees Report
@@ -41,7 +46,14 @@ Deno.serve(async (req) => {
         const info = ticket.attendee_info || {};
         const checkinStatus = ticket.checked_in_at ? 'Sim' : 'Não';
         
-        csvContent += `"${info.full_name || 'N/A'}","${info.email || 'N/A'}","${info.phone || 'N/A'}","${event?.title || 'N/A'}","${ticket.ticket_type || 'Padrão'}",${ticket.price || 0},${ticket.status},${checkinStatus}\n`;
+        const safeName = csvCell(info.full_name || 'N/A');
+        const safeEmail = csvCell(info.email || 'N/A');
+        const safePhone = csvCell(info.phone || 'N/A');
+        const safeEvTitle = csvCell(event?.title || 'N/A');
+        const safeEvType = csvCell(ticket.ticket_type || 'Padrão');
+        const safeEvStatus = csvCell(ticket.status);
+        const safeCheckin = csvCell(checkinStatus);
+        csvContent += `"${safeName}","${safeEmail}","${safePhone}","${safeEvTitle}","${safeEvType}",${ticket.price || 0},"${safeEvStatus}","${safeCheckin}"\n`;
       });
     } else if (reportType === 'events') {
       // Events Summary Report
@@ -56,7 +68,8 @@ Deno.serve(async (req) => {
         const eventDate = new Date(event.date).toLocaleDateString('pt-BR');
         const status = new Date(event.date) > new Date() ? 'Próximo' : 'Realizado';
         
-        csvContent += `"${event.title}",${eventDate},${sold},${capacity},${occupancy}%,${revenue.toFixed(2)},${status}\n`;
+        const safeTitle = csvCell(event.title);
+        csvContent += `"${safeTitle}",${eventDate},${sold},${capacity},${occupancy}%,${revenue.toFixed(2)},${status}\n`;
       });
     }
 
