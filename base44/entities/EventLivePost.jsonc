@@ -68,11 +68,6 @@
           "user_condition": {
             "role": "admin"
           }
-        },
-        {
-          "data.event_id": {
-            "$in": "{{user.organized_event_ids}}"
-          }
         }
       ]
     },
@@ -84,11 +79,6 @@
         {
           "user_condition": {
             "role": "admin"
-          }
-        },
-        {
-          "data.event_id": {
-            "$in": "{{user.organized_event_ids}}"
           }
         }
       ]

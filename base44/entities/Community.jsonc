@@ -83,11 +83,6 @@
           "user_condition": {
             "role": "admin"
           }
-        },
-        {
-          "data.id": {
-            "$in": "{{user.member_of_community_ids}}"
-          }
         }
       ]
     },

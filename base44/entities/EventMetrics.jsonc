@@ -64,13 +64,13 @@
     "read": {
       "$or": [
         {
-          "data.event_id": {
-            "$in": "{{user.organized_event_ids}}"
+          "user_condition": {
+            "role": "admin"
           }
         },
         {
           "user_condition": {
-            "role": "admin"
+            "data.is_organizer": true
           }
         }
       ]

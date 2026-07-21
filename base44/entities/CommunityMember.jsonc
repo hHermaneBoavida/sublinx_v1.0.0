@@ -37,16 +37,7 @@
   ],
   "rls": {
     "create": {
-      "$or": [
-        {
-          "data.user_id": "{{user.id}}"
-        },
-        {
-          "data.community_id": {
-            "$in": "{{user.admin_of_community_ids}}"
-          }
-        }
-      ]
+      "data.user_id": "{{user.id}}"
     },
     "read": {
       "$or": [
@@ -56,11 +47,6 @@
         {
           "user_condition": {
             "role": "admin"
-          }
-        },
-        {
-          "data.community_id": {
-            "$in": "{{user.member_of_community_ids}}"
           }
         }
       ]
@@ -74,11 +60,6 @@
           "user_condition": {
             "role": "admin"
           }
-        },
-        {
-          "data.community_id": {
-            "$in": "{{user.admin_of_community_ids}}"
-          }
         }
       ]
     },
@@ -90,11 +71,6 @@
         {
           "user_condition": {
             "role": "admin"
-          }
-        },
-        {
-          "data.community_id": {
-            "$in": "{{user.admin_of_community_ids}}"
           }
         }
       ]

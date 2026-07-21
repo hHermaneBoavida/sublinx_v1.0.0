@@ -60,10 +60,8 @@
     "create": {
       "$or": [
         {
-          "data.event_id": {
-            "$in": [
-              "{{user.organized_event_ids}}"
-            ]
+          "user_condition": {
+            "data.is_organizer": true
           }
         },
         {
@@ -79,10 +77,8 @@
     "update": {
       "$or": [
         {
-          "data.event_id": {
-            "$in": [
-              "{{user.organized_event_ids}}"
-            ]
+          "user_condition": {
+            "data.is_organizer": true
           }
         },
         {
@@ -95,10 +91,8 @@
     "delete": {
       "$or": [
         {
-          "data.event_id": {
-            "$in": [
-              "{{user.organized_event_ids}}"
-            ]
+          "user_condition": {
+            "data.is_organizer": true
           }
         },
         {
