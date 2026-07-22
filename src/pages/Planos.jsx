@@ -53,7 +53,7 @@ const plans = [
   {
     id: "organizer_elite",
     name: "Organizador Elite",
-    price: 99.90,
+    price: 399.99,
     description: "Para criadores de experiências",
     icon: Crown,
     color: "from-yellow-500 to-orange-600",
