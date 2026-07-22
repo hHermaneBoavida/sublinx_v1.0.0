@@ -106,11 +106,6 @@
         },
         {
           "user_condition": {
-            "data.is_organizer": true
-          }
-        },
-        {
-          "user_condition": {
             "role": "admin"
           }
         }
@@ -119,9 +114,7 @@
     "update": {
       "$or": [
         {
-          "user_condition": {
-            "data.is_organizer": true
-          }
+          "data.user_id": "{{user.id}}"
         },
         {
           "user_condition": {
@@ -133,9 +126,7 @@
     "delete": {
       "$or": [
         {
-          "user_condition": {
-            "data.is_organizer": true
-          }
+          "data.user_id": "{{user.id}}"
         },
         {
           "user_condition": {
