@@ -433,7 +433,8 @@ export default function MapView({
    * Priority: live event (100) > regular event (50) > venue (10).
    * This drives both clustering dominance and Z-index collision resolution.
    */
-  const allMarkers = useMemo(() => {
+  // Event markers — these get clustered by proximity
+  const eventMarkers = useMemo(() => {
     const markers = [];
 
     filteredEvents.forEach(event => {
@@ -451,9 +452,14 @@ export default function MapView({
       });
     });
 
-    visibleVenues.forEach(venue => {
+    return markers;
+  }, [filteredEvents, isEventLive]);
+
+  // Venue markers — always rendered individually (never clustered)
+  const venueMarkers = useMemo(() => {
+    return visibleVenues.map(venue => {
       const config = getCategoryConfig(venue.type);
-      markers.push({
+      return {
         id: venue.id,
         kind: 'venue',
         data: venue,
@@ -463,14 +469,12 @@ export default function MapView({
         color: config.color,
         priority: 10,
         isLive: false,
-      });
+      };
     });
+  }, [visibleVenues]);
 
-    return markers;
-  }, [filteredEvents, visibleVenues, isEventLive]);
-
-  // Cluster all markers (events + venues combined)
-  const allClusters = useMemo(() => clusterMarkers(allMarkers, zoomLevel), [allMarkers, zoomLevel]);
+  // Cluster only events (venues are always individual pins)
+  const eventClusters = useMemo(() => clusterMarkers(eventMarkers, zoomLevel), [eventMarkers, zoomLevel]);
 
   // Labels visible only at high zoom — reduces cognitive load at wide views
   const showLabels = zoomLevel >= 15;
@@ -654,8 +658,8 @@ export default function MapView({
           </Marker>
         )}
 
-        {/* UNIFIED CLUSTERED MARKERS — events + venues combined with Z-index priority */}
-        {allClusters.map((cluster, index) => {
+        {/* CLUSTERED EVENT MARKERS (venues are rendered individually below) */}
+        {eventClusters.map((cluster, index) => {
           if (!cluster?.center) return null;
 
           if (cluster.count > 1) {
@@ -670,14 +674,14 @@ export default function MapView({
               >
                 <Popup>
                   <div className="p-2 min-w-[160px]">
-                    <p className="font-bold text-sm mb-2">{cluster.count} locais nesta área</p>
+                    <p className="font-bold text-sm mb-2">{cluster.count} eventos nesta área</p>
                     {cluster.markers.slice(0, 5).map(m => (
                       <div
                         key={m.id}
                         className="text-xs text-gray-600 py-1 border-b border-gray-100 last:border-0 cursor-pointer hover:text-cyan-600"
-                        onClick={() => m.kind === 'event' ? onPinDetailsClick?.(m.data) : onVenueClick?.(m.data)}
+                        onClick={() => onPinDetailsClick?.(m.data)}
                       >
-                        {m.data.title || m.data.name}
+                        {m.data.title}
                       </div>
                     ))}
                     {cluster.markers.length > 5 && (
@@ -689,46 +693,44 @@ export default function MapView({
             );
           }
 
-          // Single marker — Z-index based on priority (live > event > venue)
+          // Single event marker — Z-index based on priority (live > regular event)
           const marker = cluster.topMarker;
-          const zIndexOffset = marker.priority;
+          const event = marker.data;
+          const live = marker.isLive;
+          return (
+            <Marker
+              key={`event-${event.id || index}`}
+              position={cluster.center}
+              icon={createEventIcon(event, live, showLabels)}
+              zIndexOffset={marker.priority}
+              eventHandlers={{
+                click: () => onPinDetailsClick?.(event)
+              }}
+            >
+              <Popup>
+                <div className="p-2 min-w-[200px]">
+                  <h3 className="font-bold text-sm mb-1">{event.title}</h3>
+                  <p className="text-xs text-gray-500 mb-2">{event.location?.venue_name || 'Local não informado'}</p>
+                  {live && <Badge className="bg-red-100 text-red-700 text-[10px] mb-2">🔴 Ao Vivo</Badge>}
+                  <Button size="sm" onClick={() => onPinDetailsClick?.(event)} className="w-full bg-gray-800 hover:bg-gray-700 text-white text-xs border border-gray-600">
+                    Ver Detalhes
+                  </Button>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
 
-          if (marker.kind === 'event') {
-            const event = marker.data;
-            const live = marker.isLive;
-            return (
-              <Marker
-                key={`event-${event.id || index}`}
-                position={cluster.center}
-                icon={createEventIcon(event, live, showLabels)}
-                zIndexOffset={zIndexOffset}
-                eventHandlers={{
-                  click: () => onPinDetailsClick?.(event)
-                }}
-              >
-                <Popup>
-                  <div className="p-2 min-w-[200px]">
-                    <h3 className="font-bold text-sm mb-1">{event.title}</h3>
-                    <p className="text-xs text-gray-500 mb-2">{event.location?.venue_name || 'Local não informado'}</p>
-                    {live && <Badge className="bg-red-100 text-red-700 text-[10px] mb-2">🔴 Ao Vivo</Badge>}
-                    <Button size="sm" onClick={() => onPinDetailsClick?.(event)} className="w-full bg-gray-800 hover:bg-gray-700 text-white text-xs border border-gray-600">
-                      Ver Detalhes
-                    </Button>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          }
-
-          // Venue marker — category-specific icon
+        {/* INDIVIDUAL VENUE MARKERS — each at its own location/address, never clustered */}
+        {venueMarkers.map((marker, index) => {
           const venue = marker.data;
           const config = getCategoryConfig(venue.type);
           return (
             <Marker
               key={`venue-${venue.id || index}`}
-              position={cluster.center}
+              position={[marker.lat, marker.lng]}
               icon={createVenueIcon(venue, showLabels)}
-              zIndexOffset={zIndexOffset}
+              zIndexOffset={marker.priority}
               eventHandlers={{
                 click: () => onVenueClick?.(venue)
               }}
@@ -737,10 +739,12 @@ export default function MapView({
                 <div className="p-2 min-w-[180px]">
                   <h3 className="font-bold text-sm mb-1">{venue.name}</h3>
                   <p className="text-xs text-gray-500 mb-2">{config.label}</p>
+                  {venue.location?.address && (
+                    <p className="text-xs text-gray-500 mb-2">📍 {venue.location.address}{venue.location?.city ? `, ${venue.location.city}` : ''}</p>
+                  )}
                   {venue.rating > 0 && (
                     <Badge className="bg-gray-100 text-gray-700 text-[10px] mr-1">★ {venue.rating}</Badge>
                   )}
-                  <Badge className="bg-gray-100 text-gray-700 text-[10px]">Sem evento agora</Badge>
                 </div>
               </Popup>
             </Marker>
@@ -749,7 +753,7 @@ export default function MapView({
       </MapContainer>
 
       {/* Empty state */}
-      {filteredEvents.length === 0 && visibleVenues.length === 0 && (
+      {eventMarkers.length === 0 && venueMarkers.length === 0 && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[1000] pointer-events-none">
           <div className="text-center bg-gray-900/80 backdrop-blur-xl rounded-2xl p-8 border border-gray-700">
             <Search className="w-16 h-16 text-gray-500 mx-auto mb-4" />
