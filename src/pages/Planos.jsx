@@ -209,7 +209,7 @@ export default function Planos() {
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6 items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6 items-start">
         {plans.map((plan) => {
           const Icon = plan.icon;
           const isActive = currentSubscription?.plan_type === plan.id;
@@ -217,7 +217,7 @@ export default function Planos() {
           return (
             <Card
               key={plan.id}
-              className={`relative overflow-hidden transition-all duration-300 hover:scale-105 flex flex-col h-full ${
+              className={`relative overflow-hidden transition-all duration-300 hover:scale-[1.02] flex flex-col ${
                 plan.popular
                   ? "border-2 border-cyan-500 shadow-xl shadow-cyan-500/25"
                   : isActive
@@ -226,29 +226,29 @@ export default function Planos() {
               } ${isActive ? "bg-gradient-to-b from-green-900/20 to-black" : "bg-gradient-to-b from-gray-900/50 to-black"}`}
             >
               {plan.popular && (
-                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-center py-2 text-sm font-semibold">
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-center py-1 text-[10px] sm:text-xs font-semibold">
                   🔥 MAIS POPULAR
                 </div>
               )}
               
               {isActive && (
-                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-center py-2 text-sm font-semibold">
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-center py-1 text-[10px] sm:text-xs font-semibold">
                   ✅ PLANO ATIVO
                 </div>
               )}
 
-              <CardHeader className={`text-center px-4 ${plan.popular || isActive ? "pt-8 sm:pt-9" : "pt-4 sm:pt-5"}`}>
-                <div className={`w-9 h-9 sm:w-11 sm:h-11 mx-auto mb-2 sm:mb-3 bg-gradient-to-r ${plan.color} rounded-full flex items-center justify-center`}>
-                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <CardHeader className={`text-center px-3 ${plan.popular || isActive ? "pt-7 sm:pt-8" : "pt-3 sm:pt-4"}`}>
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-1.5 sm:mb-2 bg-gradient-to-r ${plan.color} rounded-full flex items-center justify-center`}>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 
-                <CardTitle className="text-base sm:text-lg font-bold text-white mb-1">
+                <CardTitle className="text-sm sm:text-base font-bold text-white mb-0.5">
                   {plan.name}
                 </CardTitle>
                 
-                <p className="text-xs text-gray-400 mb-2 sm:mb-3">{plan.description}</p>
+                <p className="text-[11px] text-gray-400 mb-1.5 sm:mb-2">{plan.description}</p>
                 
-                <div className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-white to-gray-300 bg-clip-text">
+                <div className="text-lg sm:text-xl font-bold text-transparent bg-gradient-to-r from-white to-gray-300 bg-clip-text">
                   {plan.price === 0 ? (
                     "Grátis"
                   ) : (
@@ -260,12 +260,12 @@ export default function Planos() {
                 </div>
               </CardHeader>
 
-              <CardContent className="flex flex-col h-full px-4 pb-4">
-                <ul className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4 flex-grow">
+              <CardContent className="flex flex-col px-3 pb-3 pt-0">
+                <ul className="space-y-1 sm:space-y-1.5 mb-2.5 sm:mb-3">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start text-gray-300 text-xs sm:text-sm">
-                      <Check className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 mt-0.5 bg-gradient-to-r ${plan.color} rounded-full p-0.5 text-white shrink-0`} />
-                      <span className="flex-1 min-w-0 break-words">{feature}</span>
+                    <li key={index} className="flex items-start text-gray-300 text-[11px] sm:text-xs">
+                      <Check className={`w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1.5 mt-0.5 bg-gradient-to-r ${plan.color} rounded-full p-0.5 text-white shrink-0`} />
+                      <span className="flex-1 min-w-0 break-words leading-tight">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -273,7 +273,7 @@ export default function Planos() {
                 <Button
                   onClick={() => handleSubscribe(plan.id)}
                   disabled={isActive || processing}
-                  className={`w-full h-9 sm:h-10 font-semibold mt-auto text-xs sm:text-sm ${
+                  className={`w-full h-8 sm:h-9 font-semibold text-[11px] sm:text-xs ${
                     isActive
                       ? "bg-green-600 text-white cursor-not-allowed"
                       : plan.popular
