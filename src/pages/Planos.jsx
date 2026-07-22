@@ -98,14 +98,7 @@ export default function Planos() {
 
     try {
       setProcessing(true);
-      const res = await fetch('/api/base44/functions/manageSubscription/invoke', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan_id: planId })
-      });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || 'Erro ao processar assinatura');
+      const data = await base44.functions.invoke('manageSubscription', { plan_id: planId });
 
       queryClient.invalidateQueries(['currentUser']);
       queryClient.invalidateQueries(['subscription']);
