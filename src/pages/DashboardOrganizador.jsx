@@ -22,6 +22,7 @@ import { format, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { CACHE_CONFIG } from "../components/shared/optimizations";
+import RegionalGrowthPanel from "../components/dashboard/RegionalGrowthPanel";
 
 const COLORS = ['#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444'];
 
@@ -375,10 +376,11 @@ export default function DashboardOrganizador() {
 
         {/* Charts */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-900/80 border border-gray-700">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-900/80 border border-gray-700">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="sales">Vendas</TabsTrigger>
             <TabsTrigger value="insights">Insights</TabsTrigger>
+            <TabsTrigger value="regioes">Regiões</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4 mt-4">
@@ -494,6 +496,10 @@ export default function DashboardOrganizador() {
                 </CardTitle>
               </CardHeader>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="regioes" className="space-y-4 mt-4">
+            <RegionalGrowthPanel />
           </TabsContent>
         </Tabs>
       </div>

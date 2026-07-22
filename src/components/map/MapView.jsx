@@ -226,6 +226,49 @@ function createClusterIcon(count, color = '#06b6d4') {
 }
 
 /**
+ * SPIDERFY — spreads overlapping venue pins in a small circle so each stays clickable.
+ * Venues at the same or near-identical coordinates get a tiny angular offset.
+ */
+function spreadOverlappingMarkers(markers, threshold = 0.0004) {
+  const groups = [];
+  const used = new Set();
+
+  markers.forEach((m, i) => {
+    if (used.has(i)) return;
+    const group = [m];
+    used.add(i);
+    markers.forEach((other, j) => {
+      if (used.has(j)) return;
+      const dlat = Math.abs(m.lat - other.lat);
+      const dlng = Math.abs(m.lng - other.lng);
+      if (dlat < threshold && dlng < threshold) {
+        group.push(other);
+        used.add(j);
+      }
+    });
+    groups.push(group);
+  });
+
+  const result = [];
+  groups.forEach((group) => {
+    if (group.length === 1) {
+      result.push(group[0]);
+    } else {
+      const spread = 0.0007;
+      group.forEach((m, idx) => {
+        const angle = (2 * Math.PI * idx) / group.length - Math.PI / 2;
+        result.push({
+          ...m,
+          lat: m.lat + Math.cos(angle) * spread,
+          lng: m.lng + Math.sin(angle) * spread,
+        });
+      });
+    }
+  });
+  return result;
+}
+
+/**
  * UNIFIED CLUSTERING — groups both events and venues by pixel proximity.
  * Adaptive threshold shrinks as zoom increases so clusters disperse naturally.
  */
@@ -444,9 +487,11 @@ export default function MapView({
     return markers;
   }, [filteredEvents, isEventLive]);
 
-  // Venue markers — always rendered individually (never clustered)
+  // Venue markers — always rendered individually (never clustered).
+  // Spiderfy: nearby venues (e.g. Sacomã/Heliópolis neighbors) get a small
+  // angular offset so overlapping pins remain individually clickable.
   const venueMarkers = useMemo(() => {
-    return visibleVenues.map(venue => {
+    const base = visibleVenues.map(venue => {
       const config = getCategoryConfig(venue.type);
       return {
         id: venue.id,
@@ -460,6 +505,7 @@ export default function MapView({
         isLive: false,
       };
     });
+    return spreadOverlappingMarkers(base);
   }, [visibleVenues]);
 
   // Cluster only events (venues are always individual pins)
