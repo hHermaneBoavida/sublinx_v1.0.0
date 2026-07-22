@@ -60,37 +60,77 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
   const handleFileChange = (e) => {
     if (e.target.files.length > 0) {
       const selectedFile = e.target.files[0];
-      
+
       if (!selectedFile.type.startsWith('video/')) {
-        alert("❌ Por favor, selecione um arquivo de vídeo.");
+        alert("Por favor, selecione um arquivo de vídeo.");
         return;
       }
-      
-      if (selectedFile.size > 100 * 1024 * 1024) {
-        alert("❌ O vídeo é muito grande. Tamanho máximo: 100MB");
+
+      if (selectedFile.size > 50 * 1024 * 1024) {
+        alert("O vídeo é muito grande. Tamanho máximo: 50MB");
         return;
       }
-      
+
       setFile(selectedFile);
     }
   };
 
+  const generateThumbnail = (videoFile) => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+      const url = URL.createObjectURL(videoFile);
+      video.src = url;
+
+      video.onloadeddata = () => {
+        video.currentTime = Math.min(1, video.duration / 3);
+      };
+
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 360;
+        canvas.height = 640;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          resolve(blob);
+        }, 'image/jpeg', 0.7);
+      };
+
+      video.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+    });
+  };
+
   const handleUpload = async () => {
     if (!file || !user) {
-      alert("❌ Selecione um vídeo para publicar.");
+      alert("Selecione um vídeo para publicar.");
       return;
     }
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
+      // Upload video and thumbnail in parallel
+      const thumbnailBlob = await generateThumbnail(file);
+      const [videoUpload, thumbUpload] = await Promise.all([
+        base44.integrations.Core.UploadFile({ file }),
+        thumbnailBlob ? base44.integrations.Core.UploadFile({ file: thumbnailBlob }) : Promise.resolve(null)
+      ]);
+
+      const file_url = videoUpload.file_url;
+      const thumbnail_url = thumbUpload?.file_url || file_url;
+
       await base44.entities.Reel.create({
         event_id: selectedEventId || "",
         user_id: user.id,
         video_url: file_url,
         description: description || "",
-        thumbnail_url: file_url,
+        thumbnail_url,
         likes_count: 0,
         comments_count: 0,
         view_count: 0,
@@ -161,7 +201,7 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
                   <>
                     <UploadCloud className="w-8 h-8 sm:w-10 sm:h-10 text-gray-500 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">Clique para enviar seu vídeo</p>
-                    <p className="text-xs text-gray-500 mt-1">MP4, MOV (máx. 100MB)</p>
+                    <p className="text-xs text-gray-500 mt-1">MP4, MOV (máx. 50MB)</p>
                   </>
                 )}
                 <input 
