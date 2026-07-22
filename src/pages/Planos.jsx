@@ -181,7 +181,7 @@ export default function Planos() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 pb-32">
       {/* Back Button */}
       <div className="mb-4 sm:mb-6">
         <button
@@ -237,7 +237,7 @@ export default function Planos() {
                 </div>
               )}
 
-              <CardHeader className={`text-center ${plan.popular || isActive ? "pt-10 sm:pt-12" : "pt-6 sm:pt-8"}`}>
+              <CardHeader className={`text-center px-5 ${plan.popular || isActive ? "pt-10 sm:pt-12" : "pt-6 sm:pt-8"}`}>
                 <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r ${plan.color} rounded-full flex items-center justify-center`}>
                   <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
@@ -260,12 +260,12 @@ export default function Planos() {
                 </div>
               </CardHeader>
 
-              <CardContent className="flex flex-col h-full">
+              <CardContent className="flex flex-col h-full px-5 pb-5">
                 <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6 flex-grow">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex-nowrap flex items-center text-gray-300 text-sm sm:text-base">
-                      <Check className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 bg-gradient-to-r ${plan.color} rounded-full p-0.5 sm:p-1 text-white flex-shrink-0`} />
-                      <span className="break-words">{feature}</span>
+                    <li key={index} className="flex items-start text-gray-300 text-sm sm:text-base">
+                      <Check className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 mt-0.5 bg-gradient-to-r ${plan.color} rounded-full p-0.5 sm:p-1 text-white shrink-0`} />
+                      <span className="flex-1 min-w-0 break-words">{feature}</span>
                     </li>
                   ))}
                 </ul>
