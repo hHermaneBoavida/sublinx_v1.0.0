@@ -37,10 +37,14 @@ export default function ValidarIngresso() {
 
   const checkInMutation = useMutation({
     mutationFn: async ({ ticketId }) => {
-      return await base44.entities.Ticket.update(ticketId, {
-        status: 'used',
-        checked_in_at: new Date().toISOString()
+      const res = await fetch('/api/base44/functions/checkInTicket/invoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket_id: ticketId })
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao realizar check-in');
+      return data.ticket;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['validatedTickets']);

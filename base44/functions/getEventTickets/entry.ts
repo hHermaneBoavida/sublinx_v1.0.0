@@ -25,11 +25,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'event_id é obrigatório' }, { status: 400 });
     }
 
-    // Buscar evento via asServiceRole e validar propriedade
-    const events = await base44.asServiceRole.entities.Event.filter({ id: event_id });
-    const event = events[0];
-
-    if (!event) {
+    // Buscar evento via asServiceRole (bypass RLS — validação de propriedade abaixo)
+    let event;
+    try {
+      event = await base44.asServiceRole.entities.Event.get(event_id);
+    } catch {
       return Response.json({ error: 'Evento não encontrado' }, { status: 404 });
     }
 
@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Acesso negado — você não é o organizador deste evento' }, { status: 403 });
     }
 
-    // Retornar tickets do evento
+    // Retornar tickets do evento via asServiceRole (bypass RLS — acesso validado acima)
     const tickets = await base44.asServiceRole.entities.Ticket.filter({ event_id }, '-created_date', 1000);
 
     return Response.json({

@@ -27,13 +27,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'ticket_id ou qr_code_data é obrigatório' }, { status: 400 });
     }
 
-    // Buscar ticket via asServiceRole
+    // Buscar ticket via asServiceRole (bypass RLS — validação de propriedade abaixo)
     let ticket;
-    if (qr_code_data) {
-      const tickets = await base44.asServiceRole.entities.Ticket.filter({ qr_code_data });
-      ticket = tickets[0];
-    } else {
-      ticket = await base44.asServiceRole.entities.Ticket.get(ticket_id);
+    try {
+      if (qr_code_data) {
+        const tickets = await base44.asServiceRole.entities.Ticket.filter({ qr_code_data });
+        ticket = tickets[0];
+      } else {
+        ticket = await base44.asServiceRole.entities.Ticket.get(ticket_id);
+      }
+    } catch {
+      // Ticket não encontrado — retorna 404 abaixo
     }
 
     if (!ticket) {
@@ -41,10 +45,10 @@ Deno.serve(async (req) => {
     }
 
     // Buscar evento e validar propriedade
-    const events = await base44.asServiceRole.entities.Event.filter({ id: ticket.event_id });
-    const event = events[0];
-
-    if (!event) {
+    let event;
+    try {
+      event = await base44.asServiceRole.entities.Event.get(ticket.event_id);
+    } catch {
       return Response.json({ error: 'Evento não encontrado' }, { status: 404 });
     }
 

@@ -67,7 +67,14 @@ export default function GerenciarIngressos() {
     queryKey: ['eventTickets', eventId],
     queryFn: async () => {
       if (!eventId) return [];
-      return await base44.entities.Ticket.filter({ event_id: eventId });
+      const res = await fetch('/api/base44/functions/getEventTickets/invoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: eventId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao carregar ingressos');
+      return data.tickets || [];
     },
     enabled: !!eventId,
   });

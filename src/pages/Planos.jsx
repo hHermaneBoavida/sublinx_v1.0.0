@@ -106,42 +106,29 @@ export default function Planos() {
 
   const handleSubscribe = async (planId) => {
     const plan = plans.find(p => p.id === planId);
+    setSelectedPlan(plan);
     
     if (plan.price > 0) {
-      setSelectedPlan(plan);
       setShowPaymentModal(true);
       return;
     }
     
-    // Plano gratuito
+    // Plano gratuito — processado via backend seguro (manageSubscription)
     try {
       setProcessing(true);
-      
-      if (currentSubscription) {
-        await base44.entities.Subscription.update(currentSubscription.id, { status: "cancelled" });
-      }
-      
-      await base44.entities.Subscription.create({
-        user_id: user.id,
-        plan_type: planId,
-        price: plan.price,
-        start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        features: plan.features
+      const res = await fetch('/api/base44/functions/manageSubscription/invoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan_id: planId })
       });
+      const data = await res.json();
       
-      await base44.auth.updateMe({
-        subscription_type: planId,
-        is_pro_member: false,
-        is_organizer: false,
-        secret_mode_unlocked: false,
-        verified_organizer: false,
-      });
+      if (!res.ok) throw new Error(data.error || 'Erro ao processar assinatura');
       
       queryClient.invalidateQueries(['currentUser']);
       queryClient.invalidateQueries(['subscription']);
       
-      alert(`Plano ${plan.name} ativado com sucesso!`);
+      alert(data.message || `Plano ${plan.name} ativado com sucesso!`);
     } catch (error) {
       console.error("Erro ao processar assinatura:", error);
       alert("Erro ao processar assinatura. Tente novamente.");
@@ -156,46 +143,26 @@ export default function Planos() {
     try {
       setProcessing(true);
       
-      console.log(`Processing payment for ${selectedPlan.name} via ${paymentMethod}...`);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      if (currentSubscription) {
-        await base44.entities.Subscription.update(currentSubscription.id, { status: "cancelled" });
-      }
-      
-      await base44.entities.Subscription.create({
-        user_id: user.id,
-        plan_type: selectedPlan.id,
-        price: selectedPlan.price,
-        start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        features: selectedPlan.features
+      // Processado via backend seguro — NENHUM privilégio é concedido pelo frontend.
+      // O backend decide se o pagamento pode ser confirmado com base no gateway configurado.
+      const res = await fetch('/api/base44/functions/manageSubscription/invoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan_id: selectedPlan.id })
       });
-      
-      const userUpdates = {
-        subscription_type: selectedPlan.id
-      };
-
-      if (selectedPlan.id === "underground_pro") {
-        userUpdates.is_pro_member = true;
-        userUpdates.secret_mode_unlocked = true;
-        userUpdates.is_organizer = false;
-        userUpdates.verified_organizer = false;
-      } else if (selectedPlan.id === "organizer_elite") {
-        userUpdates.is_organizer = true;
-        userUpdates.is_pro_member = true;
-        userUpdates.secret_mode_unlocked = true;
-        userUpdates.verified_organizer = true;
-      }
-      
-      await base44.auth.updateMe(userUpdates);
+      const data = await res.json();
       
       queryClient.invalidateQueries(['currentUser']);
       queryClient.invalidateQueries(['subscription']);
       
       setShowPaymentModal(false);
       setSelectedPlan(null);
-      alert(`Pagamento confirmado! Plano ${selectedPlan.name} ativado com sucesso!`);
+      
+      if (data.status === 'pending_payment') {
+        alert('⚠️ Pagamento pendente. A integração de pagamento será ativada em breve. Nenhum privilégio foi concedido.');
+      } else {
+        alert(data.message || 'Assinatura processada com sucesso!');
+      }
       
     } catch (error) {
       console.error("Erro no pagamento:", error);

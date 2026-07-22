@@ -362,8 +362,8 @@ export default function CriarEvento() {
         </div>
 
         {/* Progress Stepper */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between">
+        <div className="mb-12 overflow-x-auto pb-2 -mx-4 px-4">
+          <div className="flex items-center justify-between min-w-[280px] sm:min-w-0">
             {STEPS.map((step, index) => {
               const Icon = step.icon;
               const isCompleted = currentStep > step.id;
@@ -382,7 +382,7 @@ export default function CriarEvento() {
                             ? '#06b6d4' 
                             : '#374151'
                       }}
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${
+                      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mb-2 ${
                         isCurrent ? 'ring-4 ring-cyan-500/30' : ''
                       }`}
                     >
@@ -392,7 +392,7 @@ export default function CriarEvento() {
                         <Icon className={`w-6 h-6 ${isCurrent ? 'text-white' : 'text-gray-500'}`} />
                       )}
                     </motion.div>
-                    <span className={`text-xs font-medium ${
+                    <span className={`text-[10px] sm:text-xs font-medium ${
                       isCurrent ? 'text-cyan-400' : isCompleted ? 'text-green-400' : 'text-gray-500'
                     }`}>
                       {step.name}
@@ -400,7 +400,7 @@ export default function CriarEvento() {
                   </div>
 
                   {index < STEPS.length - 1 && (
-                    <div className="flex-1 h-0.5 mx-2 bg-gray-700 relative">
+                    <div className="flex-1 h-0.5 mx-1 sm:mx-2 bg-gray-700 relative">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: isCompleted ? '100%' : '0%' }}

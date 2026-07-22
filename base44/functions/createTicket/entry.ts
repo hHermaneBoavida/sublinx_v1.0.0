@@ -20,9 +20,11 @@ Deno.serve(async (req) => {
     const qty = Math.max(1, Math.min(10, parseInt(quantity) || 1));
 
     // Buscar o evento para validar ticket type e calcular preço
-    const events = await base44.entities.Event.list();
-    const event = events.find(e => e.id === event_id);
-    if (!event) {
+    // Buscar evento (user context respeita RLS — eventos publicados são visíveis)
+    let event;
+    try {
+      event = await base44.entities.Event.get(event_id);
+    } catch {
       return Response.json({ error: 'Evento não encontrado' }, { status: 404 });
     }
 
