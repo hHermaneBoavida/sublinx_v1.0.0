@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Mail, ArrowLeft, Loader2 } from "lucide-react";
-import AuthLayout from "@/components/AuthLayout";
+import { Mail, ArrowLeft } from "lucide-react";
+import AuthBranding from "@/components/auth/AuthBranding";
+import {
+  AuthContainer,
+  AuthPrimaryButton,
+  AuthInput,
+  AuthFooter,
+} from "@/components/auth/AuthButtons";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -26,51 +29,49 @@ export default function ForgotPassword() {
   };
 
   return (
-    <AuthLayout
-      icon={Mail}
-      title="Reset password"
-      subtitle="We'll send you a link to reset it"
-      footer={
-        <Link to="/login" className="text-primary font-medium hover:underline">
-          <ArrowLeft className="w-3 h-3 inline mr-1" />Back to log in
-        </Link>
-      }
-    >
-      {sent ? (
-        <p className="text-sm text-foreground text-center">
-          If an account exists with that email, you'll receive a password reset link shortly.
-        </p>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-              <Input
-                id="email"
+    <AuthContainer>
+      <AuthBranding subtitle="Recuperar senha" />
+
+      <div className="w-full max-w-sm space-y-5">
+        {sent ? (
+          <p className="text-sm text-gray-300 text-center">
+            Se existir uma conta com esse email, você receberá um link de recuperação em breve.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-gray-500 text-center">
+              Enviaremos um link para redefinir sua senha
+            </p>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <AuthInput
                 type="email"
+                icon={Mail}
                 autoComplete="email"
                 autoFocus
-                placeholder="you@example.com"
+                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-12"
                 required
               />
-            </div>
-          </div>
-          <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              "Send reset link"
-            )}
-          </Button>
-        </form>
-      )}
-    </AuthLayout>
+              <AuthPrimaryButton type="submit" loading={loading}>
+                Enviar link
+              </AuthPrimaryButton>
+            </form>
+          </>
+        )}
+
+        <div className="text-center pt-2">
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Voltar para login
+          </Link>
+        </div>
+      </div>
+
+      <AuthFooter>SUBLINX © 2026</AuthFooter>
+    </AuthContainer>
   );
 }

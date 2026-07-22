@@ -1,21 +1,34 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
-import { toast } from "@/components/ui/use-toast";
+import AuthBranding from "@/components/auth/AuthBranding";
+import {
+  AuthContainer,
+  AuthPrimaryButton,
+  AuthSecondaryButton,
+  AuthInput,
+  AuthFooter,
+  AuthError,
+} from "@/components/auth/AuthButtons";
+import { useToast } from "@/components/ui/use-toast";
+
+const AppleLogo = ({ className }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M17.05 12.04c-.03-2.93 2.39-4.34 2.5-4.41-1.36-1.99-3.48-2.26-4.23-2.29-1.8-.18-3.51 1.06-4.43 1.06-.92 0-2.32-1.04-3.82-1.01-1.96.03-3.78 1.14-4.79 2.89-2.05 3.56-.52 8.81 1.47 11.69.98 1.41 2.14 2.99 3.65 2.93 1.47-.06 2.02-.95 3.8-.95s2.28.95 3.82.92c1.58-.03 2.58-1.43 3.54-2.85 1.12-1.63 1.58-3.21 1.6-3.29-.03-.01-3.07-1.18-3.11-4.69zM14.25 3.51c.81-.98 1.35-2.34 1.21-3.69-1.16.05-2.57.77-3.41 1.75-.75.87-1.4 2.26-1.23 3.59 1.3.1 2.62-.66 3.43-1.65z" />
+  </svg>
+);
 
 export default function Register() {
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
 
@@ -23,7 +36,7 @@ export default function Register() {
     e.preventDefault();
     setError("");
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("As senhas não coincidem");
       return;
     }
     setLoading(true);
@@ -31,7 +44,7 @@ export default function Register() {
       await base44.auth.register({ email, password });
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(err.message || "Falha no cadastro");
     } finally {
       setLoading(false);
     }
@@ -47,7 +60,7 @@ export default function Register() {
       }
       window.location.href = "/";
     } catch (err) {
-      setError(err.message || "Invalid verification code");
+      setError(err.message || "Código inválido");
     } finally {
       setLoading(false);
     }
@@ -57,172 +70,135 @@ export default function Register() {
     setError("");
     try {
       await base44.auth.resendOtp(email);
-      toast({
-        title: "Code sent",
-        description: "Check your email for the new code.",
-      });
+      toast({ title: "Código enviado", description: "Verifique seu email." });
     } catch (err) {
-      setError(err.message || "Failed to resend code");
+      setError(err.message || "Erro ao reenviar código");
     }
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/");
-  };
+  const handleGoogle = () => base44.auth.loginWithProvider("google", "/");
+  const handleApple = () => base44.auth.loginWithProvider("apple", "/");
 
   if (showOtp) {
     return (
-      <AuthLayout
-        icon={Mail}
-        title="Verify your email"
-        subtitle={`We sent a code to ${email}`}
-      >
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-            {error}
+      <AuthContainer>
+        <AuthBranding subtitle={`Enviamos um código para ${email}`} />
+
+        <div className="w-full max-w-sm space-y-5">
+          <AuthError message={error} />
+
+          <div className="flex justify-center">
+            <InputOTP
+              maxLength={6}
+              value={otpCode}
+              onChange={setOtpCode}
+              autoFocus
+              autoComplete="one-time-code"
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
           </div>
-        )}
-        <div className="flex justify-center mb-6">
-          <InputOTP
-            maxLength={6}
-            value={otpCode}
-            onChange={setOtpCode}
-            autoFocus
-            autoComplete="one-time-code"
-          >
-            <InputOTPGroup>
-              <InputOTPSlot index={0} />
-              <InputOTPSlot index={1} />
-              <InputOTPSlot index={2} />
-              <InputOTPSlot index={3} />
-              <InputOTPSlot index={4} />
-              <InputOTPSlot index={5} />
-            </InputOTPGroup>
-          </InputOTP>
+
+          <AuthPrimaryButton onClick={handleVerify} loading={loading} disabled={otpCode.length < 6}>
+            Verificar
+          </AuthPrimaryButton>
+
+          <div className="text-center text-sm text-gray-500">
+            Não recebeu o código?{" "}
+            <button onClick={handleResend} className="text-gray-300 hover:text-white font-medium">
+              Reenviar
+            </button>
+          </div>
         </div>
-        <Button
-          className="w-full h-12 font-medium"
-          onClick={handleVerify}
-          disabled={loading || otpCode.length < 6}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Verifying...
-            </>
-          ) : (
-            "Verify"
-          )}
-        </Button>
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          Didn't receive the code?{" "}
-          <button onClick={handleResend} className="text-primary font-medium hover:underline">
-            Resend
-          </button>
-        </p>
-      </AuthLayout>
+
+        <AuthFooter>SUBLINX © 2026</AuthFooter>
+      </AuthContainer>
     );
   }
 
   return (
-    <AuthLayout
-      icon={UserPlus}
-      title="Create your account"
-      subtitle="Sign up to get started"
-      footer={
-        <>
-          Already have an account?{" "}
-          <Link to="/login" className="text-primary font-medium hover:underline">
-            Log in
-          </Link>
-        </>
-      }
-    >
-      <Button
-        variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6"
-        onClick={handleGoogle}
-      >
-        <GoogleIcon className="w-5 h-5 mr-2" />
-        Continue with Google
-      </Button>
+    <AuthContainer>
+      <AuthBranding />
 
-      <div className="relative mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-3 text-muted-foreground">or</span>
-        </div>
+      <div className="w-full max-w-sm">
+        {showForm ? (
+          <div className="space-y-5">
+            <button
+              onClick={() => setShowForm(false)}
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Voltar</span>
+            </button>
+
+            <AuthError message={error} />
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <AuthInput
+                type="email"
+                icon={Mail}
+                autoComplete="email"
+                autoFocus
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <AuthInput
+                type="password"
+                icon={Lock}
+                autoComplete="new-password"
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <AuthInput
+                type="password"
+                icon={Lock}
+                autoComplete="new-password"
+                placeholder="Confirmar senha"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+              <AuthPrimaryButton type="submit" loading={loading}>
+                Criar conta
+              </AuthPrimaryButton>
+            </form>
+
+            <div className="text-center text-sm text-gray-500 pt-2">
+              Já tem conta?{" "}
+              <Link to="/login" className="text-gray-300 hover:text-white transition-colors font-medium">
+                Entrar
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <AuthPrimaryButton onClick={() => setShowForm(true)}>
+              Criar conta com E-mail
+            </AuthPrimaryButton>
+            <AuthSecondaryButton icon={GoogleIcon} onClick={handleGoogle}>
+              Continuar com Google
+            </AuthSecondaryButton>
+            <AuthSecondaryButton icon={AppleLogo} onClick={handleApple}>
+              Continuar com Apple
+            </AuthSecondaryButton>
+          </div>
+        )}
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 h-12"
-              required
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 h-12"
-              required
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="confirm">Confirm Password</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="confirm"
-              type="password"
-              autoComplete="new-password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="pl-10 h-12"
-              required
-            />
-          </div>
-        </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Creating account...
-            </>
-          ) : (
-            "Create account"
-          )}
-        </Button>
-      </form>
-    </AuthLayout>
+      <AuthFooter>
+        Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade
+      </AuthFooter>
+    </AuthContainer>
   );
 }
