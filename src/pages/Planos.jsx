@@ -3,19 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Crown, Zap, Star, CreditCard, Loader2, ArrowLeft } from "lucide-react";
+import { Check, Crown, Zap, Star, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
 
 const plans = [
   {
@@ -71,8 +62,6 @@ const plans = [
 ];
 
 export default function Planos() {
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
   const [processing, setProcessing] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -106,14 +95,7 @@ export default function Planos() {
 
   const handleSubscribe = async (planId) => {
     const plan = plans.find(p => p.id === planId);
-    setSelectedPlan(plan);
-    
-    if (plan.price > 0) {
-      setShowPaymentModal(true);
-      return;
-    }
-    
-    // Plano gratuito — processado via backend seguro (manageSubscription)
+
     try {
       setProcessing(true);
       const res = await fetch('/api/base44/functions/manageSubscription/invoke', {
@@ -122,51 +104,16 @@ export default function Planos() {
         body: JSON.stringify({ plan_id: planId })
       });
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || 'Erro ao processar assinatura');
-      
+
       queryClient.invalidateQueries(['currentUser']);
       queryClient.invalidateQueries(['subscription']);
-      
+
       alert(data.message || `Plano ${plan.name} ativado com sucesso!`);
     } catch (error) {
       console.error("Erro ao processar assinatura:", error);
       alert("Erro ao processar assinatura. Tente novamente.");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handlePayment = async (paymentMethod) => {
-    if (!selectedPlan || !user) return;
-    
-    try {
-      setProcessing(true);
-      
-      // Processado via backend seguro — NENHUM privilégio é concedido pelo frontend.
-      // O backend decide se o pagamento pode ser confirmado com base no gateway configurado.
-      const res = await fetch('/api/base44/functions/manageSubscription/invoke', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan_id: selectedPlan.id })
-      });
-      const data = await res.json();
-      
-      queryClient.invalidateQueries(['currentUser']);
-      queryClient.invalidateQueries(['subscription']);
-      
-      setShowPaymentModal(false);
-      setSelectedPlan(null);
-      
-      if (data.status === 'pending_payment') {
-        alert('⚠️ Pagamento pendente. A integração de pagamento será ativada em breve. Nenhum privilégio foi concedido.');
-      } else {
-        alert(data.message || 'Assinatura processada com sucesso!');
-      }
-      
-    } catch (error) {
-      console.error("Erro no pagamento:", error);
-      alert("Erro ao processar pagamento. Tente novamente.");
     } finally {
       setProcessing(false);
     }
@@ -253,8 +200,8 @@ export default function Planos() {
                     "Grátis"
                   ) : (
                     <>
-                      R$ {plan.price.toFixed(2).replace('.', ',')}
-                      <span className="text-xs sm:text-sm text-gray-400">/mês</span>
+                      30 dias
+                      <span className="text-xs sm:text-sm text-gray-400"> grátis</span>
                     </>
                   )}
                 </div>
@@ -281,92 +228,13 @@ export default function Planos() {
                       : "bg-gray-800 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
                   }`}
                 >
-                  {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : isActive ? "Plano Ativo" : "Assinar Agora"}
+                  {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : isActive ? "Plano Ativo" : plan.price === 0 ? "Ativar" : "Iniciar Trial"}
                 </Button>
               </CardContent>
             </Card>
           );
         })}
       </div>
-
-      {/* Payment Modal */}
-      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent className="bg-gray-900 border-purple-500 text-white max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl">
-              Finalizar Assinatura
-            </DialogTitle>
-            <DialogDescription className="text-center text-gray-400">
-              {selectedPlan?.name} - R$ {selectedPlan?.price?.toFixed(2).replace('.', ',')}/mês
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <Button
-              onClick={() => handlePayment('pix')}
-              disabled={processing}
-              className="w-full h-14 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
-            >
-              {processing ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : null}
-              <div className="flex items-center justify-center gap-3">
-                <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-                  <span className="text-green-600 font-bold text-sm">PIX</span>
-                </div>
-                Pagar com PIX
-              </div>
-            </Button>
-
-            <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-600">
-              <h4 className="text-sm font-semibold text-cyan-400 mb-2">Chave PIX:</h4>
-              <div className="flex items-center justify-between bg-gray-700 rounded px-3 py-2">
-                <span className="text-sm font-mono">a04fdc2f-152d-40a0-b171-e10d494c4bbd</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    navigator.clipboard.writeText('a04fdc2f-152d-40a0-b171-e10d494c4bbd');
-                    alert('Chave PIX copiada!');
-                  }}
-                  className="text-cyan-400 hover:text-cyan-300"
-                >
-                  Copiar
-                </Button>
-              </div>
-            </div>
-
-            <Button
-              onClick={() => handlePayment('card')}
-              disabled={processing}
-              className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
-            >
-              {processing ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <CreditCard className="w-6 h-6 mr-2" />}
-              Cartão de Crédito
-            </Button>
-
-            <Separator className="bg-gray-700" />
-
-            <div className="text-center">
-              <p className="text-xs text-gray-400">
-                Pagamento seguro e criptografado
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Cancele a qualquer momento
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowPaymentModal(false)}
-              disabled={processing}
-              className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
-            >
-              Cancelar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* FAQ Section */}
       <div className="bg-gray-900/50 rounded-xl border border-gray-700 p-3 sm:p-5">
@@ -397,7 +265,7 @@ export default function Planos() {
           <div>
             <h3 className="font-semibold text-cyan-400 mb-2">Há período de teste gratuito?</h3>
             <p className="text-gray-300 text-sm">
-              Sim! Todos os planos pagos incluem 7 dias gratuitos para você testar todas as funcionalidades.
+              Sim! Todos os planos pagos oferecem 30 dias gratuitos para você testar todas as funcionalidades. O plano gratuito é permanente.
             </p>
           </div>
         </div>

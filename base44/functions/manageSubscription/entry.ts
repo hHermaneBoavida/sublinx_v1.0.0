@@ -98,9 +98,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // PLANOS PAGOS — sem gateway de pagamento configurado
-    // NÃO conceder privilégios. Criar assinatura pendente (modo sandbox).
-    // Quando um gateway real for integrado, o fluxo de confirmação virá via webhook.
+    // PLANOS PAGOS — cobrança desabilitada.
+    // Concede trial de 30 dias com privilégios ativos imediatamente.
+    // O plano gratuito permanece com prazo indeterminado (365 dias renovável).
 
     // Cancelar assinaturas ativas anteriores
     for (const sub of existingSubs) {
@@ -110,25 +110,33 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Criar assinatura com status 'pending' — NENHUM privilégio concedido
+    // Criar assinatura ativa com trial de 30 dias
     const subscription = await base44.asServiceRole.entities.Subscription.create({
       user_id: user.id,
       plan_type: plan_id,
-      status: 'pending',
+      status: 'active',
       price: plan.price,
       start_date: new Date().toISOString(),
+      end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       features: plan.features,
     });
 
+    // Conceder privilégios premium imediatamente
+    await base44.asServiceRole.entities.User.update(user.id, {
+      is_organizer: plan.privileges.is_organizer,
+      is_pro_member: plan.privileges.is_pro_member,
+      verified_organizer: plan.privileges.verified_organizer,
+      secret_mode_unlocked: plan.privileges.secret_mode_unlocked,
+    });
+
     return Response.json({
-      success: false,
+      success: true,
       plan_id,
       plan_name: plan.name,
-      status: 'pending_payment',
-      sandbox: true,
+      status: 'active',
       subscription_id: subscription.id,
-      price: plan.price,
-      message: 'Pagamento pendente. Nenhum privilégio foi concedido. A integração de pagamento será ativada em breve.',
+      trial_days: 30,
+      message: `${plan.name} ativado! Você tem 30 dias de acesso gratuito.`,
     });
 
   } catch (error) {
