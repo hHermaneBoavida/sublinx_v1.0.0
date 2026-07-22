@@ -58,6 +58,11 @@
       "default": false,
       "description": "Se \u00e9 membro PRO"
     },
+    "secret_mode_unlocked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se possui acesso ao modo secreto"
+    },
     "underground_level": {
       "type": "number",
       "default": 1,
@@ -108,18 +113,5 @@
       "default": false
     }
   },
-  "required": [
-    "display_name",
-    "bio",
-    "avatar_url",
-    "phone",
-    "birth_date",
-    "city",
-    "state",
-    "location",
-    "favorite_genres",
-    "price_range",
-    "preferred_event_types",
-    "crowd_preference"
-  ]
+  "required": []
 }
