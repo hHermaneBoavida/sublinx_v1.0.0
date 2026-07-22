@@ -297,7 +297,7 @@
         "rejected"
       ],
       "default": "pending",
-      "description": "N\u00edvel de confian\u00e7a: verified=N\u00edvel1 (fonte oficial), confirmed=N\u00edvel2 (estabelecimento), partner=N\u00edvel3 (parceiro SUBLINX), pending=N\u00edvel4 (aguardando), rejected=reprovado"
+      "description": "N\u00edvel de confian\u00e7a"
     },
     "source": {
       "type": "string",
@@ -325,7 +325,7 @@
     },
     "source_url": {
       "type": "string",
-      "description": "URL de origem do evento (link verific\u00e1vel)"
+      "description": "URL de origem do evento"
     },
     "source_id": {
       "type": "string",
@@ -337,7 +337,7 @@
     },
     "sync_hash": {
       "type": "string",
-      "description": "Hash para deduplica\u00e7\u00e3o (t\u00edtulo normalizado + data + cidade)"
+      "description": "Hash para deduplica\u00e7\u00e3o"
     },
     "last_synced_at": {
       "type": "string",
@@ -347,19 +347,19 @@
     "is_published": {
       "type": "boolean",
       "default": false,
-      "description": "Evento vis\u00edvel publicamente. Somente trust_level verified/confirmed/partner pode ser true."
+      "description": "Evento vis\u00edvel publicamente"
     },
     "is_expired": {
       "type": "boolean",
       "default": false,
-      "description": "Evento com data passada (marcado automaticamente)"
+      "description": "Evento com data passada"
     },
     "validation_errors": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Lista de erros de valida\u00e7\u00e3o que impedem a publica\u00e7\u00e3o"
+      "description": "Lista de erros de valida\u00e7\u00e3o"
     },
     "verified_at": {
       "type": "string",
@@ -388,7 +388,16 @@
   ],
   "rls": {
     "create": {
-      "data.organizer_id": "{{user.id}}"
+      "$and": [
+        {
+          "data.organizer_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "is_organizer": true
+          }
+        }
+      ]
     },
     "read": {
       "$or": [
@@ -410,7 +419,7 @@
             },
             {
               "user_condition": {
-                "data.is_pro_member": true
+                "is_pro_member": true
               }
             }
           ]
