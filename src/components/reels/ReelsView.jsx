@@ -2,6 +2,40 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import ReelCard from './ReelCard';
 import { ChevronDown, AlertCircle } from 'lucide-react';
 
+/**
+ * Preloads video URLs into browser cache via <link rel="preload">.
+ * Removes links when URLs change or component unmounts.
+ */
+function useVideoPreload(reels, currentIndex) {
+  useEffect(() => {
+    // Skip preload on slow connections or data saver
+    if (navigator.connection && (navigator.connection.effectiveType === '2g' || navigator.connection.saveData)) {
+      return;
+    }
+
+    // Preload current + next 3 videos into browser cache
+    const toPreload = [];
+    for (let i = currentIndex; i <= currentIndex + 3 && i < reels.length; i++) {
+      if (reels[i]?.video_url) toPreload.push(reels[i].video_url);
+    }
+
+    const links = toPreload.map(url => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'video';
+      link.href = url;
+      document.head.appendChild(link);
+      return link;
+    });
+
+    return () => {
+      links.forEach(link => {
+        if (link.parentNode) link.parentNode.removeChild(link);
+      });
+    };
+  }, [reels, currentIndex]);
+}
+
 export default function ReelsView({ reels, events, initialEventId, onClose }) {
   const containerRef = useRef(null);
   const [sortedReels, setSortedReels] = useState([]);
@@ -70,6 +104,9 @@ export default function ReelsView({ reels, events, initialEventId, onClose }) {
     )),
     [sortedReels, currentIndex, loadedVideos]
   );
+
+  // Preload upcoming video URLs into browser cache
+  useVideoPreload(sortedReels, currentIndex);
 
   if (!sortedReels || sortedReels.length === 0) {
     return (

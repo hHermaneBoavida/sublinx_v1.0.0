@@ -9,6 +9,7 @@ import { X, UploadCloud, Loader2, PartyPopper, CheckCircle2, MapPin, Calendar } 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { calculateDistance, CACHE_CONFIG } from '../shared/helpers';
+import { compressVideo } from '@/lib/videoCompression';
 
 export default function UploadReelModal({ onClose, onUploadComplete, events, userLocation }) {
   const [file, setFile] = useState(null);
@@ -115,10 +116,13 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
 
     setUploading(true);
     try {
-      // Upload video and thumbnail in parallel
+      // Compress video first (reduces size ~60-80%)
+      const compressedFile = await compressVideo(file);
+      // Generate thumbnail from original (full quality frame)
       const thumbnailBlob = await generateThumbnail(file);
+      // Upload compressed video + thumbnail in parallel
       const [videoUpload, thumbUpload] = await Promise.all([
-        base44.integrations.Core.UploadFile({ file }),
+        base44.integrations.Core.UploadFile({ file: compressedFile }),
         thumbnailBlob ? base44.integrations.Core.UploadFile({ file: thumbnailBlob }) : Promise.resolve(null)
       ]);
 
