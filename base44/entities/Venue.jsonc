@@ -21,6 +21,7 @@
         "pub",
         "club",
         "padaria",
+        "pizzaria",
         "warehouse",
         "rooftop",
         "studio",
@@ -44,7 +45,7 @@
         },
         "address": {
           "type": "string",
-          "description": "Endere\u00e7o completo"
+          "description": "Logradouro e n\u00famero"
         },
         "city": {
           "type": "string",
@@ -57,6 +58,10 @@
         "neighborhood": {
           "type": "string",
           "description": "Bairro"
+        },
+        "postal_code": {
+          "type": "string",
+          "description": "CEP"
         }
       },
       "required": [

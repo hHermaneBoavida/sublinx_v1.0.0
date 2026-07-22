@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
     const mapType = (cat) => {
       const c = (cat || '').toLowerCase();
       if (c.includes('padaria')) return 'padaria';
-      if (c.includes('restaurante') || c.includes('churrasca') || c.includes('pizzaria') || c.includes('comida') || c.includes('cozinha')) return 'restaurante';
+      if (c.includes('pizzaria') || c.includes('pizza')) return 'pizzaria';
+      if (c.includes('restaurante') || c.includes('churrasca') || c.includes('comida') || c.includes('cozinha')) return 'restaurante';
       if (c.includes('caf') || c.includes('lanchonete') || c.includes('confeitaria')) return 'cafe';
       if (c.includes('pub')) return 'pub';
       if (c.includes('lounge')) return 'lounge_bar';
@@ -104,6 +105,7 @@ Deno.serve(async (req) => {
             city: 'São Paulo',
             state: 'SP',
             neighborhood: region,
+            postal_code: (r['CEP'] || '').toString().trim(),
           },
           contact: {
             phone: cleanPhone(r['Telefone']),

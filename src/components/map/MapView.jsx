@@ -395,22 +395,11 @@ export default function MapView({
     return filtered;
   }, [events, localSearch, advancedFilters, userLocation]);
 
-  // IDs of venues that already have an event — to avoid duplicate pins
-  const venueIdsWithEvent = useMemo(() => {
-    const ids = new Set();
-    filteredEvents.forEach(e => {
-      if (e.location?.venue_name) ids.add(e.location.venue_name.toLowerCase().trim());
-    });
-    return ids;
-  }, [filteredEvents]);
-
-  // Venues to display (without active events)
+  // All venues are displayed individually — NEVER hidden or removed
   const visibleVenues = useMemo(() => {
     if (!venues || venues.length === 0) return [];
     return venues.filter(v => {
       if (!v?.location?.lat || !v?.location?.lng) return false;
-      const key = (v.name || '').toLowerCase().trim();
-      if (venueIdsWithEvent.has(key)) return false;
       if (localSearch) {
         const lower = localSearch.toLowerCase();
         return v.name?.toLowerCase().includes(lower) ||
@@ -419,7 +408,7 @@ export default function MapView({
       }
       return true;
     });
-  }, [venues, venueIdsWithEvent, localSearch]);
+  }, [venues, localSearch]);
 
   const isEventLive = useCallback((event) => {
     const now = Date.now();
