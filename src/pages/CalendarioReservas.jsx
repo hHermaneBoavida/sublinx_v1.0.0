@@ -136,14 +136,12 @@ export default function CalendarioReservas() {
       : format(currentDate, "dd 'de' MMMM, yyyy", { locale: ptBR });
 
   const handleStatusChange = async (id, status) => {
-    try {
-      await base44.entities.Reservation.update(id, { status });
-      queryClient.invalidateQueries({ queryKey: ["calendarReservations"] });
-      toast({ title: "Status atualizado", description: `Reserva marcada como ${status}.` });
-      setSheetOpen(false);
-    } catch {
-      toast({ title: "Erro", description: "Não foi possível atualizar o status.", variant: "destructive" });
-    }
+    // The backend call is already done by the ReservationDetailSheet via approveReservation.
+    // Here we just refresh cache + close the sheet.
+    queryClient.invalidateQueries({ queryKey: ["calendarReservations"] });
+    queryClient.invalidateQueries({ queryKey: ["organizerReservations"] });
+    toast({ title: "Status atualizado", description: `Reserva marcada como ${status}.` });
+    setSheetOpen(false);
   };
 
   if (!user) {

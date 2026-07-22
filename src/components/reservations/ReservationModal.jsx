@@ -265,10 +265,36 @@ export default function ReservationModal({ venue, onClose }) {
                   >
                     <CheckCircle className="w-8 h-8 text-green-400" />
                   </motion.div>
-                  <h3 className="text-lg font-bold text-white">Reserva Registrada!</h3>
+                  <h3 className="text-lg font-bold text-white">Reserva Solicitada!</h3>
                   <p className="text-xs text-gray-400 mt-1">
-                    Aguarde a confirmação do estabelecimento.
+                    O estabelecimento foi notificado e irá aprovar sua reserva.
                   </p>
+                </div>
+
+                {/* Status Timeline */}
+                <div className="flex items-center justify-between gap-1 px-2">
+                  <div className="flex flex-col items-center gap-1 flex-1">
+                    <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-[10px] text-green-400 font-medium">Solicitada</span>
+                  </div>
+                  <div className="flex-1 h-0.5 bg-gray-700 -mt-5">
+                    <div className="h-full w-1/2 bg-yellow-500/50"></div>
+                  </div>
+                  <div className="flex flex-col items-center gap-1 flex-1">
+                    <div className="w-8 h-8 rounded-full bg-yellow-600/30 border-2 border-yellow-600 flex items-center justify-center animate-pulse">
+                      <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
+                    </div>
+                    <span className="text-[10px] text-yellow-400 font-medium">Aguardando</span>
+                  </div>
+                  <div className="flex-1 h-0.5 bg-gray-700 -mt-5"></div>
+                  <div className="flex flex-col items-center gap-1 flex-1">
+                    <div className="w-8 h-8 rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <span className="text-[10px] text-gray-600 font-medium">Confirmada</span>
+                  </div>
                 </div>
 
                 <div className="bg-gray-800/50 rounded-xl p-4 space-y-2 border border-gray-700">
@@ -290,8 +316,17 @@ export default function ReservationModal({ venue, onClose }) {
                   </div>
                   <div className="flex justify-between text-sm items-center">
                     <span className="text-gray-400">Status</span>
-                    <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-700">Aguardando</Badge>
+                    <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-700">Aguardando aprovação</Badge>
                   </div>
+                </div>
+
+                <div className="bg-cyan-950/20 border border-cyan-800/40 rounded-lg p-3 text-xs text-cyan-300">
+                  <p className="font-medium mb-1">📌 Próximos passos:</p>
+                  <ul className="space-y-1 text-gray-400">
+                    <li>• Você receberá uma notificação quando o local aprovar</li>
+                    <li>• Após a aprovação, um código de check-in será gerado</li>
+                    <li>• Apresente o código no local para fazer o check-in</li>
+                  </ul>
                 </div>
 
                 {/* Calendar Link */}

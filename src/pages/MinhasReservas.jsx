@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { queryClientInstance } from '@/lib/query-client';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, Clock, MapPin, X, Bell, Loader2, ChevronLeft } from 'lucide-react';
+import { Calendar, Users, Clock, MapPin, X, Bell, Loader2, ChevronLeft, QrCode, Check } from 'lucide-react';
 import ReservationCalendarLink from '@/components/reservations/ReservationCalendarLink';
+import CheckInCodeCard from '@/components/reservations/CheckInCodeCard';
 import { createPageUrl } from '@/utils';
 
 const STATUS_CONFIG = {
-  pending: { label: 'Aguardando', class: 'bg-yellow-600/20 text-yellow-400 border-yellow-700' },
-  confirmed: { label: 'Confirmada', class: 'bg-green-600/20 text-green-400 border-green-700' },
-  cancelled: { label: 'Cancelada', class: 'bg-red-600/20 text-red-400 border-red-700' },
-  completed: { label: 'Concluída', class: 'bg-blue-600/20 text-blue-400 border-blue-700' },
-  no_show: { label: 'Não compareceu', class: 'bg-red-600/20 text-red-400 border-red-700' },
+  pending: { label: 'Aguardando', class: 'bg-yellow-600/20 text-yellow-400 border-yellow-700', icon: Clock },
+  confirmed: { label: 'Confirmada', class: 'bg-green-600/20 text-green-400 border-green-700', icon: Check },
+  cancelled: { label: 'Cancelada', class: 'bg-red-600/20 text-red-400 border-red-700', icon: X },
+  completed: { label: 'Concluída', class: 'bg-blue-600/20 text-blue-400 border-blue-700', icon: Check },
+  no_show: { label: 'Não compareceu', class: 'bg-red-600/20 text-red-400 border-red-700', icon: X },
 };
 
 const formatDate = (d) => new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -27,6 +29,7 @@ export default function MinhasReservas() {
   });
 
   const [filter, setFilter] = useState('all');
+  const [expandedCode, setExpandedCode] = useState(null);
 
   const { data: reservations = [], isLoading, refetch } = useQuery({
     queryKey: ['userReservations', user?.id],
@@ -42,11 +45,15 @@ export default function MinhasReservas() {
         cancelled_by: 'user',
       });
     },
-    onSuccess: () => refetch(),
+    onSuccess: () => {
+      queryClientInstance.invalidateQueries({ queryKey: ['userReservations'] });
+    },
   });
 
   const filtered = filter === 'all' ? reservations : reservations.filter(r => r.status === filter);
   const activeCount = reservations.filter(r => ['pending', 'confirmed'].includes(r.status)).length;
+  const pendingCount = reservations.filter(r => r.status === 'pending').length;
+  const confirmedCount = reservations.filter(r => r.status === 'confirmed').length;
 
   return (
     <div className="min-h-screen bg-black text-white p-4 sm:p-6 max-w-3xl mx-auto">
@@ -62,21 +69,36 @@ export default function MinhasReservas() {
         </div>
       </div>
 
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="bg-gray-900/60 rounded-lg p-3 text-center border border-gray-800">
+          <div className="text-2xl font-bold text-yellow-400">{pendingCount}</div>
+          <div className="text-xs text-gray-500">Aguardando</div>
+        </div>
+        <div className="bg-gray-900/60 rounded-lg p-3 text-center border border-gray-800">
+          <div className="text-2xl font-bold text-green-400">{confirmedCount}</div>
+          <div className="text-xs text-gray-500">Confirmadas</div>
+        </div>
+        <div className="bg-gray-900/60 rounded-lg p-3 text-center border border-gray-800">
+          <div className="text-2xl font-bold text-blue-400">{reservations.filter(r => r.status === 'completed').length}</div>
+          <div className="text-xs text-gray-500">Concluídas</div>
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         {[
           { key: 'all', label: 'Todas' },
           { key: 'pending', label: 'Aguardando' },
           { key: 'confirmed', label: 'Confirmadas' },
+          { key: 'completed', label: 'Concluídas' },
           { key: 'cancelled', label: 'Canceladas' },
         ].map(f => (
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-              filter === f.key
-                ? 'bg-cyan-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              filter === f.key ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
             }`}
           >
             {f.label}
@@ -106,6 +128,8 @@ export default function MinhasReservas() {
               reservation={r}
               onCancel={cancelMutation.mutate}
               isCancelling={cancelMutation.isPending}
+              expandedCode={expandedCode}
+              onToggleCode={(id) => setExpandedCode(expandedCode === id ? null : id)}
             />
           ))}
         </div>
@@ -114,13 +138,18 @@ export default function MinhasReservas() {
   );
 }
 
-function ReservationCard({ reservation, onCancel, isCancelling }) {
+function ReservationCard({ reservation, onCancel, isCancelling, expandedCode, onToggleCode }) {
   const [showCalendar, setShowCalendar] = useState(false);
   const status = STATUS_CONFIG[reservation.status] || STATUS_CONFIG.pending;
+  const StatusIcon = status.icon;
   const canCancel = ['pending', 'confirmed'].includes(reservation.status);
+  const hasCode = reservation.check_in_code && (reservation.status === 'confirmed' || reservation.status === 'completed');
 
   return (
-    <div className="bg-gray-900/80 border border-gray-800 rounded-xl overflow-hidden">
+    <div className={`bg-gray-900/80 border rounded-xl overflow-hidden ${
+      reservation.status === 'pending' ? 'border-yellow-700/40' :
+      reservation.status === 'confirmed' ? 'border-green-700/40' : 'border-gray-800'
+    }`}>
       <div className="flex gap-3 p-3">
         {reservation.venue_image_url && (
           <img
@@ -132,7 +161,10 @@ function ReservationCard({ reservation, onCancel, isCancelling }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-sm font-bold text-white truncate">{reservation.venue_name}</h3>
-            <Badge className={`text-xs border ${status.class}`}>{status.label}</Badge>
+            <Badge className={`text-xs border flex items-center gap-1 ${status.class}`}>
+              <StatusIcon className="w-3 h-3" />
+              {status.label}
+            </Badge>
           </div>
           <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
             <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDate(reservation.reservation_date)}</span>
@@ -153,8 +185,40 @@ function ReservationCard({ reservation, onCancel, isCancelling }) {
         </div>
       )}
 
+      {/* Collapsed code preview */}
+      {hasCode && expandedCode !== reservation.id && (
+        <button
+          onClick={() => onToggleCode(reservation.id)}
+          className="mx-3 mb-2 w-[calc(100%-1.5rem)] flex items-center justify-between gap-2 rounded-lg border border-cyan-700/40 bg-cyan-950/10 px-3 py-2 text-xs text-cyan-400 hover:bg-cyan-900/20 transition-colors"
+        >
+          <span className="flex items-center gap-1.5">
+            <QrCode className="w-3.5 h-3.5" />
+            Código de Check-in
+          </span>
+          <code className="font-mono font-bold text-white">{reservation.check_in_code}</code>
+        </button>
+      )}
+
+      {/* Expanded code card */}
+      {hasCode && expandedCode === reservation.id && (
+        <div className="px-3 pb-3">
+          <CheckInCodeCard
+            code={reservation.check_in_code}
+            checkedInAt={reservation.checked_in_at}
+            checkedOutAt={reservation.checked_out_at}
+            variant="user"
+          />
+          <button
+            onClick={() => onToggleCode(reservation.id)}
+            className="w-full text-center text-xs text-gray-500 mt-2 hover:text-gray-400"
+          >
+            Recolher
+          </button>
+        </div>
+      )}
+
       <div className="flex gap-2 px-3 pb-3">
-        {reservation.status === 'confirmed' && !showCalendar && (
+        {reservation.status === 'confirmed' && !showCalendar && !hasCode && (
           <Button
             onClick={() => setShowCalendar(true)}
             variant="outline"
@@ -165,6 +229,17 @@ function ReservationCard({ reservation, onCancel, isCancelling }) {
             Lembrete na Agenda
           </Button>
         )}
+        {reservation.status === 'confirmed' && !showCalendar && hasCode && expandedCode !== reservation.id && (
+          <Button
+            onClick={() => setShowCalendar(true)}
+            variant="outline"
+            size="sm"
+            className="border-cyan-700 text-cyan-400 hover:bg-cyan-900/20 text-xs h-8"
+          >
+            <Bell className="w-3 h-3 mr-1" />
+            Lembrete
+          </Button>
+        )}
         {canCancel && (
           <Button
             onClick={() => onCancel(reservation.id)}
@@ -173,7 +248,7 @@ function ReservationCard({ reservation, onCancel, isCancelling }) {
             size="sm"
             className="text-red-400 hover:bg-red-900/20 text-xs h-8 ml-auto"
           >
-            <X className="w-3 h-3 mr-1" />
+            {isCancelling ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <X className="w-3 h-3 mr-1" />}
             Cancelar
           </Button>
         )}

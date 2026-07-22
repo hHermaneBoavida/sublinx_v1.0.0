@@ -5,12 +5,28 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Users, Phone, AlertTriangle, Check, X, CheckCheck } from "lucide-react";
+import { MapPin, Clock, Users, Phone, AlertTriangle, Check, X, CheckCheck, Loader2 } from "lucide-react";
 import ReservationStatusBadge from "./ReservationStatusBadge";
+import CheckInCodeCard from "@/components/reservations/CheckInCodeCard";
+import { base44 } from "@/api/base44Client";
 
 export default function ReservationDetailSheet({ reservation, open, onOpenChange, hasConflict, onStatusChange }) {
+  const [loading, setLoading] = React.useState(false);
+
   if (!reservation) return null;
   const date = new Date(reservation.reservation_date);
+
+  const handleAction = async (action) => {
+    setLoading(true);
+    try {
+      await base44.functions.invoke('approveReservation', { reservation_id: reservation.id, action });
+      await onStatusChange(reservation.id, action === 'confirm' ? 'confirmed' : action === 'cancel' ? 'cancelled' : 'completed');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -54,7 +70,7 @@ export default function ReservationDetailSheet({ reservation, open, onOpenChange
           {reservation.contact_phone && (
             <div className="flex items-center gap-3 text-sm">
               <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
-              <span>{reservation.contact_phone}</span>
+              <a href={`tel:${reservation.contact_phone}`} className="text-cyan-400">{reservation.contact_phone}</a>
             </div>
           )}
 
@@ -70,14 +86,29 @@ export default function ReservationDetailSheet({ reservation, open, onOpenChange
             </div>
           )}
 
+          {/* Check-in code */}
+          {(reservation.status === 'confirmed' || reservation.status === 'completed') && reservation.check_in_code && (
+            <div className="pt-4 border-t border-gray-800">
+              <CheckInCodeCard
+                code={reservation.check_in_code}
+                checkedInAt={reservation.checked_in_at}
+                checkedOutAt={reservation.checked_out_at}
+                variant="organizer"
+              />
+            </div>
+          )}
+
           {reservation.status === "pending" && (
             <div className="flex gap-2 pt-4 border-t border-gray-800">
               <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => onStatusChange(reservation.id, "confirmed")}>
-                <Check className="w-4 h-4 mr-1" /> Aprovar
+                disabled={loading}
+                onClick={() => handleAction('confirm')}>
+                {loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                Aprovar
               </Button>
               <Button size="sm" variant="outline" className="flex-1 border-red-500/50 text-red-400 hover:bg-red-950/30"
-                onClick={() => onStatusChange(reservation.id, "cancelled")}>
+                disabled={loading}
+                onClick={() => handleAction('cancel')}>
                 <X className="w-4 h-4 mr-1" /> Recusar
               </Button>
             </div>
@@ -86,11 +117,14 @@ export default function ReservationDetailSheet({ reservation, open, onOpenChange
           {reservation.status === "confirmed" && (
             <div className="flex gap-2 pt-4 border-t border-gray-800">
               <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={() => onStatusChange(reservation.id, "completed")}>
-                <CheckCheck className="w-4 h-4 mr-1" /> Finalizar
+                disabled={loading}
+                onClick={() => handleAction('complete')}>
+                {loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCheck className="w-4 h-4 mr-1" />}
+                Finalizar (Check-out)
               </Button>
               <Button size="sm" variant="outline" className="flex-1 border-red-500/50 text-red-400 hover:bg-red-950/30"
-                onClick={() => onStatusChange(reservation.id, "cancelled")}>
+                disabled={loading}
+                onClick={() => handleAction('cancel')}>
                 <X className="w-4 h-4 mr-1" /> Cancelar
               </Button>
             </div>

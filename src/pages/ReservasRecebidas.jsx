@@ -5,8 +5,9 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, Clock, Phone, MessageSquare, Check, X, Loader2, ChevronLeft, Store } from 'lucide-react';
+import { Calendar, Users, Clock, Phone, MessageSquare, Check, X, Loader2, ChevronLeft, Store, MapPin } from 'lucide-react';
 import { createPageUrl } from '@/utils';
+import CheckInCodeCard from '@/components/reservations/CheckInCodeCard';
 
 const STATUS_CONFIG = {
   pending: { label: 'Aguardando', class: 'bg-yellow-600/20 text-yellow-400 border-yellow-700' },
@@ -32,7 +33,6 @@ export default function ReservasRecebidas() {
 
   const [filter, setFilter] = useState('pending');
 
-  // Buscar venues do organizador
   const { data: venues = [] } = useQuery({
     queryKey: ['organizerVenues', user?.id],
     queryFn: () => base44.entities.Venue.filter({}, '-created_date', 200),
@@ -57,46 +57,17 @@ export default function ReservasRecebidas() {
 
   const actionMutation = useMutation({
     mutationFn: async ({ id, action }) => {
-      if (action === 'confirm') {
-        await base44.entities.Reservation.update(id, {
-          status: 'confirmed',
-          confirmed_at: new Date().toISOString(),
-        });
-        const res = reservations.find(r => r.id === id);
-        if (res) {
-          await base44.entities.Notification.create({
-            user_id: res.user_id,
-            type: 'reservation_confirmed',
-            title: 'Reserva Confirmada!',
-            message: `Sua reserva em ${res.venue_name} foi confirmada para ${formatDate(res.reservation_date)} às ${formatTime(res.reservation_date)}.`,
-            reservation_id: id,
-          });
-        }
-      } else if (action === 'cancel') {
-        await base44.entities.Reservation.update(id, {
-          status: 'cancelled',
-          cancelled_at: new Date().toISOString(),
-          cancelled_by: 'organizer',
-        });
-        const res = reservations.find(r => r.id === id);
-        if (res) {
-          await base44.entities.Notification.create({
-            user_id: res.user_id,
-            type: 'reservation_cancelled',
-            title: 'Reserva Cancelada',
-            message: `Infelizmente sua reserva em ${res.venue_name} foi cancelada pelo estabelecimento.`,
-            reservation_id: id,
-          });
-        }
-      }
+      return await base44.functions.invoke('approveReservation', { reservation_id: id, action });
     },
     onSuccess: () => {
       queryClientInstance.invalidateQueries({ queryKey: ['organizerReservations'] });
+      queryClientInstance.invalidateQueries({ queryKey: ['calendarReservations'] });
     },
   });
 
   const filtered = filter === 'all' ? reservations : reservations.filter(r => r.status === filter);
   const pendingCount = reservations.filter(r => r.status === 'pending').length;
+  const confirmedCount = reservations.filter(r => r.status === 'confirmed').length;
 
   if (!isLoading && venues.length === 0) {
     return (
@@ -122,7 +93,25 @@ export default function ReservasRecebidas() {
         </Link>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">Reservas Recebidas</h1>
-          <p className="text-xs text-gray-500">{pendingCount} aguardando confirmação</p>
+          <p className="text-xs text-gray-500">
+            {pendingCount} aguardando · {confirmedCount} confirmadas
+          </p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="bg-gray-900/60 rounded-lg p-3 text-center border border-gray-800">
+          <div className="text-2xl font-bold text-yellow-400">{pendingCount}</div>
+          <div className="text-xs text-gray-500">Aguardando</div>
+        </div>
+        <div className="bg-gray-900/60 rounded-lg p-3 text-center border border-gray-800">
+          <div className="text-2xl font-bold text-green-400">{confirmedCount}</div>
+          <div className="text-xs text-gray-500">Confirmadas</div>
+        </div>
+        <div className="bg-gray-900/60 rounded-lg p-3 text-center border border-gray-800">
+          <div className="text-2xl font-bold text-blue-400">{reservations.filter(r => r.status === 'completed').length}</div>
+          <div className="text-xs text-gray-500">Concluídas</div>
         </div>
       </div>
 
@@ -132,6 +121,7 @@ export default function ReservasRecebidas() {
           { key: 'confirmed', label: 'Confirmadas' },
           { key: 'all', label: 'Todas' },
           { key: 'cancelled', label: 'Canceladas' },
+          { key: 'completed', label: 'Concluídas' },
         ].map(f => (
           <button
             key={f.key}
@@ -174,7 +164,9 @@ function OrganizerReservationCard({ reservation, onAction, isPending }) {
   const status = STATUS_CONFIG[reservation.status] || STATUS_CONFIG.pending;
 
   return (
-    <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-3">
+    <div className={`bg-gray-900/80 border rounded-xl p-3 ${
+      reservation.status === 'pending' ? 'border-yellow-700/40' : 'border-gray-800'
+    }`}>
       <div className="flex items-start gap-3">
         {reservation.user_avatar_url ? (
           <img src={reservation.user_avatar_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
@@ -188,7 +180,9 @@ function OrganizerReservationCard({ reservation, onAction, isPending }) {
             <h3 className="text-sm font-bold text-white">{reservation.user_name}</h3>
             <Badge className={`text-xs border flex-shrink-0 ${status.class}`}>{status.label}</Badge>
           </div>
-          <p className="text-xs text-gray-500">{reservation.venue_name}</p>
+          <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+            <MapPin className="w-3 h-3" />{reservation.venue_name}
+          </p>
           <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-gray-400">
             <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDate(reservation.reservation_date)}</span>
             <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(reservation.reservation_date)}</span>
@@ -209,24 +203,52 @@ function OrganizerReservationCard({ reservation, onAction, isPending }) {
         </div>
       </div>
 
+      {/* Check-in code for confirmed/completed reservations */}
+      {(reservation.status === 'confirmed' || reservation.status === 'completed') && reservation.check_in_code && (
+        <div className="mt-3">
+          <CheckInCodeCard
+            code={reservation.check_in_code}
+            checkedInAt={reservation.checked_in_at}
+            checkedOutAt={reservation.checked_out_at}
+            variant="organizer"
+          />
+        </div>
+      )}
+
+      {/* Action buttons */}
       {reservation.status === 'pending' && (
         <div className="flex gap-2 mt-3">
           <Button
             onClick={() => onAction('confirm')}
             disabled={isPending}
             size="sm"
-            className="bg-green-600 hover:bg-green-700 text-xs h-8 flex-1"
+            className="bg-green-600 hover:bg-green-700 text-xs h-9 flex-1"
           >
-            <Check className="w-3 h-3 mr-1" /> Confirmar
+            {isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
+            Aprovar
           </Button>
           <Button
             onClick={() => onAction('cancel')}
             disabled={isPending}
             variant="outline"
             size="sm"
-            className="border-red-800 text-red-400 hover:bg-red-900/20 text-xs h-8"
+            className="border-red-800 text-red-400 hover:bg-red-900/20 text-xs h-9"
           >
             <X className="w-3 h-3 mr-1" /> Recusar
+          </Button>
+        </div>
+      )}
+
+      {reservation.status === 'confirmed' && (
+        <div className="flex gap-2 mt-3">
+          <Button
+            onClick={() => onAction('complete')}
+            disabled={isPending}
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-xs h-9 flex-1"
+          >
+            {isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
+            Finalizar (Check-out)
           </Button>
         </div>
       )}

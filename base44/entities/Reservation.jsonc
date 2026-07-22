@@ -83,10 +83,24 @@
       "type": "string",
       "description": "Telefone de contato do usu\u00e1rio"
     },
+    "check_in_code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico de check-in gerado ao aprovar a reserva"
+    },
     "confirmed_at": {
       "type": "string",
       "format": "date-time",
       "description": "Quando o organizador confirmou"
+    },
+    "checked_in_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora do check-in no local"
+    },
+    "checked_out_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora do check-out (finaliza\u00e7\u00e3o)"
     },
     "cancelled_at": {
       "type": "string",
