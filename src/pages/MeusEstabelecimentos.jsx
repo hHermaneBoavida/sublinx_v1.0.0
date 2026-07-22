@@ -25,7 +25,7 @@ export default function MeusEstabelecimentos() {
 
   const { data: venues = [], isLoading } = useQuery({
     queryKey: ['myVenues', user?.id],
-    queryFn: () => base44.entities.Venue.filter({ created_by: user.email }),
+    queryFn: () => base44.entities.Venue.filter({ created_by_id: user.id }),
     enabled: !!user?.id,
     staleTime: 60000,
   });
