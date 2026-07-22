@@ -181,9 +181,9 @@ export default function Planos() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <button
           onClick={() => { if (window.history.length > 1) navigate(-1); else navigate(createPageUrl('Mapa')); }}
           className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
@@ -194,11 +194,11 @@ export default function Planos() {
       </div>
 
       {/* Header */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-lime-400 bg-clip-text mb-4">
+      <div className="text-center mb-6 sm:mb-12">
+        <h1 className="text-2xl sm:text-4xl font-bold text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-lime-400 bg-clip-text mb-2 sm:mb-4">
           Escolha Seu Plano
         </h1>
-        <p className="text-xl text-gray-400 mb-2">
+        <p className="text-sm sm:text-xl text-gray-400 mb-2">
           Desbloqueie todo o potencial da cena underground
         </p>
         {currentSubscription && (
@@ -209,7 +209,7 @@ export default function Planos() {
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-12 items-stretch">
         {plans.map((plan) => {
           const Icon = plan.icon;
           const isActive = currentSubscription?.plan_type === plan.id;
@@ -237,35 +237,35 @@ export default function Planos() {
                 </div>
               )}
 
-              <CardHeader className={`text-center ${plan.popular || isActive ? "pt-12" : "pt-8"}`}>
-                <div className={`w-16 h-16 mx-auto mb-4 bg-gradient-to-r ${plan.color} rounded-full flex items-center justify-center`}>
-                  <Icon className="w-8 h-8 text-white" />
+              <CardHeader className={`text-center ${plan.popular || isActive ? "pt-10 sm:pt-12" : "pt-6 sm:pt-8"}`}>
+                <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r ${plan.color} rounded-full flex items-center justify-center`}>
+                  <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
                 
-                <CardTitle className="text-2xl font-bold text-white mb-2">
+                <CardTitle className="text-lg sm:text-2xl font-bold text-white mb-2">
                   {plan.name}
                 </CardTitle>
                 
-                <p className="text-gray-400 mb-4">{plan.description}</p>
+                <p className="text-sm text-gray-400 mb-3 sm:mb-4">{plan.description}</p>
                 
-                <div className="text-4xl font-bold text-transparent bg-gradient-to-r from-white to-gray-300 bg-clip-text">
+                <div className="text-2xl sm:text-4xl font-bold text-transparent bg-gradient-to-r from-white to-gray-300 bg-clip-text">
                   {plan.price === 0 ? (
                     "Grátis"
                   ) : (
                     <>
                       R$ {plan.price.toFixed(2).replace('.', ',')}
-                      <span className="text-lg text-gray-400">/mês</span>
+                      <span className="text-sm sm:text-lg text-gray-400">/mês</span>
                     </>
                   )}
                 </div>
               </CardHeader>
 
               <CardContent className="flex flex-col h-full">
-                <ul className="space-y-3 mb-6 flex-grow">
+                <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6 flex-grow">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center text-gray-300">
-                      <Check className={`w-5 h-5 mr-3 bg-gradient-to-r ${plan.color} rounded-full p-1 text-white flex-shrink-0`} />
-                      <span>{feature}</span>
+                    <li key={index} className="flex-nowrap flex items-center text-gray-300 text-sm sm:text-base">
+                      <Check className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 bg-gradient-to-r ${plan.color} rounded-full p-0.5 sm:p-1 text-white flex-shrink-0`} />
+                      <span className="break-words">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -273,7 +273,7 @@ export default function Planos() {
                 <Button
                   onClick={() => handleSubscribe(plan.id)}
                   disabled={isActive || processing}
-                  className={`w-full h-12 font-semibold mt-auto ${
+                  className={`w-full h-10 sm:h-12 font-semibold mt-auto text-sm sm:text-base ${
                     isActive
                       ? "bg-green-600 text-white cursor-not-allowed"
                       : plan.popular
@@ -369,10 +369,10 @@ export default function Planos() {
       </Dialog>
 
       {/* FAQ Section */}
-      <div className="bg-gray-900/50 rounded-xl border border-gray-700 p-8">
-        <h2 className="text-2xl font-bold text-white mb-6">Perguntas Frequentes</h2>
+      <div className="bg-gray-900/50 rounded-xl border border-gray-700 p-4 sm:p-8">
+        <h2 className="text-lg sm:text-2xl font-bold text-white mb-4 sm:mb-6">Perguntas Frequentes</h2>
         
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
           <div>
             <h3 className="font-semibold text-cyan-400 mb-2">Posso cancelar a qualquer momento?</h3>
             <p className="text-gray-300 text-sm">
