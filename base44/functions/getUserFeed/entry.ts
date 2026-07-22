@@ -54,6 +54,11 @@ Deno.serve(async (req) => {
       }
     }
     
+    // Exclude secret events unless the user is a PRO member or admin
+    if (!user.is_pro_member && user.role !== 'admin') {
+      eventFilter.is_secret = false;
+    }
+
     // 3. Fetch events
     const skip = page * limit;
     const events = await base44.asServiceRole.entities.Event.filter(
