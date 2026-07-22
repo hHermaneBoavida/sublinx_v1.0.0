@@ -102,11 +102,8 @@ export default function Planos() {
 
       queryClient.invalidateQueries(['currentUser']);
       queryClient.invalidateQueries(['subscription']);
-
-      alert(data.message || `Plano ${plan.name} ativado com sucesso!`);
     } catch (error) {
       console.error("Erro ao processar assinatura:", error);
-      alert("Erro ao processar assinatura. Tente novamente.");
     } finally {
       setProcessing(false);
     }
