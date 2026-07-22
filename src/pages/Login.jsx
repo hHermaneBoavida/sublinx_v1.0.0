@@ -11,29 +11,7 @@ const AppleLogo = ({ className }) => (
   </svg>
 );
 
-const LynxLogo = ({ className }) => (
-  <svg viewBox="0 0 120 120" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-    {/* Left ear */}
-    <path d="M34 36 L20 8 L27 6 L40 29Z" fill="#00FF9D" />
-    <path d="M20 8 L14 2 M20 8 L26 3" stroke="#00FF9D" strokeWidth="2.5" strokeLinecap="round" />
-    {/* Right ear */}
-    <path d="M86 36 L100 8 L93 6 L80 29Z" fill="#00FF9D" />
-    <path d="M100 8 L106 2 M100 8 L94 3" stroke="#00FF9D" strokeWidth="2.5" strokeLinecap="round" />
-    {/* Head */}
-    <path d="M60 26 C42 26 32 37 30 51 C28 63 33 79 40 87 C47 94 53 97 60 97 C67 97 73 94 80 87 C87 79 92 63 90 51 C88 37 78 26 60 26Z" fill="#00FF9D" />
-    {/* Eyes */}
-    <ellipse cx="46" cy="56" rx="5" ry="7" fill="#000" />
-    <ellipse cx="74" cy="56" rx="5" ry="7" fill="#000" />
-    <ellipse cx="48" cy="54" rx="1.5" ry="2" fill="#00FF9D" />
-    <ellipse cx="76" cy="54" rx="1.5" ry="2" fill="#00FF9D" />
-    {/* Nose */}
-    <path d="M55 69 L60 75 L65 69 Q60 67 55 69Z" fill="#000" />
-    {/* Mouth */}
-    <path d="M60 75 Q54 81 48 78 M60 75 Q66 81 72 78" stroke="#000" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-    {/* Whiskers */}
-    <path d="M40 66 L25 63 M40 69 L25 71 M80 66 L95 63 M80 69 L95 71" stroke="#000" strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
-  </svg>
-);
+
 
 export default function Login() {
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -68,7 +46,7 @@ export default function Login() {
     <div className="min-h-screen bg-black flex flex-col items-center justify-between py-16 px-6">
       {/* Logo + Brand */}
       <div className="flex flex-col items-center mt-8">
-        <LynxLogo className="w-24 h-24" />
+        <img src="https://media.base44.com/images/public/68a70ee66a1156f1068d2903/a1612e3df_Capturadetela2025-08-01215926.png" alt="SUBLINX" className="w-28 h-28 object-contain" />
         <h1 className="text-4xl font-black tracking-[0.15em] mt-6" style={{ color: "#8A2BE2" }}>
           SUBLINX
         </h1>
