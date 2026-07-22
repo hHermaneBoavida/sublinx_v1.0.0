@@ -394,7 +394,7 @@
         },
         {
           "user_condition": {
-            "is_organizer": true
+            "data.is_organizer": true
           }
         }
       ]
@@ -419,7 +419,7 @@
             },
             {
               "user_condition": {
-                "is_pro_member": true
+                "data.is_pro_member": true
               }
             }
           ]

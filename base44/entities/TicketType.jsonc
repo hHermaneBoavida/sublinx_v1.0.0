@@ -61,7 +61,7 @@
       "$or": [
         {
           "user_condition": {
-            "is_organizer": true
+            "data.is_organizer": true
           }
         },
         {
@@ -78,7 +78,7 @@
       "$or": [
         {
           "user_condition": {
-            "is_organizer": true
+            "data.is_organizer": true
           }
         },
         {
@@ -92,7 +92,7 @@
       "$or": [
         {
           "user_condition": {
-            "is_organizer": true
+            "data.is_organizer": true
           }
         },
         {
