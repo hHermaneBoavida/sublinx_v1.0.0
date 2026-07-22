@@ -22,8 +22,14 @@ export function csvCell(value) {
  */
 export function sanitizeForPrompt(value) {
   return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/`/g, '&#x60;')
     .replace(/[\r\n\t]/g, ' ')
-    .replace(/[`]/g, "'");
+    .trim();
 }
 
 /**
