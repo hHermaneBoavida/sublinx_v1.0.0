@@ -98,9 +98,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // PLANOS PAGOS — cobrança desabilitada.
-    // Concede trial de 30 dias com privilégios ativos imediatamente.
-    // O plano gratuito permanece com prazo indeterminado (365 dias renovável).
+    // PLANOS PAGOS — sem gateway de pagamento configurado.
+    // Cria assinatura 'pending' e NÃO concede privilégios premium.
+    // Privilégios só são concedidos após confirmação de pagamento via webhook
+    // de um gateway real (ex: Stripe), nunca por requisição direta do cliente.
 
     // Cancelar assinaturas ativas anteriores
     for (const sub of existingSubs) {
@@ -110,33 +111,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Criar assinatura ativa com trial de 30 dias
+    // Criar assinatura PENDENTE — aguardando confirmação de pagamento
     const subscription = await base44.asServiceRole.entities.Subscription.create({
       user_id: user.id,
       plan_type: plan_id,
-      status: 'active',
+      status: 'pending',
       price: plan.price,
       start_date: new Date().toISOString(),
-      end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       features: plan.features,
     });
 
-    // Conceder privilégios premium imediatamente
-    await base44.asServiceRole.entities.User.update(user.id, {
-      is_organizer: plan.privileges.is_organizer,
-      is_pro_member: plan.privileges.is_pro_member,
-      verified_organizer: plan.privileges.verified_organizer,
-      secret_mode_unlocked: plan.privileges.secret_mode_unlocked,
-    });
+    // NÃO conceder privilégios premium — pagamento não confirmado
+    // Privilégios serão concedidos apenas por webhook do gateway de pagamento
 
     return Response.json({
-      success: true,
+      success: false,
       plan_id,
       plan_name: plan.name,
-      status: 'active',
+      status: 'pending',
       subscription_id: subscription.id,
-      trial_days: 30,
-      message: `${plan.name} ativado! Você tem 30 dias de acesso gratuito.`,
+      message: `Pagamento necessário para ativar o plano ${plan.name}. Privilégios serão concedidos após confirmação do pagamento.`,
     });
 
   } catch (error) {
