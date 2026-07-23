@@ -559,7 +559,7 @@ export default function MapView({
   return (
     <div ref={containerRef} className="w-full h-full relative">
       {/* Search Bar — luxury minimalist, NO neon */}
-      <div className="absolute top-4 left-4 right-4 z-[1000] flex gap-2">
+      <div className="absolute top-[18px] left-4 right-4 z-[1000] flex gap-2">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
           <Input

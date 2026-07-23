@@ -85,8 +85,8 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClose }) {
                   variant={localFilters.dateRange === option.value ? 'default' : 'outline'}
                   onClick={() => setLocalFilters({ ...localFilters, dateRange: option.value })}
                   className={localFilters.dateRange === option.value 
-                    ? 'bg-cyan-600 hover:bg-cyan-700' 
-                    : 'border-gray-700 text-gray-300 hover:bg-gray-800'}
+                    ? 'bg-cyan-600 hover:bg-cyan-700 text-black' 
+                    : 'border-gray-700 text-black hover:bg-gray-800'}
                 >
                   {option.label}
                 </Button>
@@ -155,8 +155,8 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClose }) {
                     onClick={() => setLocalFilters({ ...localFilters, sortBy: option.value })}
                     className={`w-full justify-start ${
                       localFilters.sortBy === option.value 
-                        ? 'bg-cyan-600 hover:bg-cyan-700' 
-                        : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                        ? 'bg-cyan-600 hover:bg-cyan-700 text-black' 
+                        : 'border-gray-700 text-black hover:bg-gray-800'
                     }`}
                   >
                     <Icon className="w-4 h-4 mr-2" />
@@ -205,10 +205,10 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClose }) {
 
         {/* Footer */}
         <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 p-4 flex gap-3">
-          <Button onClick={handleReset} variant="outline" className="flex-1 border-gray-700 text-gray-300">
+          <Button onClick={handleReset} variant="outline" className="flex-1 border-gray-700 text-black">
             Limpar
           </Button>
-          <Button onClick={handleApply} className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600">
+          <Button onClick={handleApply} className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 text-black">
             Aplicar Filtros
           </Button>
         </div>
