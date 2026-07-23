@@ -40,8 +40,22 @@ export default function Login() {
     }
   };
 
-  const handleGoogle = () => base44.auth.loginWithProvider("google", "/");
-  const handleApple = () => base44.auth.loginWithProvider("apple", "/");
+  const handleGoogle = async () => {
+    setError("");
+    try {
+      await base44.auth.loginWithProvider("google", "/");
+    } catch (err) {
+      setError("Não foi possível conectar com o Google. Tente outro método.");
+    }
+  };
+  const handleApple = async () => {
+    setError("");
+    try {
+      await base44.auth.loginWithProvider("apple", "/");
+    } catch (err) {
+      setError("Não foi possível conectar com a Apple. Verifique se o login com Apple está ativado ou tente outro método.");
+    }
+  };
 
   return (
     <AuthContainer>
@@ -99,6 +113,7 @@ export default function Login() {
           </div>
         ) : (
           <div className="space-y-3">
+            <AuthError message={error} />
             <AuthPrimaryButton onClick={() => setShowEmailForm(true)}>
               Entrar com E-mail
             </AuthPrimaryButton>

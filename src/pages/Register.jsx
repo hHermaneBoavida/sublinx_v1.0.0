@@ -76,8 +76,22 @@ export default function Register() {
     }
   };
 
-  const handleGoogle = () => base44.auth.loginWithProvider("google", "/");
-  const handleApple = () => base44.auth.loginWithProvider("apple", "/");
+  const handleGoogle = async () => {
+    setError("");
+    try {
+      await base44.auth.loginWithProvider("google", "/");
+    } catch (err) {
+      setError("Não foi possível conectar com o Google. Tente outro método.");
+    }
+  };
+  const handleApple = async () => {
+    setError("");
+    try {
+      await base44.auth.loginWithProvider("apple", "/");
+    } catch (err) {
+      setError("Não foi possível conectar com a Apple. Verifique se o login com Apple está ativado ou tente outro método.");
+    }
+  };
 
   if (showOtp) {
     return (
@@ -183,6 +197,7 @@ export default function Register() {
           </div>
         ) : (
           <div className="space-y-3">
+            <AuthError message={error} />
             <AuthPrimaryButton onClick={() => setShowForm(true)}>
               Criar conta com E-mail
             </AuthPrimaryButton>
