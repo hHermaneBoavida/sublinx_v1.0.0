@@ -72,11 +72,6 @@
           "user_condition": {
             "role": "admin"
           }
-        },
-        {
-          "data.chat_id": {
-            "$exists": true
-          }
         }
       ]
     },
