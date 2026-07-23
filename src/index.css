@@ -306,11 +306,13 @@ p, span, label, li, td, th {
   }
 }
 
-/* Safe area for notched phones */
-@supports (padding: env(safe-area-inset-bottom)) {
-  .safe-area-inset-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+/* Safe Area — notch / Dynamic Island / status bar support */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-area-bottom,
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Minimum touch target size */

@@ -17,7 +17,7 @@ export default function BottomNav({ location, isOrganizer, isGuest }) {
   return (
     <div
       className="md:hidden fixed z-[9999]"
-      style={{ bottom: 16, left: 16, right: 16 }}
+      style={{ bottom: 'calc(16px + env(safe-area-inset-bottom))', left: 16, right: 16 }}
     >
       <div
         className="flex justify-around items-center"

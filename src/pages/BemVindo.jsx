@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/lib/AuthContext";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,27 +11,21 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function BemVindo() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoadingAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLogging, setIsLogging] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Redirect authenticated users away from login — single source of truth: AuthContext
   useEffect(() => {
-    base44.auth.me()
-      .then(user => {
-        if (user) {
-          navigate(createPageUrl("Mapa"));
-        }
-      })
-      .catch(() => {
-        // Usuário não logado
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [navigate]);
+    if (!isLoadingAuth && isAuthenticated) {
+      navigate(createPageUrl("Mapa"), { replace: true });
+    }
+  }, [isAuthenticated, isLoadingAuth, navigate]);
+
+  const loading = isLoadingAuth;
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();

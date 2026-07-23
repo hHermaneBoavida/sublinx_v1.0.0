@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/AuthContext";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import BottomNav from "@/components/navigation/BottomNav";
 import NotificationListener from "@/components/notifications/NotificationListener";
@@ -31,20 +32,8 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState(null);
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      try {
-        const userData = await base44.auth.me();
-        return userData;
-      } catch (error) {
-        return null;
-      }
-    },
-    retry: false,
-    ...CACHE_CONFIG.STATIC,
-  });
-
+  // Single source of truth for auth state — AuthContext (no parallel queries)
+  const { user, isLoadingAuth } = useAuth();
   const isGuest = !user;
 
   const { data: unreadCount } = useQuery({
@@ -154,7 +143,7 @@ export default function Layout({ children, currentPageName }) {
             }}
           />
 
-          <header className="relative z-10 px-4 py-2 backdrop-blur-xl border-b" style={{
+          <header className="relative z-10 px-4 pb-2 safe-area-top backdrop-blur-xl border-b" style={{
             background: 'rgba(0,0,0,0.85)',
             borderColor: 'rgba(6, 182, 212, 0.15)',
           }}>
