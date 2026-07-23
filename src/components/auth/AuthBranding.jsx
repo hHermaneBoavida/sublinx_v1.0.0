@@ -11,7 +11,7 @@ export default function AuthBranding({ subtitle }) {
       <h1 className="text-4xl font-black tracking-[0.15em] mt-6" style={{ color: "#8A2BE2" }}>
         SUBLINX
       </h1>
-      {subtitle && <p className="text-sm text-gray-500 mt-2">{subtitle}</p>}
+      {subtitle && <p className="text-base text-gray-400 mt-3 text-center max-w-xs">{subtitle}</p>}
     </div>
   );
 }

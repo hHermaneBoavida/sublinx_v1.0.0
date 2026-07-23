@@ -3,21 +3,15 @@ import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import GoogleIcon from "@/components/GoogleIcon";
+import FacebookIcon from "@/components/FacebookIcon";
 import AuthBranding from "@/components/auth/AuthBranding";
 import {
   AuthContainer,
   AuthPrimaryButton,
-  AuthSecondaryButton,
   AuthInput,
   AuthFooter,
   AuthError,
 } from "@/components/auth/AuthButtons";
-
-const AppleLogo = ({ className }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-    <path d="M17.05 12.04c-.03-2.93 2.39-4.34 2.5-4.41-1.36-1.99-3.48-2.26-4.23-2.29-1.8-.18-3.51 1.06-4.43 1.06-.92 0-2.32-1.04-3.82-1.01-1.96.03-3.78 1.14-4.79 2.89-2.05 3.56-.52 8.81 1.47 11.69.98 1.41 2.14 2.99 3.65 2.93 1.47-.06 2.02-.95 3.8-.95s2.28.95 3.82.92c1.58-.03 2.58-1.43 3.54-2.85 1.12-1.63 1.58-3.21 1.6-3.29-.03-.01-3.07-1.18-3.11-4.69zM14.25 3.51c.81-.98 1.35-2.34 1.21-3.69-1.16.05-2.57.77-3.41 1.75-.75.87-1.4 2.26-1.23 3.59 1.3.1 2.62-.66 3.43-1.65z" />
-  </svg>
-);
 
 export default function Login() {
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -32,7 +26,7 @@ export default function Login() {
     setLoading(true);
     try {
       await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = "/";
+      window.location.href = "/Onboarding";
     } catch (err) {
       setError(err.message || "Email ou senha inválidos");
     } finally {
@@ -40,26 +34,27 @@ export default function Login() {
     }
   };
 
+  const handleFacebook = async () => {
+    setError("");
+    try {
+      await base44.auth.loginWithProvider("facebook", "/Onboarding");
+    } catch (err) {
+      setError("Não foi possível conectar com o Facebook. Tente outro método.");
+    }
+  };
+
   const handleGoogle = async () => {
     setError("");
     try {
-      await base44.auth.loginWithProvider("google", "/");
+      await base44.auth.loginWithProvider("google", "/Onboarding");
     } catch (err) {
       setError("Não foi possível conectar com o Google. Tente outro método.");
-    }
-  };
-  const handleApple = async () => {
-    setError("");
-    try {
-      await base44.auth.loginWithProvider("apple", "/");
-    } catch (err) {
-      setError("Não foi possível conectar com a Apple. Verifique se o login com Apple está ativado ou tente outro método.");
     }
   };
 
   return (
     <AuthContainer>
-      <AuthBranding />
+      <AuthBranding subtitle="Descubra o que está acontecendo perto de você." />
 
       <div className="w-full max-w-sm">
         {showEmailForm ? (
@@ -114,15 +109,45 @@ export default function Login() {
         ) : (
           <div className="space-y-3">
             <AuthError message={error} />
+
+            {/* Facebook — primary social login */}
+            <button
+              onClick={handleFacebook}
+              className="w-full h-14 rounded-2xl font-bold text-white text-base flex items-center justify-center gap-3 transition-all hover:opacity-90 active:scale-[0.98]"
+              style={{ background: "#1877F2", border: "1px solid #1877F2" }}
+            >
+              <FacebookIcon className="w-5 h-5" />
+              Continuar com Facebook
+            </button>
+
+            {/* Google */}
+            <button
+              onClick={handleGoogle}
+              className="w-full h-14 rounded-2xl font-semibold text-white text-base flex items-center justify-center gap-3 transition-all hover:bg-white/5 active:scale-[0.98]"
+              style={{ background: "#121212", border: "1px solid rgba(255,255,255,0.15)" }}
+            >
+              <GoogleIcon className="w-5 h-5" />
+              Continuar com Google
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-xs text-gray-600">ou</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+
+            {/* Email login */}
             <AuthPrimaryButton onClick={() => setShowEmailForm(true)}>
               Entrar com E-mail
             </AuthPrimaryButton>
-            <AuthSecondaryButton icon={GoogleIcon} onClick={handleGoogle}>
-              Continuar com Google
-            </AuthSecondaryButton>
-            <AuthSecondaryButton icon={AppleLogo} onClick={handleApple}>
-              Continuar com Apple
-            </AuthSecondaryButton>
+
+            <div className="text-center text-sm text-gray-500 pt-2">
+              Não tem conta?{" "}
+              <Link to="/register" className="text-gray-300 hover:text-white transition-colors font-medium">
+                Criar conta
+              </Link>
+            </div>
           </div>
         )}
       </div>
