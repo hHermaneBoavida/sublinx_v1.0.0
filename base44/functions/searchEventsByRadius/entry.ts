@@ -35,13 +35,21 @@ Deno.serve(async (req) => {
     if (city) filter.city = city;
     if (genre) filter.genre = genre;
     
-    // 2. Fetch events from database (city-indexed)
-    const rawEvents = await base44.asServiceRole.entities.Event.list('-date', limit * 3);
+    // 2. Build query filter — exclude secret events at DB level for non-PRO/non-admin
+    const canSeeSecret = user.is_pro_member || user.role === 'admin';
+    if (!canSeeSecret) {
+      filter.is_secret = false;
+    }
 
-    // Exclude secret events unless the user is a PRO member or admin
-    const events = (user.is_pro_member || user.role === 'admin')
-      ? rawEvents
-      : rawEvents.filter(e => !e.is_secret);
+    // Fetch events from database (city-indexed)
+    const rawEvents = await base44.asServiceRole.entities.Event.filter(
+      filter,
+      '-date',
+      limit * 3
+    );
+
+    // Defense-in-depth: also strip secret events post-fetch for non-PRO/non-admin
+    const events = canSeeSecret ? rawEvents : rawEvents.filter(e => !e.is_secret);
 
     // 3. Calculate distances and filter by radius
     const eventsWithDistance = events

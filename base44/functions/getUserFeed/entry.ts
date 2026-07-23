@@ -61,12 +61,17 @@ Deno.serve(async (req) => {
 
     // 3. Fetch events
     const skip = page * limit;
-    const events = await base44.asServiceRole.entities.Event.filter(
+    const rawEvents = await base44.asServiceRole.entities.Event.filter(
       eventFilter,
       '-date',
       limit,
       skip
     );
+    
+    // Defense-in-depth: strip any secret events for non-PRO/non-admin users
+    // even if the query filter didn't catch them
+    const canSeeSecret = user.is_pro_member || user.role === 'admin';
+    const events = canSeeSecret ? rawEvents : rawEvents.filter(e => !e.is_secret);
     
     if (events.length === 0) {
       return Response.json({
