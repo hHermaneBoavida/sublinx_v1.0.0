@@ -146,7 +146,7 @@ export default function Planos() {
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-3 mb-3 sm:mb-5 items-start">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-3 mb-3 sm:mb-5 items-stretch">
         {plans.map((plan) => {
           const Icon = plan.icon;
           const isActive = currentSubscription?.plan_type === plan.id;
@@ -197,8 +197,8 @@ export default function Planos() {
                 </div>
               </CardHeader>
 
-              <CardContent className="flex flex-col px-2 pb-2 pt-0">
-                <ul className="space-y-0.5 sm:space-y-1.5 mb-2 sm:mb-3">
+              <CardContent className="flex flex-col flex-1 px-2 pb-2 pt-0">
+                <ul className="space-y-0.5 sm:space-y-1.5 mb-2 sm:mb-3 flex-1">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-start text-gray-300 text-[9px] sm:text-xs">
                       <Check className={`w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 mr-1 mt-0.5 bg-gradient-to-r ${plan.color} rounded-full p-0.5 text-white shrink-0`} />
@@ -210,7 +210,7 @@ export default function Planos() {
                 <Button
                   onClick={() => handleSubscribe(plan.id)}
                   disabled={isActive || processing}
-                  className={`w-full h-7 sm:h-9 font-semibold text-[9px] sm:text-xs px-1 ${
+                  className={`w-full h-7 sm:h-9 font-semibold text-[9px] sm:text-xs px-1 mt-auto ${
                     isActive
                       ? "bg-green-600 text-white cursor-not-allowed"
                       : plan.popular
