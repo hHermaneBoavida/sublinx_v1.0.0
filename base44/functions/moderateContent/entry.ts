@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Erro na moderação de conteúdo:', error);
     return Response.json({ 
-      error: error.message,
+      error: 'Erro ao processar moderação',
       allowed: true // Em caso de erro, permitir (fail-safe)
     }, { status: 500 });
   }

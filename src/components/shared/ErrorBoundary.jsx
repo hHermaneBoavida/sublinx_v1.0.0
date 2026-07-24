@@ -56,19 +56,9 @@ class ErrorBoundary extends React.Component {
             </div>
 
             <div className="mb-6 p-4 bg-black/40 border border-red-500/20 rounded-lg">
-              <p className="text-xs text-red-300 font-mono">
-                {this.state.error?.message || 'Erro desconhecido'}
+              <p className="text-xs text-gray-400 font-mono">
+                Código: {this.state.error?.name || 'ERR_UNKNOWN'}
               </p>
-              {this.state.errorInfo && (
-                <details className="mt-2">
-                  <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300">
-                    Detalhes técnicos
-                  </summary>
-                  <pre className="text-[10px] text-gray-500 mt-2 overflow-auto max-h-32 text-left">
-                    {this.state.errorInfo.componentStack}
-                  </pre>
-                </details>
-              )}
             </div>
 
             <div className="flex flex-col gap-3">

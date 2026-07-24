@@ -131,6 +131,7 @@ Deno.serve(async (req) => {
       sample: venues.slice(0, 3),
     });
   } catch (error) {
-    return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
+    console.error('Erro em importEstablishments:', error);
+    return Response.json({ error: 'Erro interno ao importar estabelecimentos' }, { status: 500 });
   }
 });

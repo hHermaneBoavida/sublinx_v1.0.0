@@ -7,8 +7,6 @@
   "background_color": "#000000",
   "theme_color": "#06b6d4",
   "orientation": "portrait",
-  "lang": "pt-BR",
-  "categories": ["entertainment", "social", "lifestyle"],
   "icons": [
     {
       "src": "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png",
@@ -21,34 +19,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Mapa de eventos underground"
-    },
-    {
-      "src": "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Feed de eventos"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Ver Mapa",
-      "url": "/",
-      "description": "Abrir mapa de eventos"
-    },
-    {
-      "name": "Feed",
-      "url": "/Feed",
-      "description": "Ver feed de eventos"
     }
   ]
 }

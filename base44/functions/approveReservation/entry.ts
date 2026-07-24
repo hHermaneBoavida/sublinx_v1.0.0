@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ error: 'Ação inválida. Use: confirm, cancel, ou complete' }, { status: 400 });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('Erro em approveReservation:', error);
+    return Response.json({ error: 'Erro interno ao processar reserva' }, { status: 500 });
   }
 });

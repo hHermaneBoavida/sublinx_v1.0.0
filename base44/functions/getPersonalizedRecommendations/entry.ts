@@ -188,9 +188,9 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Erro:', error);
+    console.error('Erro em getPersonalizedRecommendations:', error);
     return Response.json({ 
-      error: error.message,
+      error: 'Erro ao buscar recomendações',
       personalized: [],
       trending: [],
       nearby: [],

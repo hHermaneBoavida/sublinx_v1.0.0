@@ -48,12 +48,10 @@ export const USER_LIMITS = {
 export const DEMO_ACCOUNTS = {
   ORGANIZER: {
     email: 'organizador@sublynx.com',
-    password: 'password123',
     type: 'organizer'
   },
   USER: {
     email: 'alex@example.com',
-    password: 'password123',
     type: 'user'
   }
 };

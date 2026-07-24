@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     console.error('❌ Erro na sincronização:', error);
     return Response.json({
       success: false,
-      error: error.message,
+      error: 'Erro interno durante a sincronização',
       timestamp: new Date().toISOString(),
     }, { status: 500 });
   }
