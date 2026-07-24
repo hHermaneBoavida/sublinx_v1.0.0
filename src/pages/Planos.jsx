@@ -146,7 +146,7 @@ export default function Planos() {
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-5 items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5 items-stretch">
         {plans.map((plan) => {
           const Icon = plan.icon;
           const isActive = currentSubscription?.plan_type === plan.id;
