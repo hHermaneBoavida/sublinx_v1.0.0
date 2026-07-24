@@ -180,6 +180,16 @@ export function normalizeEvent(raw) {
     max_price: raw.max_price,
     currency: normalizeCurrency(raw.currency),
     ticket_url: normalizeURL(raw.ticket_url),
+    purchase_url: normalizeURL(raw.purchase_url || raw.ticket_url),
+    reservation_url: normalizeURL(raw.reservation_url),
+    booking_provider: raw.booking_provider,
+    has_ticketing: !!(raw.ticket_url || raw.purchase_url),
+    has_reservation: !!raw.reservation_url,
+    external_source: raw.source || raw.external_source || 'serpapi',
+    external_id: String(raw.source_id || raw.external_id || ''),
+    source_event_url: normalizeURL(raw.source_url || raw.source_event_url),
+    external_url: normalizeURL(raw.external_url || raw.source_url),
+    is_online: raw.is_online || false,
     organizer: normalizeText(raw.organizer),
     organizer_id: raw.organizer_id,
     organizer_logo: raw.organizer_logo,
@@ -682,6 +692,12 @@ export async function runSync(base44, options = {}) {
                 if (normalized.image_url && !existing.image_url) updates.image_url = normalized.image_url;
                 if (normalized.description?.length > (existing.description?.length || 0)) updates.description = normalized.description;
                 if (normalized.ticket_url && !existing.ticket_url) updates.ticket_url = normalized.ticket_url;
+                if (normalized.purchase_url && !existing.purchase_url) updates.purchase_url = normalized.purchase_url;
+                if (normalized.reservation_url && !existing.reservation_url) updates.reservation_url = normalized.reservation_url;
+                if (normalized.external_source && !existing.external_source) updates.external_source = normalized.external_source;
+                if (normalized.external_id && !existing.external_id) updates.external_id = normalized.external_id;
+                if (normalized.has_ticketing && !existing.has_ticketing) updates.has_ticketing = true;
+                if (normalized.has_reservation && !existing.has_reservation) updates.has_reservation = true;
                 if (normalized.event_status !== existing.event_status) updates.event_status = normalized.event_status;
                 if (normalized.min_price !== existing.min_price) updates.min_price = normalized.min_price;
                 if (normalized.max_price !== existing.max_price) updates.max_price = normalized.max_price;
@@ -743,6 +759,10 @@ export async function runSync(base44, options = {}) {
               is_expired: false,
               last_synced_at: new Date().toISOString(),
               verified_at: null,
+              verification_status: 'pending',
+              last_verified_at: null,
+              verification_score: 0,
+              ticket_status: 'unknown',
             });
             stats.imported++;
 

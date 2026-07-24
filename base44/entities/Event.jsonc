@@ -374,6 +374,92 @@
       "type": "string",
       "format": "date-time",
       "description": "\u00daltima vez que os dados foram validados"
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "verified",
+        "unverified",
+        "expired",
+        "cancelled"
+      ],
+      "default": "pending",
+      "description": "Status de verifica\u00e7\u00e3o do evento"
+    },
+    "last_verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima verifica\u00e7\u00e3o de validade do evento"
+    },
+    "verification_score": {
+      "type": "number",
+      "default": 0,
+      "description": "Score de confian\u00e7a (0-100)"
+    },
+    "ticket_status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "sold_out",
+        "not_on_sale",
+        "cancelled",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Status da venda de ingressos"
+    },
+    "last_ticket_check_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima verifica\u00e7\u00e3o de status de ingressos"
+    },
+    "purchase_url": {
+      "type": "string",
+      "description": "URL oficial de compra de ingressos"
+    },
+    "reservation_url": {
+      "type": "string",
+      "description": "URL oficial de reserva"
+    },
+    "booking_provider": {
+      "type": "string",
+      "description": "Plataforma de venda/reserva (ex: ticketmaster, eventbrite)"
+    },
+    "sales_status": {
+      "type": "string",
+      "description": "Status geral de vendas"
+    },
+    "has_ticketing": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se o evento possui venda de ingressos"
+    },
+    "has_reservation": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se o evento possui sistema de reserva"
+    },
+    "is_online": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 um evento online"
+    },
+    "external_source": {
+      "type": "string",
+      "description": "Fonte externa rastre\u00e1vel do evento"
+    },
+    "external_id": {
+      "type": "string",
+      "description": "ID externo do evento na fonte de origem"
+    },
+    "source_event_url": {
+      "type": "string",
+      "description": "URL do evento na fonte de origem"
+    },
+    "external_url": {
+      "type": "string",
+      "description": "URL externa geral do evento"
     }
   },
   "required": [

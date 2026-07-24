@@ -1,0 +1,44 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "validacao_periodica_eventos",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "validate_events": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "validateEvents"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Validar eventos ativos",
+            "description": "Verifica origem, URLs, data e status de vendas"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Valida origem, consistencia e status de eventos ativos. Frequencia tierada por proximidade: eventos proximos sao validados com maior frequencia.",
+  "name": "Validacao Periodica de Eventos",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 */6 * * *",
+      "one_time_date": null,
+      "timezone": "America/Sao_Paulo",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}

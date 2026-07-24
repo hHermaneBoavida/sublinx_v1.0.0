@@ -22,6 +22,7 @@ import ReviewsList from "../reviews/ReviewsList";
 import AddReviewModal from "../reviews/AddReviewModal";
 import GuestListStatus from "../guestlist/GuestListStatus";
 import SponsorsSection from "../events/SponsorsSection";
+import EventActionButtons from "../events/EventActionButtons";
 
 export default function EventDetailsModal({ event, onClose }) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -557,10 +558,13 @@ export default function EventDetailsModal({ event, onClose }) {
                 <SponsorsSection sponsors={sponsors} showTitle={true} />
               )}
 
-              {/* Main CTA */}
-              {event.requires_approval ? (
+              {/* Main CTA — Compra / Reserva / Detalhes */}
+              <EventActionButtons event={event} user={user} />
+
+              {/* Solicitar Acesso (eventos secretos) */}
+              {event.requires_approval && !alreadyRequested && !requestSent && (
                 <Button
-                  disabled={requesting || alreadyRequested || requestSent}
+                  disabled={requesting}
                   onClick={async (e) => {
                     e.stopPropagation();
                     if (!user) {
@@ -581,46 +585,31 @@ export default function EventDetailsModal({ event, onClose }) {
                       });
                       await base44.entities.Notification.create({
                         user_id: event.organizer_id,
-                        type: 'request_approved',
-                        title: '📋 Nova Solicitação',
+                        type: 'reservation_request',
+                        title: 'Nova Solicitação',
                         message: `${user.full_name || user.email} quer participar de "${event.title}"`,
-                        event_id: event.id,
-                        is_read: false,
-                      });
-                      await base44.entities.Notification.create({
-                        user_id: user.id,
-                        type: 'event_alert',
-                        title: '✅ Solicitação Enviada',
-                        message: `Sua solicitação para "${event.title}" foi enviada ao organizador.`,
                         event_id: event.id,
                         is_read: false,
                       });
                       setRequestSent(true);
                       queryClient.invalidateQueries(['eventRequest', user.id, event.id]);
-                      toast.success('✅ Solicitação enviada! O organizador foi notificado.');
+                      toast.success('Solicitação enviada! O organizador foi notificado.');
                     } catch (err) {
-                      console.error('Erro ao solicitar acesso:', err);
                       toast.error('Erro ao enviar solicitação. Tente novamente.');
                     } finally {
                       setRequesting(false);
                     }
                   }}
-                  className="w-full h-14 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-base shadow-xl relative overflow-hidden"
+                  className="w-full h-12 border border-purple-500/40 text-purple-300 hover:bg-purple-600/10 font-bold"
                 >
-                  <Zap className="w-5 h-5 mr-2" />
-                  {requesting ? 'Enviando...' : (alreadyRequested || requestSent) ? '✅ Solicitação Enviada' : 'Solicitar Acesso'}
+                  <Zap className="w-4 h-4 mr-2" />
+                  {requesting ? 'Enviando...' : 'Solicitar Acesso'}
                 </Button>
-              ) : (
-                <Button
-                  onClick={() => {
-                    navigate(createPageUrl("ComprarIngresso") + `?id=${event.id}`);
-                    onClose();
-                  }}
-                  className="w-full h-14 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-700 hover:via-purple-700 hover:to-pink-700 text-white font-bold text-base shadow-xl relative overflow-hidden"
-                >
-                  <Zap className="w-5 h-5 mr-2" />
-                  Comprar Ingresso
-                </Button>
+              )}
+              {(alreadyRequested || requestSent) && event.requires_approval && (
+                <div className="text-center text-sm text-purple-300 py-2 font-semibold">
+                  Solicitação Enviada
+                </div>
               )}
             </CardContent>
           </Card>

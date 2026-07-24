@@ -1,0 +1,78 @@
+{
+  "name": "EventClick",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID do evento clicado"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID do usuario que clicou (null se anonimo)"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "purchase",
+        "reservation",
+        "details"
+      ],
+      "description": "Tipo de acao do clique"
+    },
+    "provider": {
+      "type": "string",
+      "description": "Plataforma de destino (ex: ticketmaster, eventbrite)"
+    },
+    "destination_url": {
+      "type": "string",
+      "description": "URL de destino do redirecionamento"
+    },
+    "clicked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento do clique"
+    }
+  },
+  "required": [
+    "event_id",
+    "action_type",
+    "destination_url",
+    "clicked_at"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
