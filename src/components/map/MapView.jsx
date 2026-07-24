@@ -654,7 +654,7 @@ export default function MapView({
       </AnimatePresence>
 
       {/* Stats bar — clean, NO neon */}
-      <div className="absolute bottom-48 left-4 z-[999] flex gap-2 safe-area-bottom">
+      <div className="absolute left-4 z-[999] flex gap-2" style={{ bottom: 'calc(20px + env(safe-area-inset-bottom))' }}>
         {filteredEvents.length !== events.length && (
           <Badge className="bg-gray-800/90 backdrop-blur-md border border-gray-700 text-gray-200 text-xs">
             <Zap className="w-3 h-3 mr-1" />

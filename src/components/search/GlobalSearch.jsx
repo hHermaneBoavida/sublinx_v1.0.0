@@ -103,7 +103,7 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
             onClick={handleClear}
             className="absolute right-3 top-1/2 -translate-y-1/2"
           >
-            <X className="w-4 h-4 text-gray-500 hover:text-white" />
+            <X className="w-4 h-4 text-gray-500 hover:text-white active:text-white" />
           </button>
         )}
 

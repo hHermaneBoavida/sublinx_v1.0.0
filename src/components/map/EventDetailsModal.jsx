@@ -190,7 +190,7 @@ export default function EventDetailsModal({ event, onClose }) {
       className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 overflow-y-auto"
       onClick={onClose}
     >
-      <div className="max-w-2xl mx-auto min-h-screen flex items-center p-3 sm:p-4" style={{ minHeight: '100dvh' }} onClick={(e) => e.stopPropagation()}>
+      <div className="max-w-2xl mx-auto min-h-screen flex items-center p-3 sm:p-4 safe-area-top" style={{ minHeight: '100dvh' }} onClick={(e) => e.stopPropagation()}>
         <motion.div
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
@@ -478,7 +478,7 @@ export default function EventDetailsModal({ event, onClose }) {
                 <Button
                   onClick={handleGetDirections}
                   variant="outline"
-                  className="border-green-500/30 text-green-400 hover:bg-green-600/10"
+                  className="h-11 border-green-500/30 text-green-400 hover:bg-green-600/10"
                 >
                   <Navigation className="w-4 h-4 mr-2" />
                   Google Maps
@@ -487,7 +487,7 @@ export default function EventDetailsModal({ event, onClose }) {
                 <Button
                   onClick={handleOpenWaze}
                   variant="outline"
-                  className="border-blue-500/30 text-blue-400 hover:bg-blue-600/10"
+                  className="h-11 border-blue-500/30 text-blue-400 hover:bg-blue-600/10"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Waze
@@ -499,7 +499,7 @@ export default function EventDetailsModal({ event, onClose }) {
                 <Button
                   onClick={handleAddToCalendar}
                   variant="outline"
-                  className="border-purple-500/30 text-purple-400 hover:bg-purple-600/10"
+                  className="h-11 border-purple-500/30 text-purple-400 hover:bg-purple-600/10"
                 >
                   <CalendarPlus className="w-4 h-4 mr-2" />
                   Adicionar
@@ -508,7 +508,7 @@ export default function EventDetailsModal({ event, onClose }) {
                 <Button
                   onClick={() => setShowShareComment(!showShareComment)}
                   variant="outline"
-                  className="border-pink-500/30 text-pink-400 hover:bg-pink-600/10"
+                  className="h-11 border-pink-500/30 text-pink-400 hover:bg-pink-600/10"
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Compartilhar

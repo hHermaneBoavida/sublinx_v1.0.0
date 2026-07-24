@@ -355,20 +355,20 @@ export default function EventFeedCard({
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="hover:text-red-500 h-9 w-9 px-2" 
+                  className="hover:text-red-500 h-10 w-10 px-2" 
                   onClick={handleLike}
                   disabled={likeMutation.isPending}
                   title={isLiked ? "Curtido" : "Curtir"}
                 >
-                  <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                 </Button>
 
-                <Button variant="ghost" size="sm" className="hover:text-cyan-400 h-9 w-9 px-2" onClick={handleComment} title="Comentar">
-                  <MessageCircle className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="hover:text-cyan-400 h-10 w-10 px-2" onClick={handleComment} title="Comentar">
+                  <MessageCircle className="w-5 h-5" />
                 </Button>
 
-                <Button variant="ghost" size="sm" className="hover:text-green-400 h-9 w-9 px-2" onClick={() => setShowShareModal(true)}>
-                  <Share2 className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="hover:text-green-400 h-10 w-10 px-2" onClick={() => setShowShareModal(true)}>
+                  <Share2 className="w-5 h-5" />
                 </Button>
               </div>
 

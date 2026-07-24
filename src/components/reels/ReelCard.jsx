@@ -198,9 +198,6 @@ function ReelCardInner({ reel, isActive, shouldLoad, onSelectEvent }) {
       {/* Bottom info */}
       {showInfo && (
         <div className="absolute left-4 right-16 z-20" style={{ bottom: 'calc(96px + env(safe-area-inset-bottom))' }}>
-          {reel.event && (
-            <h3 className="text-white font-bold text-base mb-1 truncate drop-shadow-lg">{reel.event.title}</h3>
-          )}
           {reel.description && (
             <p className="text-white/90 text-sm line-clamp-2 drop-shadow-lg">{reel.description}</p>
           )}
