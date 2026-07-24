@@ -166,7 +166,7 @@ function ReelCardInner({ reel, isActive, shouldLoad }) {
       )}
 
       {/* Right-side action buttons */}
-      <div className="absolute right-3 bottom-28 z-30 flex flex-col gap-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="absolute right-3 z-30 flex flex-col gap-4" style={{ bottom: 'calc(96px + env(safe-area-inset-bottom))' }}>
         <button onClick={() => setIsLiked(!isLiked)} className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
           <Heart className={`w-7 h-7 drop-shadow-lg ${isLiked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
           <span className="text-white text-xs font-semibold drop-shadow-lg">
@@ -194,7 +194,7 @@ function ReelCardInner({ reel, isActive, shouldLoad }) {
 
       {/* Bottom info */}
       {showInfo && (
-        <div className="absolute bottom-6 left-4 right-16 z-20" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="absolute left-4 right-16 z-20" style={{ bottom: 'calc(96px + env(safe-area-inset-bottom))' }}>
           {reel.event && (
             <h3 className="text-white font-bold text-base mb-1 truncate drop-shadow-lg">{reel.event.title}</h3>
           )}
