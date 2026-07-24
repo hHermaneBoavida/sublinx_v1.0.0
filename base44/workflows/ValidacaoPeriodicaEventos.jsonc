@@ -16,13 +16,12 @@
           "then": "end",
           "x-base44": {
             "title": "Validar eventos ativos",
-            "description": "Verifica origem, URLs, data e status de vendas"
+            "description": "Verifica origem, URLs, data, compra e reserva"
           }
         }
       }
     ]
   },
-  "description": "Valida origem, consistencia e status de eventos ativos. Frequencia tierada por proximidade: eventos proximos sao validados com maior frequencia.",
   "name": "Validacao Periodica de Eventos",
   "trigger": {
     "condition": null,
@@ -30,7 +29,7 @@
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "0 */6 * * *",
+      "cron_expression": "0 */2 * * *",
       "one_time_date": null,
       "timezone": "America/Sao_Paulo",
       "interval_value": null,
@@ -40,5 +39,6 @@
       "ends_on_date": null,
       "ends_after_count": null
     }
-  }
+  },
+  "description": "Valida origem, consistencia e status de eventos ativos a cada 2 horas. Frequencia tierada por proximidade: eventos proximos sao validados com maior frequencia."
 }

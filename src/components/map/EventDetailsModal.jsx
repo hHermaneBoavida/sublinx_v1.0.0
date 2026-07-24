@@ -23,6 +23,7 @@ import AddReviewModal from "../reviews/AddReviewModal";
 import GuestListStatus from "../guestlist/GuestListStatus";
 import SponsorsSection from "../events/SponsorsSection";
 import EventActionButtons from "../events/EventActionButtons";
+import EventVerificationBadge from "../events/EventVerificationBadge";
 
 export default function EventDetailsModal({ event, onClose }) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -234,6 +235,7 @@ export default function EventDetailsModal({ event, onClose }) {
                       🔒 Secreto
                     </Badge>
                   )}
+                  <EventVerificationBadge status={event.verification_status} score={event.verification_score} />
                 </div>
               </div>
             </div>

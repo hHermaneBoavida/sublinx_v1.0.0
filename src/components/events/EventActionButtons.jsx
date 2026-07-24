@@ -23,7 +23,7 @@ export default function EventActionButtons({ event, user }) {
   const getActionInfo = () => {
     const purchaseUrl = event.purchase_url || event.ticket_url;
     const reservationUrl = event.reservation_url;
-    const externalUrl = event.external_url || event.source_event_url || event.source_url;
+    const externalUrl = event.source_event_url || event.source_url || event.external_url;
 
     // Status de ingressos
     if (event.ticket_status === 'sold_out') {
@@ -74,9 +74,9 @@ export default function EventActionButtons({ event, user }) {
   if (!actionInfo) {
     return (
       <div className="space-y-2">
-        <Button disabled className="w-full h-14 bg-gray-800 text-gray-400 font-bold text-base border border-gray-700">
+        <Button disabled className="w-full h-14 bg-gray-800 text-gray-300 font-bold text-base border border-gray-700">
           <Info className="w-5 h-5 mr-2" />
-          Ver Evento
+          Ingressos / Reservas Não Disponíveis
         </Button>
       </div>
     );
