@@ -138,6 +138,7 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
         likes_count: 0,
         comments_count: 0,
         view_count: 0,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
       
       setUploadSuccess(true);
@@ -245,12 +246,14 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
                       </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-600 text-white max-h-[300px]">
                         {sortedEvents.map(event => {
-                          const distance = calculateDistance(
-                            userLocation.lat, 
-                            userLocation.lng, 
-                            event.location.lat, 
-                            event.location.lng
-                          );
+                          const distance = userLocation && event.location?.lat
+                            ? calculateDistance(
+                                userLocation.lat,
+                                userLocation.lng,
+                                event.location.lat,
+                                event.location.lng
+                              )
+                            : null;
                           
                           return (
                             <SelectItem 
@@ -262,9 +265,8 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
                                 <span className="font-semibold text-white">{event.title}</span>
                                 <div className="flex items-center gap-2 text-xs text-gray-400">
                                   <MapPin className="w-3 h-3" />
-                                  <span>{distance.toFixed(1)}km</span>
-                                  <span>•</span>
-                                  <span className="truncate">{event.location.venue_name || event.location.city}</span>
+                                  {distance !== null && <><span>{distance.toFixed(1)}km</span><span>•</span></>}
+                                  <span className="truncate">{event.location?.venue_name || event.location?.city || 'Local não informado'}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                   <Calendar className="w-3 h-3" />

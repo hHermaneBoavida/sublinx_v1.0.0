@@ -30,7 +30,7 @@ export default function MeusEventos() {
         const userData = await base44.auth.me();
         if (!userData.is_organizer) {
           navigate(createPageUrl("Planos"));
-          throw new Error("Não é organizador");
+          return null;
         }
         return userData;
       } catch (error) {

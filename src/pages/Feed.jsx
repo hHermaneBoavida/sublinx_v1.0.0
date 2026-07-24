@@ -270,7 +270,7 @@ export default function Feed() {
                   >
                     <Card 
                       className="bg-gray-900/80 border-purple-500/30 hover:border-cyan-500/50 transition-all cursor-pointer group"
-                      onClick={() => navigate(createPageUrl("EventoDetalhes") + `?id=${event.id}`)}
+                      onClick={() => navigate(createPageUrl("Mapa") + `?event=${event.id}`)}
                     >
                       {event.image_url && (
                         <div className="relative h-32 overflow-hidden rounded-t-lg">

@@ -30,7 +30,7 @@ export default function AIRecommendationCard({ event, showReasons = true }) {
     >
       <Card 
         className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-purple-500/30 hover:border-purple-500/60 transition-all overflow-hidden group cursor-pointer"
-        onClick={() => navigate(createPageUrl("EventoDetalhes") + `?id=${event.id}`)}
+        onClick={() => navigate(createPageUrl("Mapa") + `?event=${event.id}`)}
       >
         {/* Badge de Recomendação */}
         {score > 50 && (

@@ -110,7 +110,6 @@ export default function CriarEvento() {
 
   useEffect(() => {
     checkOrganizerAccess();
-    loadUserCommunities();
   }, []);
 
   const checkOrganizerAccess = async () => {
@@ -121,14 +120,14 @@ export default function CriarEvento() {
         return;
       }
       setUser(userData);
+      loadUserCommunities(userData);
     } catch (error) {
       navigate(createPageUrl("BemVindo"));
     }
   };
 
-  const loadUserCommunities = async () => {
+  const loadUserCommunities = async (userData) => {
     try {
-      const userData = await base44.auth.me();
       if (!userData) return;
       
       const memberships = await base44.entities.CommunityMember.filter({ 

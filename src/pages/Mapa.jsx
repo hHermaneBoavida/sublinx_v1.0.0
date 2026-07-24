@@ -36,6 +36,36 @@ export default function Mapa() {
   const queryClient = useQueryClient();
   const mapCleanupRef = useRef(null);
 
+  // Abrir detalhes do evento via URL param (?event=ID)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventId = urlParams.get('event');
+    if (!eventId) return;
+    // Procurar o evento nos dados carregados (ou buscar diretamente)
+    const findAndOpen = async () => {
+      try {
+        const events = eventsData?.events || [];
+        const found = events.find(e => e.id === eventId);
+        if (found) {
+          setSelectedEventForDetails(found);
+          setShowEventDetails(true);
+        } else {
+          // Buscar diretamente se não estiver nos dados carregados
+          const all = await base44.entities.Event.filter({ id: eventId });
+          if (all?.[0]) {
+            setSelectedEventForDetails(all[0]);
+            setShowEventDetails(true);
+          }
+        }
+      } catch (e) {
+        console.log('Erro ao abrir evento via URL:', e);
+      }
+    };
+    findAndOpen();
+    // Limpar o param da URL após abrir
+    window.history.replaceState({}, '', window.location.pathname);
+  }, [eventsData]);
+
   // Localização do usuário — sem bloquear o carregamento
   useEffect(() => {
     let isMounted = true;
@@ -136,7 +166,9 @@ export default function Mapa() {
     queryKey: ['mapReels'],
     queryFn: async () => {
       try {
-        return (await base44.entities.Reel.list("-created_date", 200)) || [];
+        const allReels = (await base44.entities.Reel.list("-created_date", 200)) || [];
+        const now = new Date();
+        return allReels.filter(r => !r.expires_at || new Date(r.expires_at) > now);
       } catch { return []; }
     },
     staleTime: 2 * 60 * 1000,
