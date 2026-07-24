@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { hasOrganizerAccess } from '../../shared/subscriptionAuth.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -8,6 +9,15 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Apenas organizador com assinatura ativa ou admin podem criar eventos demo
+    const isAdmin = user.role === 'admin';
+    if (!isAdmin) {
+      const hasAccess = await hasOrganizerAccess(base44, user.id);
+      if (!hasAccess) {
+        return Response.json({ error: 'Acesso negado — assinatura de organizador inativa' }, { status: 403 });
+      }
     }
 
     // Eventos reais em São Paulo - locais icônicos da cena underground
