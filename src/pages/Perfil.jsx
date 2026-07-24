@@ -244,7 +244,7 @@ export default function Perfil() {
               <Button 
                 onClick={() => setShowEditModal(true)} 
                 variant="outline" 
-                className="flex-1 border-gray-500 text-white font-semibold hover:bg-gray-800 hover:text-white"
+                className="flex-1 bg-black border-gray-500 text-white font-semibold hover:bg-gray-800 hover:text-white"
               >
                 <Edit2 className="w-4 h-4 mr-2" />
                 Editar Perfil
@@ -252,7 +252,7 @@ export default function Perfil() {
               <Button 
                 onClick={handleShareProfile} 
                 variant="outline" 
-                className="flex-1 border-gray-500 text-white font-semibold hover:bg-gray-800 hover:text-white"
+                className="flex-1 bg-black border-gray-500 text-white font-semibold hover:bg-gray-800 hover:text-white"
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 Compartilhar
@@ -439,7 +439,7 @@ export default function Perfil() {
               </div>
             </div>
 
-            <Button onClick={() => navigate(createPageUrl("ConfiguracoesPrivacidade"))} variant="outline" className="w-full border-gray-500 text-white font-semibold hover:bg-gray-900 hover:text-white">
+            <Button onClick={() => navigate(createPageUrl("ConfiguracoesPrivacidade"))} variant="outline" className="w-full bg-black border-gray-500 text-white font-semibold hover:bg-gray-900 hover:text-white">
               <Shield className="w-4 h-4 mr-2" />
               Privacidade e Segurança
             </Button>
