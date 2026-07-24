@@ -6,7 +6,7 @@ import { Search, MapPin, Calendar, X } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { useSearch } from "./SearchContext";
 
-export default function GlobalSearch({ onSelectEvent, onSelectVenue }) {
+export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { searchQuery, setSearchQuery, clearSearch } = useSearch();
@@ -86,9 +86,8 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue }) {
 
   const showDropdown = !isFeedPage && showResults && searchQuery.trim();
 
-  return (
-    <div className="relative px-3 sm:px-4 py-2 z-20">
-      <div className="relative max-w-3xl mx-auto">
+  const searchContent = (
+    <div className="relative w-full">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
         <input
           type="text"
@@ -160,6 +159,15 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue }) {
             )}
           </div>
         )}
+    </div>
+  );
+
+  if (bare) return searchContent;
+
+  return (
+    <div className="relative px-3 sm:px-4 py-2 z-20">
+      <div className="relative max-w-3xl mx-auto">
+        {searchContent}
       </div>
     </div>
   );

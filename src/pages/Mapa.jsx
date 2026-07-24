@@ -323,12 +323,6 @@ export default function Mapa() {
               transition={{ duration: 0.3 }}
               className="absolute inset-0 z-10"
             >
-              <div className="absolute top-0 left-0 right-0 z-[1001] safe-area-top">
-                <GlobalSearch
-                  onSelectEvent={handlePinDetailsClick}
-                  onSelectVenue={handleVenueClick}
-                />
-              </div>
               <MapView
                 events={filteredEvents}
                 venues={venuesData}
@@ -346,7 +340,13 @@ export default function Mapa() {
                 onFiltersChange={setFilters}
                 suggestedEvents={[]}
                 onMapReady={(cleanupFn) => { mapCleanupRef.current = cleanupFn; }}
-                hideSearch
+                searchSlot={
+                  <GlobalSearch
+                    bare
+                    onSelectEvent={handlePinDetailsClick}
+                    onSelectVenue={handleVenueClick}
+                  />
+                }
               />
 
               {/* Botão Ver Reels */}

@@ -326,7 +326,8 @@ export default function MapView({
   onFiltersChange,
   suggestedEvents = [],
   onMapReady,
-  hideSearch = false
+  hideSearch = false,
+  searchSlot = null
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -564,8 +565,10 @@ export default function MapView({
     <div ref={containerRef} className="w-full h-full relative">
       {/* Search Bar — luxury minimalist, NO neon */}
       <div className="absolute z-[1000] left-0 right-0 px-3 sm:px-4" style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 56px)' : 'max(12px, env(safe-area-inset-top))' }}>
-        <div className={`flex gap-1.5 sm:gap-2 max-w-3xl mx-auto ${hideSearch ? 'justify-end' : ''}`}>
-        {!hideSearch && (
+        <div className={`flex items-center gap-1.5 sm:gap-2 max-w-3xl mx-auto ${!searchSlot && hideSearch ? 'justify-end' : ''}`}>
+        {searchSlot ? (
+          <div className="flex-1 min-w-0">{searchSlot}</div>
+        ) : !hideSearch && (
           <div className="flex-1 min-w-0 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
             <Input
