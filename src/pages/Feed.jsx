@@ -212,12 +212,6 @@ export default function Feed() {
 
   return (
     <div className="max-w-xl mx-auto px-0 py-0">
-      <div className="px-3 sm:px-4 py-3 border-b border-gray-800/30">
-        <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
-          Feed
-        </h1>
-      </div>
-
       {/* Seção Descubra */}
       {!isGuest && (recommendations?.personalized?.length > 0 || recommendations?.popular?.length > 0) && (
         <div className="bg-gradient-to-br from-purple-900/20 via-black to-cyan-900/20 border-y border-purple-500/20 py-4 px-3 sm:px-4">

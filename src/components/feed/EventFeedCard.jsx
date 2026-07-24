@@ -312,7 +312,7 @@ export default function EventFeedCard({
                     boxShadow: '0 0 20px rgba(251, 191, 36, 0.7)'
                   }}
                 >
-                  <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                  <Lock className="w-4 h-4 text-white" />
                   <span className="text-white text-xs font-bold">PRO</span>
                 </motion.div>
               )}
@@ -375,10 +375,10 @@ export default function EventFeedCard({
               <Button
                 size="sm"
                 variant="outline"
-                className="border-cyan-500/30 h-6 text-xs px-2"
+                className="border-cyan-500/30 h-8 text-xs px-3"
                 onClick={() => user?.is_pro_member ? alert("🎉 Detalhes PRO") : setShowUpgradePrompt(true)}
               >
-                {user?.is_pro_member ? <><Eye className="w-3.5 h-3.5 mr-0.5" />Ver+</> : <><Lock className="w-3.5 h-3.5 mr-0.5" />PRO</>}
+                {user?.is_pro_member ? <><Eye className="w-4 h-4 mr-0.5" />Ver+</> : <><Lock className="w-4 h-4 mr-0.5" />PRO</>}
               </Button>
             </div>
 
