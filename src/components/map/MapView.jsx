@@ -587,7 +587,7 @@ export default function MapView({
         >
           <Filter className="w-5 h-5 text-gray-300" />
           {activeFiltersCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gray-700 text-[10px] text-white font-bold">
+            <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-gray-700 text-xs text-white font-bold">
               {activeFiltersCount}
             </Badge>
           )}

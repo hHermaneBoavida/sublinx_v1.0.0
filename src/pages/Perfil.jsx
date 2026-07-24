@@ -325,7 +325,7 @@ export default function Perfil() {
                       <div className="w-full h-full flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 p-2 gap-1"
                         style={{ display: event.image_url ? 'none' : 'flex' }}>
                         <Calendar className="w-7 h-7 text-cyan-600/50" />
-                        <span className="text-[9px] text-gray-600 text-center line-clamp-2 leading-tight">{event.title}</span>
+                        <span className="text-xs text-gray-600 text-center line-clamp-2 leading-tight">{event.title}</span>
                       </div>
                     </div>
                   ))}

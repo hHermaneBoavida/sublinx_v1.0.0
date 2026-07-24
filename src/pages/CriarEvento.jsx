@@ -392,7 +392,7 @@ export default function CriarEvento() {
                         <Icon className={`w-6 h-6 ${isCurrent ? 'text-white' : 'text-gray-500'}`} />
                       )}
                     </motion.div>
-                    <span className={`text-[10px] sm:text-xs font-medium ${
+                    <span className={`text-xs font-medium ${
                       isCurrent ? 'text-cyan-400' : isCompleted ? 'text-green-400' : 'text-gray-500'
                     }`}>
                       {step.name}
