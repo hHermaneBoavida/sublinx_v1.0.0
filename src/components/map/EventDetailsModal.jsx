@@ -219,8 +219,8 @@ export default function EventDetailsModal({ event, onClose }) {
                 <X className="w-5 h-5" />
               </Button>
 
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <h1 className="text-3xl font-bold text-white mb-3 drop-shadow-lg">
+              <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 sm:mb-3 drop-shadow-lg break-words">
                   {event.title}
                 </h1>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -237,7 +237,7 @@ export default function EventDetailsModal({ event, onClose }) {
               </div>
             </div>
 
-            <CardContent className="p-6 space-y-6">
+            <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Guest List Status */}
               <GuestListStatus event={event} user={user} />
 
@@ -274,11 +274,11 @@ export default function EventDetailsModal({ event, onClose }) {
               )}
 
               {/* Quick Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-cyan-600/20 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-cyan-400" />
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="bg-gray-800/50 rounded-xl p-3 sm:p-4 border border-gray-700">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-cyan-600/20 flex items-center justify-center flex-shrink-0">
+                      <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
                     </div>
                     <div>
                       <div className="text-xs text-gray-400">Data</div>
@@ -292,10 +292,10 @@ export default function EventDetailsModal({ event, onClose }) {
                   </div>
                 </div>
 
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-purple-400" />
+                <div className="bg-gray-800/50 rounded-xl p-3 sm:p-4 border border-gray-700">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-purple-600/20 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs text-gray-400">Local</div>
