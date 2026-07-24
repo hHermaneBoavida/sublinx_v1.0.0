@@ -6,7 +6,7 @@ import { Search, MapPin, Calendar, X } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { useSearch } from "./SearchContext";
 
-export default function GlobalSearch() {
+export default function GlobalSearch({ onSelectEvent, onSelectVenue }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { searchQuery, setSearchQuery, clearSearch } = useSearch();
@@ -34,14 +34,20 @@ export default function GlobalSearch() {
         .filter(v =>
           v.name?.toLowerCase().includes(q) ||
           v.location?.city?.toLowerCase().includes(q) ||
-          v.type?.toLowerCase().includes(q)
+          v.location?.neighborhood?.toLowerCase().includes(q) ||
+          v.type?.toLowerCase().includes(q) ||
+          v.genres?.some(g => g?.toLowerCase().includes(q))
         )
         .slice(0, 5),
       events: events
         .filter(e =>
           e.title?.toLowerCase().includes(q) ||
           e.genre?.toLowerCase().includes(q) ||
-          e.location?.city?.toLowerCase().includes(q)
+          e.category?.toLowerCase().includes(q) ||
+          e.location?.city?.toLowerCase().includes(q) ||
+          e.location?.venue_name?.toLowerCase().includes(q) ||
+          e.location?.address?.toLowerCase().includes(q) ||
+          e.organizer?.toLowerCase().includes(q)
         )
         .slice(0, 5),
     };
@@ -50,9 +56,22 @@ export default function GlobalSearch() {
   const hasResults = results.venues.length > 0 || results.events.length > 0;
   const isLoading = loadingVenues || loadingEvents;
 
-  const handleSelect = () => {
+  const handleSelectEvent = (event) => {
     setShowResults(false);
-    navigate(createPageUrl("Mapa"));
+    if (onSelectEvent) {
+      onSelectEvent(event);
+    } else {
+      navigate(createPageUrl("Mapa"));
+    }
+  };
+
+  const handleSelectVenue = (venue) => {
+    setShowResults(false);
+    if (onSelectVenue) {
+      onSelectVenue(venue);
+    } else {
+      navigate(createPageUrl("Mapa"));
+    }
   };
 
   const handleChange = (e) => {
@@ -103,7 +122,7 @@ export default function GlobalSearch() {
                     {results.events.map(event => (
                       <button
                         key={event.id}
-                        onClick={handleSelect}
+                        onClick={() => handleSelectEvent(event)}
                         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
                       >
                         <Calendar className="w-4 h-4 text-cyan-400 flex-shrink-0" />
@@ -123,7 +142,7 @@ export default function GlobalSearch() {
                     {results.venues.map(venue => (
                       <button
                         key={venue.id}
-                        onClick={handleSelect}
+                        onClick={() => handleSelectVenue(venue)}
                         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
                       >
                         <MapPin className="w-4 h-4 text-purple-400 flex-shrink-0" />

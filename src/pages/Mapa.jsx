@@ -324,7 +324,10 @@ export default function Mapa() {
               className="absolute inset-0 z-10"
             >
               <div className="absolute top-0 left-0 right-0 z-[1001] safe-area-top">
-                <GlobalSearch />
+                <GlobalSearch
+                  onSelectEvent={handlePinDetailsClick}
+                  onSelectVenue={handleVenueClick}
+                />
               </div>
               <MapView
                 events={filteredEvents}

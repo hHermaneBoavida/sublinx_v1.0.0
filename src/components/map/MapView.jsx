@@ -404,7 +404,10 @@ export default function MapView({
           event.location?.venue_name?.toLowerCase().includes(lower) ||
           event.genre?.toLowerCase().includes(lower) ||
           event.type?.toLowerCase().includes(lower) ||
-          event.location?.city?.toLowerCase().includes(lower);
+          event.category?.toLowerCase().includes(lower) ||
+          event.location?.city?.toLowerCase().includes(lower) ||
+          event.location?.address?.toLowerCase().includes(lower) ||
+          event.organizer?.toLowerCase().includes(lower);
         if (!match) return false;
       }
 
