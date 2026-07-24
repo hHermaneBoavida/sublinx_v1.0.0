@@ -31,11 +31,15 @@ export default function NotificationPermissionPrompt() {
     // Permissao ja concedida ou negada
     if (currentPermission !== 'default') return;
 
-    // Previta timer duplicado em remontagens (navegacao entre paginas)
+    // Previta timers duplicados simultaneos dentro da mesma sessao
     if (hasTimerStartedThisSession) return;
-    hasTimerStartedThisSession = true;
 
-    const timer = setTimeout(() => setShow(true), 5000);
+    const timer = setTimeout(() => {
+      hasTimerStartedThisSession = true;
+      setShow(true);
+    }, 5000);
+
+    // Cleanup: se desmontar antes dos 5s, cancela o timer sem marcar a flag
     return () => clearTimeout(timer);
   }, []);
 
@@ -48,8 +52,10 @@ export default function NotificationPermissionPrompt() {
       setShow(false);
       localStorage.setItem('notification_prompt_permanently_dismissed', 'true');
     } catch (error) {
+      if (import.meta.env?.DEV) {
+        console.error('Erro ao solicitar permissão de notificações:', error);
+      }
       setShow(false);
-      localStorage.setItem('notification_prompt_permanently_dismissed', 'true');
     } finally {
       setIsRequesting(false);
     }
