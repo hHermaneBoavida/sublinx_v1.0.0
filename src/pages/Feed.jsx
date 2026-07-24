@@ -281,7 +281,7 @@ export default function Feed() {
                           />
                           <div className="absolute top-2 right-2">
                             <Badge className="bg-purple-600/90 backdrop-blur-sm text-xs">
-                              {discoverTab === 'personalized' ? '✨ Recomendado' : '🔥 Em Alta'}
+                              {discoverTab === 'personalized' ? 'Recomendado' : 'Em Alta'}
                             </Badge>
                           </div>
                         </div>
@@ -296,7 +296,7 @@ export default function Feed() {
                           </Badge>
                           {event.current_attendees > 0 && (
                             <span className="text-cyan-400">
-                              {event.current_attendees} 👥
+                              {event.current_attendees}
                             </span>
                           )}
                         </div>

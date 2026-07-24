@@ -61,7 +61,7 @@ export default function QuickFilters({ onApplyQuickFilter, activeFilters = [] })
     },
     {
       id: 'hot',
-      label: 'Bombando 🔥',
+      label: 'Bombando',
       icon: Zap,
       color: 'from-orange-600 to-red-600',
       filter: { sort: 'popularity', minOccupancy: 70 }

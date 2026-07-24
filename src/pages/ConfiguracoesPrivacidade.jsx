@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, Eye, EyeOff, MapPin, Trash2, Download, AlertCircle, Check } from "lucide-react";
+import { Shield, Eye, EyeOff, MapPin, Trash2, Download, AlertCircle, Check, Bell, Sparkles, Trophy, MessageCircle, Mail, BellRing } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ConfiguracoesPrivacidade() {
@@ -172,16 +172,16 @@ export default function ConfiguracoesPrivacidade() {
         </CardHeader>
         <CardContent className="space-y-4">
           {[
-            { key: 'event_alerts', label: 'Alertas de eventos', icon: '🎉' },
-            { key: 'surprise_events', label: 'Eventos surpresa', icon: '✨' },
-            { key: 'level_notifications', label: 'Conquistas', icon: '🏆' },
-            { key: 'chat_messages', label: 'Mensagens', icon: '💬' },
-            { key: 'email', label: 'Email', icon: '📧' },
-            { key: 'push', label: 'Push', icon: '🔔' },
-          ].map(({ key, label, icon }) => (
+            { key: 'event_alerts', label: 'Alertas de eventos', icon: Bell },
+            { key: 'surprise_events', label: 'Eventos surpresa', icon: Sparkles },
+            { key: 'level_notifications', label: 'Conquistas', icon: Trophy },
+            { key: 'chat_messages', label: 'Mensagens', icon: MessageCircle },
+            { key: 'email', label: 'Email', icon: Mail },
+            { key: 'push', label: 'Push', icon: BellRing },
+          ].map(({ key, label, icon: Icon }) => (
             <div key={key} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <span className="text-xl">{icon}</span>
+                <Icon className="w-5 h-5 text-cyan-400" />
                 <Label htmlFor={key} className="text-gray-200 cursor-pointer">{label}</Label>
               </div>
               <Switch
@@ -249,7 +249,7 @@ export default function ConfiguracoesPrivacidade() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="bg-gray-900 border-red-500/50 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-400">⚠️ Apagar Conta</AlertDialogTitle>
+            <AlertDialogTitle className="text-red-400">Apagar Conta</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
               Esta ação é <strong>irreversível</strong>. Todos os seus dados serão permanentemente apagados:
               <ul className="list-disc list-inside mt-2 space-y-1">

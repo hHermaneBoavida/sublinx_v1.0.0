@@ -635,10 +635,10 @@ function OnboardingModal({ onClose }) {
   const navigate = useNavigate();
 
   const steps = [
-    { title: "Bem-vindo! 🎉", description: "Dashboard com métricas em tempo real", icon: Crown, color: "text-yellow-400" },
-    { title: "Crie Eventos 🎪", description: "Configure e publique seus eventos", icon: Calendar, color: "text-cyan-400", action: () => navigate(createPageUrl("CriarEvento")) },
-    { title: "Alertas Inteligentes 🔔", description: "Configure thresholds personalizados", icon: Bell, color: "text-green-400" },
-    { title: "Exporte Relatórios 📊", description: "Baixe dados em CSV", icon: FileText, color: "text-purple-400" }
+    { title: "Bem-vindo!", description: "Dashboard com métricas em tempo real", icon: Crown, color: "text-yellow-400" },
+    { title: "Crie Eventos", description: "Configure e publique seus eventos", icon: Calendar, color: "text-cyan-400", action: () => navigate(createPageUrl("CriarEvento")) },
+    { title: "Alertas Inteligentes", description: "Configure thresholds personalizados", icon: Bell, color: "text-green-400" },
+    { title: "Exporte Relatórios", description: "Baixe dados em CSV", icon: FileText, color: "text-purple-400" }
   ];
 
   const currentStep = steps[step];
