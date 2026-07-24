@@ -7,8 +7,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { EventRequest } from "@/entities/EventRequest";
-import { Ticket as TicketEntity } from "@/entities/Ticket";
+import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -28,11 +27,11 @@ export default function EventCard({ event, onClose, user, isGuest, onRequirePlan
       }
       setIsLoading(true);
       try {
-        const tickets = await TicketEntity.filter({ user_id: user.id, event_id: event.id });
+        const tickets = await base44.entities.Ticket.filter({ user_id: user.id, event_id: event.id });
         if (tickets.length > 0) {
           setHasTicket(true);
         } else {
-          const requests = await EventRequest.filter({ user_id: user.id, event_id: event.id });
+          const requests = await base44.entities.EventRequest.filter({ user_id: user.id, event_id: event.id });
           if (requests.length > 0) {
             setEventRequest(requests[0]);
           } else {
@@ -78,7 +77,7 @@ export default function EventCard({ event, onClose, user, isGuest, onRequirePlan
     
     setIsLoading(true);
     try {
-      const newRequest = await EventRequest.create({
+      const newRequest = await base44.entities.EventRequest.create({
         user_id: user.id, event_id: event.id, organizer_id: event.organizer_id,
         status: "pending", underground_level_required: event.minimum_level || 1
       });

@@ -7,7 +7,7 @@ import { createPageUrl } from "@/utils";
 import SearchResults from "../map/SearchResults";
 import ClusterExpansion from "../map/ClusterExpansion";
 import SearchBar from "../search/SearchBar";
-import { intelligentSearch } from "@/functions/intelligentSearch";
+import { base44 } from "@/api/base44Client";
 import useCurrentUser from "../shared/useCurrentUser";
 import { clusterEvents, getClusterVisualSize, getClusterColor } from "../shared/services/clusteringAlgorithm";
 
@@ -250,7 +250,7 @@ export default function MapView({
     setShowSearchResults(true);
 
     try {
-      const { data } = await intelligentSearch({
+      const { data } = await base44.functions.invoke('intelligentSearch', {
         query: query,
         userLocation: mapCenter
       });

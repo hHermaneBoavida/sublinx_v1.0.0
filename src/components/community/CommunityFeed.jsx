@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { moderateContent } from "@/functions/moderateContent";
+
 
 export default function CommunityFeed({ communityId, user }) {
   const [newPost, setNewPost] = useState("");
@@ -42,7 +42,7 @@ export default function CommunityFeed({ communityId, user }) {
   const createPostMutation = useMutation({
     mutationFn: async (content) => {
       // Moderação automática
-      const moderation = await moderateContent({
+      const moderation = await base44.functions.invoke('moderateContent', {
         content: content,
         communityId: communityId,
         contentType: 'post'

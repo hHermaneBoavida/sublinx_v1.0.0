@@ -29,12 +29,9 @@ export default function WebSocketNotificationProvider({ children, user }) {
       try {
         // NOTA: Em produção, use wss:// e seu endpoint real
         // Por enquanto, usamos fallback para polling
-        console.log('🔌 Tentando conectar WebSocket (fallback para polling)...');
-
         // Simular conexão WebSocket com polling otimizado
         const simulateWebSocket = () => {
           setIsConnected(true);
-          console.log('✅ Sistema de notificações ativo (polling mode)');
 
           // Polling mais eficiente (30s)
           const pollInterval = setInterval(async () => {

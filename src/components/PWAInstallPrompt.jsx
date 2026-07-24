@@ -30,7 +30,6 @@ export default function PWAInstallPrompt() {
     // Listener para o evento beforeinstallprompt
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
-      console.log('📱 PWA: beforeinstallprompt event captured');
       setDeferredPrompt(e);
       
       // Esperar 3 segundos antes de mostrar o prompt
@@ -43,7 +42,6 @@ export default function PWAInstallPrompt() {
 
     // Listener para quando o app for instalado
     window.addEventListener('appinstalled', () => {
-      console.log('✅ PWA: App instalado com sucesso');
       setIsInstalled(true);
       setShowPrompt(false);
       setDeferredPrompt(null);
@@ -56,20 +54,16 @@ export default function PWAInstallPrompt() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-      console.warn('⚠️ PWA: Nenhum prompt disponível');
       return;
     }
 
-    console.log('📱 PWA: Mostrando prompt de instalação');
     deferredPrompt.prompt();
 
     const { outcome } = await deferredPrompt.userChoice;
-    console.log(`📱 PWA: Resultado da escolha do usuário: ${outcome}`);
 
     if (outcome === 'accepted') {
-      console.log('✅ PWA: Usuário aceitou a instalação');
+      setIsInstalled(true);
     } else {
-      console.log('❌ PWA: Usuário rejeitou a instalação');
       localStorage.setItem('pwa-install-dismissed', 'true');
       localStorage.setItem('pwa-install-dismissed-time', Date.now().toString());
     }

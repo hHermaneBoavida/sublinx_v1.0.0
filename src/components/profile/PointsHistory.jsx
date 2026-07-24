@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PointsHistory as PointsHistoryEntity } from '@/entities/PointsHistory';
+import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, TrendingUp } from 'lucide-react';
 import { format } from "date-fns";
@@ -23,7 +23,7 @@ export default function PointsHistory({ user }) {
       if (!user?.id) return;
       setLoading(true);
       try {
-        const pointsData = await PointsHistoryEntity.filter({ user_id: user.id }, '-created_date', 20);
+        const pointsData = await base44.entities.PointsHistory.filter({ user_id: user.id }, '-created_date', 20);
         setHistory(pointsData);
       } catch (error) {
         console.error("Erro ao carregar histórico de pontos:", error);

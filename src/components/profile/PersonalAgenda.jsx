@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket } from '@/entities/Ticket';
-import { Event } from '@/entities/Event';
+import { base44 } from '@/api/base44Client';
 import TicketCard from '../tickets/TicketCard';
 import { Calendar } from 'lucide-react';
 
@@ -12,11 +11,11 @@ export default function PersonalAgenda({ user }) {
     const loadUserTickets = async () => {
       setLoading(true);
       try {
-        const userTickets = await Ticket.filter({ user_id: user.id }, '-created_date');
+        const userTickets = await base44.entities.Ticket.filter({ user_id: user.id }, '-created_date');
         
         if (userTickets.length > 0) {
           const eventIds = [...new Set(userTickets.map(t => t.event_id))];
-          const events = await Event.filter({ id: eventIds });
+          const events = await base44.entities.Event.filter({ id: eventIds });
           const eventsMap = new Map(events.map(e => [e.id, e]));
 
           const ticketsWithEvents = userTickets.map(ticket => ({

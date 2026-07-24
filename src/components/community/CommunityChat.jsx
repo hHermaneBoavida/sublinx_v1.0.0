@@ -8,7 +8,7 @@ import { Send, Loader2, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { moderateContent } from "@/functions/moderateContent";
+
 
 export default function CommunityChat({ communityId, user }) {
   const [message, setMessage] = useState("");
@@ -28,7 +28,7 @@ export default function CommunityChat({ communityId, user }) {
   const sendMessageMutation = useMutation({
     mutationFn: async (content) => {
       // Moderação automática
-      const moderation = await moderateContent({
+      const moderation = await base44.functions.invoke('moderateContent', {
         content: content,
         communityId: communityId,
         contentType: 'message'
