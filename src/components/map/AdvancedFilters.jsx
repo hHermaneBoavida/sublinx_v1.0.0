@@ -86,7 +86,7 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClose }) {
                   onClick={() => setLocalFilters({ ...localFilters, dateRange: option.value })}
                   className={localFilters.dateRange === option.value 
                     ? 'bg-cyan-600 hover:bg-cyan-700 text-white' 
-                    : 'border-gray-700 text-foreground hover:bg-gray-800'}
+                    : 'border-gray-700 text-muted-foreground hover:bg-gray-800 hover:text-foreground'}
                 >
                   {option.label}
                 </Button>
@@ -156,7 +156,7 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClose }) {
                     className={`w-full justify-start ${
                       localFilters.sortBy === option.value 
                         ? 'bg-cyan-600 hover:bg-cyan-700 text-white' 
-                        : 'border-gray-700 text-foreground hover:bg-gray-800'
+                        : 'border-gray-700 text-muted-foreground hover:bg-gray-800 hover:text-foreground'
                     }`}
                   >
                     <Icon className="w-4 h-4 mr-2" />
@@ -205,7 +205,7 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClose }) {
 
         {/* Footer */}
         <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 p-4 flex gap-3">
-          <Button onClick={handleReset} variant="outline" className="flex-1 border-gray-700 text-foreground">
+          <Button onClick={handleReset} variant="outline" className="flex-1 border-gray-700 text-muted-foreground hover:text-foreground">
             Limpar
           </Button>
           <Button onClick={handleApply} className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 text-white">
