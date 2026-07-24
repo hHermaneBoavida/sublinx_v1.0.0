@@ -165,7 +165,7 @@ export default function Layout({ children, currentPageName }) {
                   <motion.img
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png"
+                    src="https://media.base44.com/images/public/68a70ee66a1156f1068d2903/130e0a94e_sublinxicon.png"
                     alt="SUBLINX"
                     className="w-8 h-8"
                   />

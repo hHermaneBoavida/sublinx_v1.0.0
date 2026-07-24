@@ -75,8 +75,8 @@ export default function NotificationListener({ user }) {
       try {
         new Notification(notification.title || 'SUBLINX', {
           body: notification.message,
-          icon: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png',
-          badge: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png',
+          icon: 'https://media.base44.com/images/public/68a70ee66a1156f1068d2903/130e0a94e_sublinxicon.png',
+          badge: 'https://media.base44.com/images/public/68a70ee66a1156f1068d2903/130e0a94e_sublinxicon.png',
           tag: notification.id,
           requireInteraction: false,
           silent: false

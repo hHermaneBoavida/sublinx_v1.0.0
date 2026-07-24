@@ -161,7 +161,7 @@ export async function fetchOpenGraphImage(url) {
   }
 }
 
-const DEFAULT_IMAGE = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png';
+const DEFAULT_IMAGE = 'https://media.base44.com/images/public/68a70ee66a1156f1068d2903/130e0a94e_sublinxicon.png';
 
 export async function findOrCreateOrganizer(name, source, sourceId, extraData) {
   if (!name) return null;
