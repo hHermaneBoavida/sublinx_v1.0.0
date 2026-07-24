@@ -75,8 +75,8 @@ export default function NotificationListener({ user }) {
       try {
         new Notification(notification.title || 'SUBLINX', {
           body: notification.message,
-          icon: '/icon-192.png',
-          badge: '/icon-192.png',
+          icon: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png',
+          badge: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png',
           tag: notification.id,
           requireInteraction: false,
           silent: false

@@ -103,7 +103,7 @@ export default function StoryViewer({ storyGroup, onClose }) {
                     onEnded={goToNext}
                  />
              ) : (
-                <img src={currentStory.media_url} className="w-full h-full object-cover" />
+                <img src={currentStory.media_url} alt="Story" className="w-full h-full object-cover" />
              )}
             </motion.div>
         </AnimatePresence>

@@ -24,7 +24,6 @@ export default function Notificacoes() {
         const userData = await base44.auth.me();
         return userData;
       } catch (error) {
-        console.error("Erro ao carregar usuário:", error);
         navigate(createPageUrl("BemVindo"));
         return null;
       }
@@ -37,22 +36,17 @@ export default function Notificacoes() {
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        console.log('⚠️ User ID não disponível');
         return [];
       }
 
       try {
-        console.log('📥 Buscando notificações para user:', user.id);
         const data = await base44.entities.Notification.filter(
           { user_id: user.id },
           '-created_date',
           50
         );
         
-        console.log('✅ Notificações recebidas:', data?.length || 0);
-        
         if (!Array.isArray(data)) {
-          console.warn('⚠️ Dados recebidos não são array:', data);
           return [];
         }
         
@@ -64,10 +58,8 @@ export default function Notificacoes() {
           n.message
         );
         
-        console.log('✅ Notificações válidas:', validNotifications.length);
         return validNotifications;
       } catch (error) {
-        console.error('❌ Erro ao buscar notificações:', error);
         return [];
       }
     },
@@ -87,9 +79,7 @@ export default function Notificacoes() {
       queryClient.invalidateQueries(['notifications', user?.id]);
       queryClient.invalidateQueries(['realtimeNotifications', user?.id]);
     },
-    onError: (error) => {
-      console.error('❌ Erro ao marcar como lida:', error);
-    }
+    onError: () => {}
   });
 
   const markAllAsReadMutation = useMutation({
@@ -104,8 +94,6 @@ export default function Notificacoes() {
         throw new Error('Nenhuma notificação não lida');
       }
 
-      console.log(`🔄 Marcando ${unreadNotifications.length} notificações como lidas...`);
-      
       await Promise.all(
         unreadNotifications.map(n => 
           base44.entities.Notification.update(n.id, { is_read: true })
@@ -117,9 +105,7 @@ export default function Notificacoes() {
       queryClient.invalidateQueries(['realtimeNotifications', user?.id]);
       alert('✅ Todas as notificações marcadas como lidas');
     },
-    onError: (error) => {
-      console.error('❌ Erro ao marcar todas:', error);
-    }
+    onError: () => {}
   });
 
   const deleteNotificationMutation = useMutation({
@@ -131,9 +117,7 @@ export default function Notificacoes() {
       queryClient.invalidateQueries(['notifications', user?.id]);
       queryClient.invalidateQueries(['realtimeNotifications', user?.id]);
     },
-    onError: (error) => {
-      console.error('❌ Erro ao deletar:', error);
-    }
+    onError: () => {}
   });
 
   const handleNotificationClick = async (notification) => {
