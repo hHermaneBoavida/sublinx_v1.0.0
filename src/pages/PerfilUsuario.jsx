@@ -17,6 +17,7 @@ import { CACHE_CONFIG, DEFAULT_AVATAR } from "../components/shared/helpers";
 import OrganizerRating from "../components/reviews/OrganizerRating";
 import { useSignalCapture } from "../components/resonance/SignalCapture";
 import DirectMessageModal from "../components/chat/DirectMessageModal";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function PerfilUsuario() {
   const location = useLocation();
@@ -28,18 +29,7 @@ export default function PerfilUsuario() {
   const searchParams = new URLSearchParams(location.search);
   const userId = searchParams.get('id');
 
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      try {
-        return await base44.auth.me();
-      } catch {
-        return null;
-      }
-    },
-    retry: false,
-    ...CACHE_CONFIG.STATIC,
-  });
+  const { user: currentUser } = useAuth();
 
   const { captureArtistProfileView, captureOrganizerPattern } = useSignalCapture(currentUser, {
     profile_user_id: userId

@@ -1,16 +1,28 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Search, MapPin, Calendar, X, User as UserIcon } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { useSearch } from "./SearchContext";
+import { filterPublicEvents } from "../shared/eventValidation";
 
 export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { searchQuery, setSearchQuery, clearSearch } = useSearch();
   const [showResults, setShowResults] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const debounceRef = useRef(null);
+
+  // Debounce search query (300ms) — prevents excessive filtering on every keystroke
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [searchQuery]);
 
   const isFeedPage = location.pathname === createPageUrl("Feed");
 
@@ -22,7 +34,10 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
 
   const { data: events = [], isLoading: loadingEvents } = useQuery({
     queryKey: ['globalSearchEvents'],
-    queryFn: async () => await base44.entities.Event.list('-date', 200),
+    queryFn: async () => {
+      const all = await base44.entities.Event.list('-date', 200);
+      return filterPublicEvents(all || []);
+    },
     staleTime: 60000,
   });
 
@@ -33,8 +48,8 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
   });
 
   const results = useMemo(() => {
-    if (!searchQuery.trim()) return { venues: [], events: [], users: [] };
-    const q = searchQuery.toLowerCase().trim();
+    if (!debouncedQuery.trim()) return { venues: [], events: [], users: [] };
+    const q = debouncedQuery.toLowerCase().trim();
     return {
       venues: venues
         .filter(v =>
@@ -63,7 +78,7 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
         )
         .slice(0, 5),
     };
-  }, [searchQuery, venues, events, users]);
+  }, [debouncedQuery, venues, events, users]);
 
   const hasResults = results.venues.length > 0 || results.events.length > 0 || results.users.length > 0;
   const isLoading = loadingVenues || loadingEvents || loadingUsers;
@@ -102,7 +117,7 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
     setShowResults(false);
   };
 
-  const showDropdown = !isFeedPage && showResults && searchQuery.trim();
+  const showDropdown = !isFeedPage && showResults && debouncedQuery.trim();
 
   const searchContent = (
     <div className="relative w-full">
