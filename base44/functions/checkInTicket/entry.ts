@@ -1,14 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { hasOrganizerAccess } from '../../shared/subscriptionAuth.ts';
 
 /**
  * SUBLINX — Check-in Seguro de Ingresso
  *
- * Valida server-side que:
- * - O usuário é o organizador do evento do ticket OU admin.
- * - O ticket está com status 'valid' e pagamento 'confirmed'.
- * - Marca o ticket como 'used' com timestamp.
- *
- * O frontend NÃO pode atualizar o status do ticket diretamente via SDK.
+ * Validação no backend:
+ * 1. Ticket existe e tem event_id válido
+ * 2. Usuário é organizador do evento (event.organizer_id === user.id) ou admin
+ * 3. Assinatura organizer_elite ativa e não expirada
+ * 4. Ticket status='valid' E payment_status='confirmed'
+ * 5. Marca ticket como 'used' com timestamp
  */
 
 Deno.serve(async (req) => {
@@ -27,24 +28,29 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'ticket_id ou qr_code_data é obrigatório' }, { status: 400 });
     }
 
-    // Buscar ticket via asServiceRole (bypass RLS — validação de propriedade abaixo)
+    // Buscar ticket via asServiceRole
     let ticket;
     try {
       if (qr_code_data) {
         const tickets = await base44.asServiceRole.entities.Ticket.filter({ qr_code_data });
-        ticket = tickets[0];
-      } else {
+        ticket = tickets?.[0];
+      } else if (ticket_id) {
         ticket = await base44.asServiceRole.entities.Ticket.get(ticket_id);
       }
     } catch {
       // Ticket não encontrado — retorna 404 abaixo
     }
 
-    if (!ticket) {
+    if (!ticket || !ticket.id) {
       return Response.json({ error: 'Ingresso não encontrado' }, { status: 404 });
     }
 
-    // Buscar evento e validar propriedade
+    // Validar event_id no ticket
+    if (!ticket.event_id) {
+      return Response.json({ error: 'Ingresso sem evento associado' }, { status: 400 });
+    }
+
+    // Buscar evento
     let event;
     try {
       event = await base44.asServiceRole.entities.Event.get(ticket.event_id);
@@ -52,11 +58,24 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Evento não encontrado' }, { status: 404 });
     }
 
-    const isOrganizer = event.organizer_id === user.id;
+    if (!event || !event.id) {
+      return Response.json({ error: 'Evento não encontrado' }, { status: 404 });
+    }
+
+    // Validar propriedade do evento
+    const isOwner = event.organizer_id && event.organizer_id === user.id;
     const isAdmin = user.role === 'admin';
 
-    if (!isOrganizer && !isAdmin) {
+    if (!isOwner && !isAdmin) {
       return Response.json({ error: 'Acesso negado — você não é o organizador deste evento' }, { status: 403 });
+    }
+
+    // Validar assinatura organizer_elite ativa (exceto admins)
+    if (!isAdmin) {
+      const hasOrgAccess = await hasOrganizerAccess(base44, user.id);
+      if (!hasOrgAccess) {
+        return Response.json({ error: 'Assinatura de organizador inativa ou expirada' }, { status: 403 });
+      }
     }
 
     // Validar status do ticket

@@ -1,18 +1,18 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { getPlanPrivileges } from '../../shared/subscriptionAuth.ts';
 
 /**
  * SUBLINX — Gerenciamento Seguro de Assinaturas
  *
- * Esta é a ÚNICA via permitida para conceder privilégios premium
- * (is_organizer, is_pro_member, verified_organizer, secret_mode_unlocked).
- *
- * O frontend NUNCA pode definir essas flags diretamente via updateMe().
+ * ÚNICA via permitida para conceder privilégios premium.
+ * O frontend NUNCA pode definir is_organizer/is_pro_member via updateMe().
  *
  * Regras:
  * - Plano gratuito: ativa imediatamente, revoga privilégios premium.
- * - Planos pagos: sem gateway configurado → cria assinatura 'pending',
- *   NÃO concede privilégios. Modo sandbox claramente identificado.
- * - Preço e features são validados server-side; o payload do cliente é ignorado.
+ * - Planos pagos: cria assinatura 'pending' com end_date (30 dias).
+ *   Privilégios só concedidos após webhook de pagamento confirmado.
+ * - action: 'cancel' cancela assinatura ativa e revoga privilégios.
+ * - Expiração automática é validada pelo módulo subscriptionAuth.
  */
 
 const PLANS = {
@@ -20,21 +20,20 @@ const PLANS = {
     name: 'Underground Free',
     price: 0,
     features: ['Acesso a eventos públicos', '3 eventos por mês', 'Feed básico', 'Perfil simples'],
-    privileges: { is_organizer: false, is_pro_member: false, verified_organizer: false, secret_mode_unlocked: false },
   },
   underground_pro: {
     name: 'Underground Pro',
     price: 29.90,
     features: ['Acesso a TODOS os eventos', 'Eventos ilimitados', 'Notificações personalizadas', 'Prioridade em eventos secretos', 'Chat com organizadores', 'Perfil premium', 'Sem anúncios'],
-    privileges: { is_organizer: false, is_pro_member: true, verified_organizer: false, secret_mode_unlocked: true },
   },
   organizer_elite: {
     name: 'Organizador Elite',
     price: 99.90,
-    features: ['Criar eventos ilimitados', 'Gestão de participantes', 'Analytics avançados', 'Promoção prioritária', 'Chat premium com usuários', 'Suporte dedicado', 'Comissão reduzida', 'Verificação de organizador'],
-    privileges: { is_organizer: true, is_pro_member: true, verified_organizer: true, secret_mode_unlocked: true },
+    features: ['Criar eventos ilimitados', 'Gestão de participantes', 'Analytics avançados', 'Promoção prioritária', 'Chat premium', 'Suporte dedicado', 'Comissão reduzida', 'Verificação de organizador'],
   },
 };
+
+const SUBSCRIPTION_DURATION_DAYS = 30;
 
 Deno.serve(async (req) => {
   try {
@@ -46,31 +45,58 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { plan_id } = body;
+    const { plan_id, action } = body;
 
-    // Validar plano contra definição server-side (nunca confiar no payload do cliente)
-    const plan = PLANS[plan_id];
-    if (!plan) {
-      return Response.json({ error: 'Plano inválido' }, { status: 400 });
-    }
+    // ── CANCEL / DOWNGRADE ──────────────────────────────────
+    if (action === 'cancel') {
+      const activeSubs = await base44.asServiceRole.entities.Subscription.filter({
+        user_id: user.id,
+        status: 'active',
+      });
 
-    // Buscar assinatura ativa atual
-    const existingSubs = await base44.asServiceRole.entities.Subscription.filter({
-      user_id: user.id,
-      status: 'active',
-    });
-
-    // PLANO GRATUITO — ativação imediata, sem privilégios premium
-    if (plan.price === 0) {
-      // Cancelar assinaturas ativas anteriores
-      for (const sub of existingSubs) {
+      for (const sub of activeSubs) {
         await base44.asServiceRole.entities.Subscription.update(sub.id, {
           status: 'cancelled',
           end_date: new Date().toISOString(),
         });
       }
 
-      // Criar nova assinatura ativa
+      // Revoke ALL premium privileges immediately
+      await base44.asServiceRole.entities.User.update(user.id, {
+        is_organizer: false,
+        is_pro_member: false,
+        verified_organizer: false,
+        secret_mode_unlocked: false,
+      });
+
+      return Response.json({
+        success: true,
+        status: 'cancelled',
+        message: 'Assinatura cancelada. Privilégios premium revogados.',
+      });
+    }
+
+    // ── PLAN CHANGE ────────────────────────────────────────
+    const plan = PLANS[plan_id];
+    if (!plan) {
+      return Response.json({ error: 'Plano inválido' }, { status: 400 });
+    }
+
+    const existingSubs = await base44.asServiceRole.entities.Subscription.filter({
+      user_id: user.id,
+      status: 'active',
+    });
+
+    // Cancel all existing active subscriptions
+    for (const sub of existingSubs) {
+      await base44.asServiceRole.entities.Subscription.update(sub.id, {
+        status: 'cancelled',
+        end_date: new Date().toISOString(),
+      });
+    }
+
+    // FREE PLAN — immediate activation, revoke premium
+    if (plan.price === 0) {
       await base44.asServiceRole.entities.Subscription.create({
         user_id: user.id,
         plan_type: plan_id,
@@ -81,48 +107,38 @@ Deno.serve(async (req) => {
         features: plan.features,
       });
 
-      // Revogar privilégios premium (plano gratuito não concede nenhum)
-      await base44.asServiceRole.entities.User.update(user.id, {
-        is_organizer: false,
-        is_pro_member: false,
-        verified_organizer: false,
-        secret_mode_unlocked: false,
-      });
+      // Revoke all premium privileges (free plan has none)
+      const privileges = getPlanPrivileges(plan_id);
+      await base44.asServiceRole.entities.User.update(user.id, privileges);
 
       return Response.json({
         success: true,
         plan_id,
         plan_name: plan.name,
         status: 'active',
-        message: `Plano ${plan.name} ativado com sucesso!`,
+        message: `Plano ${plan.name} ativado!`,
       });
     }
 
-    // PLANOS PAGOS — sem gateway de pagamento configurado.
-    // Cria assinatura 'pending' e NÃO concede privilégios premium.
-    // Privilégios só são concedidos após confirmação de pagamento via webhook
-    // de um gateway real (ex: Stripe), nunca por requisição direta do cliente.
-
-    // Cancelar assinaturas ativas anteriores
-    for (const sub of existingSubs) {
-      await base44.asServiceRole.entities.Subscription.update(sub.id, {
-        status: 'cancelled',
-        end_date: new Date().toISOString(),
-      });
-    }
-
-    // Criar assinatura PENDENTE — aguardando confirmação de pagamento
+    // PAID PLANS — create PENDING subscription, NO privileges granted
+    // Privileges are only granted after payment confirmation via webhook
     const subscription = await base44.asServiceRole.entities.Subscription.create({
       user_id: user.id,
       plan_type: plan_id,
       status: 'pending',
       price: plan.price,
       start_date: new Date().toISOString(),
+      end_date: new Date(Date.now() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000).toISOString(),
       features: plan.features,
     });
 
-    // NÃO conceder privilégios premium — pagamento não confirmado
-    // Privilégios serão concedidos apenas por webhook do gateway de pagamento
+    // Explicitly ensure no premium privileges while pending
+    await base44.asServiceRole.entities.User.update(user.id, {
+      is_organizer: false,
+      is_pro_member: false,
+      verified_organizer: false,
+      secret_mode_unlocked: false,
+    });
 
     return Response.json({
       success: false,
