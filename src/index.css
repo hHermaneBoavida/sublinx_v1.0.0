@@ -244,6 +244,15 @@ p, span, label, li, td, th {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Hide scrollbar for tabs horizontal scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Clear persistent focus/active states on buttons after interaction */
 button:focus:not(:focus-visible) {
   outline: none;

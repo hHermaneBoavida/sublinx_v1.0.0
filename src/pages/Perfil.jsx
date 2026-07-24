@@ -196,12 +196,12 @@ export default function Perfil() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-3">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 mb-6 overflow-hidden">
           <div className="relative flex-shrink-0 mx-auto sm:mx-0">
             <img
               src={getUserAvatar(user)}
               alt={getUserDisplayName(user)}
-              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-gray-800"
+              className="w-16 h-16 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-gray-800"
             />
             {(user.is_pro_member || user.is_organizer) && (
               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center border-2 border-black">
@@ -211,18 +211,18 @@ export default function Perfil() {
           </div>
 
           <div className="flex-1 min-w-0 w-full">
-            <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 mb-4">
-              <div className="text-center">
-                <div className="text-xl font-bold">{stats.events}</div>
-                <div className="text-sm text-gray-400">{user.is_organizer ? 'eventos' : 'ingressos'}</div>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-6 mb-4">
+              <div className="text-center min-w-[50px]">
+                <div className="text-lg sm:text-xl font-bold">{stats.events}</div>
+                <div className="text-xs sm:text-sm text-gray-400">{user.is_organizer ? 'eventos' : 'ingressos'}</div>
               </div>
-              <div className="text-center">
-                <div className="text-xl font-bold">{stats.followers}</div>
-                <div className="text-sm text-gray-400">seguidores</div>
+              <div className="text-center min-w-[50px]">
+                <div className="text-lg sm:text-xl font-bold">{stats.followers}</div>
+                <div className="text-xs sm:text-sm text-gray-400">seguidores</div>
               </div>
-              <div className="text-center">
-                <div className="text-xl font-bold">{stats.following}</div>
-                <div className="text-sm text-gray-400">seguindo</div>
+              <div className="text-center min-w-[50px]">
+                <div className="text-lg sm:text-xl font-bold">{stats.following}</div>
+                <div className="text-xs sm:text-sm text-gray-400">seguindo</div>
               </div>
             </div>
 
@@ -293,20 +293,20 @@ export default function Perfil() {
         </div>
 
         <Tabs defaultValue={user.is_organizer ? "eventos" : "ingressos"} className="w-full">
-          <TabsList className="w-full grid grid-cols-4 bg-black border-b border-gray-800 rounded-none h-auto p-0">
-            <TabsTrigger value={user.is_organizer ? "eventos" : "ingressos"} className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1">
+          <TabsList className="w-full flex overflow-x-auto bg-black border-b border-gray-800 rounded-none h-auto p-0 no-scrollbar" style={{ scrollbarWidth: 'none' }}>
+            <TabsTrigger value={user.is_organizer ? "eventos" : "ingressos"} className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
               {user.is_organizer ? <Calendar className="w-4 h-4" /> : <Ticket className="w-4 h-4" />}
               <span className="text-xs">{user.is_organizer ? 'Eventos' : 'Ingressos'}</span>
             </TabsTrigger>
-            <TabsTrigger value="reels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-pink-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1">
+            <TabsTrigger value="reels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-pink-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
               <Video className="w-4 h-4" />
               <span className="text-xs">Reels</span>
             </TabsTrigger>
-            <TabsTrigger value="music" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1">
+            <TabsTrigger value="music" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
               <Music className="w-4 h-4" />
               <span className="text-xs">Música</span>
             </TabsTrigger>
-            <TabsTrigger value="config" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1">
+            <TabsTrigger value="config" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
               <Settings className="w-4 h-4" />
               <span className="text-xs">Ajustes</span>
             </TabsTrigger>
