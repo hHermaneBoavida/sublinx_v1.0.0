@@ -388,16 +388,7 @@
   ],
   "rls": {
     "create": {
-      "$and": [
-        {
-          "data.organizer_id": "{{user.id}}"
-        },
-        {
-          "user_condition": {
-            "data.is_organizer": true
-          }
-        }
-      ]
+      "data.organizer_id": "{{user.id}}"
     },
     "read": {
       "$or": [
@@ -419,7 +410,7 @@
             },
             {
               "user_condition": {
-                "data.is_pro_member": true
+                "is_pro_member": true
               }
             }
           ]
