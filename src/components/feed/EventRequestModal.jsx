@@ -51,7 +51,7 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
 
   const requestMutation = useMutation({
     mutationFn: async (requestData) => {
-      console.log('📤 Enviando solicitação:', requestData);
+      console.log('Enviando solicitação:', requestData);
       
       try {
         const existingRequests = await base44.entities.EventRequest.filter({
@@ -71,10 +71,10 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
         if (error.message && error.message.includes('já')) {
           throw error;
         }
-        console.warn('⚠️ Erro ao verificar solicitações existentes:', error);
+        console.warn('Erro ao verificar solicitações existentes:', error);
       }
 
-      console.log('✅ Criando nova solicitação...');
+      console.log('Criando nova solicitação...');
       const newRequest = await base44.entities.EventRequest.create({
         user_id: requestData.user_id,
         event_id: requestData.event_id,
@@ -92,7 +92,7 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
         }
       });
 
-      console.log('✅ Solicitação criada:', newRequest);
+      console.log('Solicitação criada:', newRequest);
 
       try {
         await base44.entities.Notification.create({
@@ -117,7 +117,7 @@ export default function EventRequestModal({ event, user, onClose, onSuccess }) {
       }, 2500);
     },
     onError: (error) => {
-      console.error('❌ Erro ao criar solicitação:', error);
+      console.error('Erro ao criar solicitação:', error);
       console.error('Detalhes:', {
         message: error?.message,
         response: error?.response,

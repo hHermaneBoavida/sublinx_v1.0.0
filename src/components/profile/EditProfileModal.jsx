@@ -84,7 +84,7 @@ export default function EditProfileModal({ user, onClose }) {
       onClose();
 
     } catch (error) {
-      console.error("❌ Erro ao salvar:", error);
+      console.error("Erro ao salvar:", error);
       setError(error.message || 'Erro ao salvar. Tente novamente.');
       setLoading(false);
     }

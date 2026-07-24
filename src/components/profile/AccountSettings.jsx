@@ -50,7 +50,7 @@ export default function AccountSettings({ user, onUpdate }) {
       if (onUpdate) onUpdate();
     },
     onError: (error) => {
-      console.error("❌ Erro ao salvar configurações:", error);
+      console.error("Erro ao salvar configurações:", error);
       alert("❌ Falha ao salvar. Tente novamente.");
     }
   });

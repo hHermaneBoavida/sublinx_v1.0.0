@@ -116,7 +116,7 @@ class SearchAnalytics {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(analytics));
     } catch (e) {
-      console.error('⚠️ localStorage cheio:', e);
+      console.error('localStorage cheio:', e);
       // Se cheio, limpar tudo
       this.clearAll();
     }
@@ -143,7 +143,7 @@ if (typeof window !== 'undefined') {
       });
       
       searchAnalytics.saveAnalytics(cleaned);
-      console.log('🧹 Analytics antigas limpas');
+      console.log('Analytics antigas limpas');
     } catch (e) {
       console.error('Erro no cleanup:', e);
     }

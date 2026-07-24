@@ -110,7 +110,7 @@ export default function Recomendacoes() {
     queryFn: async () => {
       if (!user || allEvents.length === 0) return [];
 
-      console.log("🤖 Gerando recomendações com IA...");
+      console.log("Gerando recomendações com IA...");
 
       const attendedGenres = [...new Set(attendedEvents.map(e => e.genre))];
       const attendedTypes = [...new Set(attendedEvents.map(e => e.type))];
@@ -164,17 +164,17 @@ ${i + 1}. "${e.title}"
           }
         });
 
-        console.log("✅ IA respondeu:", response);
+        console.log("IA respondeu:", response);
 
         const recommendedIds = response.recommended_event_ids || [];
         const recommended = recommendedIds
           .map(id => allEvents.find(e => e.id === id))
           .filter(e => e !== undefined);
 
-        console.log(`✅ ${recommended.length} eventos recomendados pela IA`);
+        console.log(`${recommended.length} eventos recomendados pela IA`);
         return recommended;
       } catch (error) {
-        console.error("❌ Erro na IA:", error);
+        console.error("Erro na IA:", error);
         return allEvents.slice(0, 5);
       }
     },

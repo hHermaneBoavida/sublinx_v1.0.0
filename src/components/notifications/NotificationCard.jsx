@@ -88,7 +88,7 @@ const NOTIFICATION_COLORS = {
 export default function NotificationCard({ notification, onClick, onDelete, isDeleting }) {
   // Validação
   if (!notification || !notification.id) {
-    console.warn('⚠️ NotificationCard recebeu notificação inválida:', notification);
+    console.warn('NotificationCard recebeu notificação inválida:', notification);
     return null;
   }
 

@@ -39,7 +39,7 @@ export class OfflineQueue {
       return;
     }
 
-    console.log(`📤 Processing ${this.queue.length} offline actions...`);
+    console.log(`Processing ${this.queue.length} offline actions...`);
 
     const results = { success: 0, failed: 0 };
 
@@ -61,7 +61,7 @@ export class OfflineQueue {
 
     this.saveQueue();
     
-    console.log(`✅ Sync complete: ${results.success} success, ${results.failed} failed`);
+    console.log(`Sync complete: ${results.success} success, ${results.failed} failed`);
     
     return results;
   }

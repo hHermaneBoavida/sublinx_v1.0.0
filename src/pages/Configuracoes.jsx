@@ -58,7 +58,7 @@ export default function Configuracoes() {
 
         return userData;
       } catch (error) {
-        console.error("❌ Erro ao carregar usuário:", error);
+        console.error("Erro ao carregar usuário:", error);
         throw error;
       }
     },
@@ -103,8 +103,8 @@ export default function Configuracoes() {
       alert("✅ Configurações salvas com sucesso!");
     },
     onError: (error) => {
-      console.error("❌ Erro ao salvar configurações:", error);
-      alert("❌ Erro ao salvar configurações. Tente novamente.");
+      console.error("Erro ao salvar configurações:", error);
+      alert("Erro ao salvar configurações. Tente novamente.");
     }
   });
 

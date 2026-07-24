@@ -102,18 +102,18 @@ export default function SearchResults({
   }, [filteredResults, sortBy]);
 
   const handleResultClick = (result) => {
-    console.log('🔍 Clicou no resultado:', result);
+    console.log('Clicou no resultado:', result);
     
     if (result.type === 'event') {
       onEventClick && onEventClick(result);
     } else if (result.type === 'artist') {
       // CORREÇÃO: Verifica se tem ID válido antes de navegar
       if (result.id) {
-        console.log('👤 Navegando para perfil do artista:', result.id);
+        console.log('Navegando para perfil do artista:', result.id);
         navigate(createPageUrl("PerfilUsuario") + `?id=${result.id}`);
         onClose(); // Fecha modal de busca
       } else {
-        console.error('❌ ID de artista inválido:', result);
+        console.error('ID de artista inválido:', result);
         alert('Perfil não disponível');
       }
     } else if (result.type === 'venue') {

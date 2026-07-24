@@ -59,7 +59,7 @@ export async function fetchEventInteractionsBatch(eventIds, userId) {
       organizers: {} // Será preenchido externamente
     };
   } catch (error) {
-    console.error('❌ Erro no batch de interações:', error);
+    console.error('Erro no batch de interações:', error);
     return {
       likes: {},
       comments: {},
@@ -88,7 +88,7 @@ export async function fetchOrganizersBatch(organizerIds) {
       return acc;
     }, {});
   } catch (error) {
-    console.error('❌ Erro ao buscar organizadores:', error);
+    console.error('Erro ao buscar organizadores:', error);
     return {};
   }
 }
@@ -135,7 +135,7 @@ export async function fetchSocialDataBatch(userId) {
       followingUsers: followingUsers || []
     };
   } catch (error) {
-    console.error('❌ Erro ao buscar dados sociais:', error);
+    console.error('Erro ao buscar dados sociais:', error);
     return { followers: [], following: [], followersUsers: [], followingUsers: [] };
   }
 }

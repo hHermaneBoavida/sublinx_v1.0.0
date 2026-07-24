@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,7 @@ export default function EventApprovedModal({ event, onClose }) {
       qrCode: qrCodeValue
     };
     
-    console.log('📥 Download do ingresso:', ticketData);
+    console.log('Download do ingresso:', ticketData);
     alert('✅ Ingresso baixado! Verifique seus downloads.');
   };
 

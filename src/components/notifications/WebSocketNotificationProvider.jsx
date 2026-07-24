@@ -70,7 +70,7 @@ export default function WebSocketNotificationProvider({ children, user }) {
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log('✅ WebSocket conectado');
+          console.log('WebSocket conectado');
           setIsConnected(true);
           reconnectAttempts.current = 0;
         };
@@ -78,7 +78,7 @@ export default function WebSocketNotificationProvider({ children, user }) {
         ws.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
-            console.log('📨 Mensagem recebida:', message);
+            console.log('Mensagem recebida:', message);
 
             if (message.type === 'notification') {
               setLastMessage(message);
@@ -93,23 +93,23 @@ export default function WebSocketNotificationProvider({ children, user }) {
         };
 
         ws.onerror = (error) => {
-          console.error('❌ Erro no WebSocket:', error);
+          console.error('Erro no WebSocket:', error);
         };
 
         ws.onclose = () => {
-          console.log('🔌 WebSocket desconectado');
+          console.log('WebSocket desconectado');
           setIsConnected(false);
           
           // Tentar reconectar
           if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts.current++;
-            console.log(`🔄 Tentando reconectar (${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS})...`);
+            console.log(`Tentando reconectar (${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS})...`);
             
             reconnectTimeoutRef.current = setTimeout(() => {
               connect();
             }, RECONNECT_DELAY * reconnectAttempts.current);
           } else {
-            console.log('❌ Máximo de tentativas de reconexão atingido. Usando polling...');
+            console.log('Máximo de tentativas de reconexão atingido. Usando polling...');
           }
         };
         */

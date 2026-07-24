@@ -280,7 +280,7 @@ export function measurePerformance(name, fn) {
   const result = fn();
   const end = performance.now();
   if (end - start > 16) {
-    console.warn(`⚠️ Slow operation: ${name} took ${(end - start).toFixed(2)}ms`);
+    console.warn(`Slow operation: ${name} took ${(end - start).toFixed(2)}ms`);
   }
   return result;
 }

@@ -30,7 +30,7 @@ class PerformanceMonitor {
 
     // Alertar se lento
     if (duration > 100) {
-      console.warn(`⚠️ Render lento: ${componentName} (${duration.toFixed(2)}ms)`);
+      console.warn(`Render lento: ${componentName} (${duration.toFixed(2)}ms)`);
     }
   }
 
@@ -50,7 +50,7 @@ class PerformanceMonitor {
     }
 
     if (duration > 1000) {
-      console.warn(`⚠️ API lenta: ${endpoint} (${duration.toFixed(2)}ms)`);
+      console.warn(`API lenta: ${endpoint} (${duration.toFixed(2)}ms)`);
     }
   }
 
@@ -88,7 +88,7 @@ class PerformanceMonitor {
       localStorage.removeItem(test);
       return true;
     } catch (e) {
-      console.error('❌ localStorage cheio!');
+      console.error('localStorage cheio!');
       this.clearOldData();
       return false;
     }
@@ -108,7 +108,7 @@ class PerformanceMonitor {
       }
 
       toRemove.forEach(key => localStorage.removeItem(key));
-      console.log(`🧹 ${toRemove.length} itens removidos do localStorage`);
+      console.log(`${toRemove.length} itens removidos do localStorage`);
     } catch (e) {
       console.error('Erro ao limpar localStorage:', e);
     }

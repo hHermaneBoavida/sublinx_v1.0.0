@@ -24,7 +24,7 @@ export default function NotificationSettings({ user }) {
         [key]: !prev[key]
       };
       
-      console.log('⚙️ Settings atualizados:', newSettings);
+      console.log('Settings atualizados:', newSettings);
       
       // TODO: Salvar no backend quando base44.auth.updateMe suportar notification_settings
       // await base44.auth.updateMe({ notification_settings: newSettings });

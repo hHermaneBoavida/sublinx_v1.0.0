@@ -73,7 +73,7 @@ const vibes = [
 
 export default function VibeSelector({ onClose, onVibeSelect, events = [] }) {
   const handleVibeClick = (vibeId) => {
-    console.log('🎵 Vibe selecionada:', vibeId);
+    console.log('Vibe selecionada:', vibeId);
     onVibeSelect(vibeId);
   };
 

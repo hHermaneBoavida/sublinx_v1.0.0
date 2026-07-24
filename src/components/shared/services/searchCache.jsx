@@ -108,7 +108,7 @@ if (typeof window !== 'undefined') {
   setInterval(() => {
     const cleaned = searchCache.cleanup();
     if (cleaned > 0) {
-      console.log(`🧹 Cache: ${cleaned} itens expirados removidos`);
+      console.log(`Cache: ${cleaned} itens expirados removidos`);
     }
   }, 60 * 1000); // 1min
 }

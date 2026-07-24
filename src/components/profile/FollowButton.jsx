@@ -87,9 +87,9 @@ export default function FollowButton({ targetUserId, currentUserId, targetUserNa
       queryClient.invalidateQueries(['following']);
       
       if (action === 'followed') {
-        console.log(`✅ Você seguiu ${targetUserName || 'o usuário'}!`);
+        console.log(`Você seguiu ${targetUserName || 'o usuário'}!`);
       } else {
-        console.log(`✅ Você deixou de seguir ${targetUserName || 'o usuário'}!`);
+        console.log(`Você deixou de seguir ${targetUserName || 'o usuário'}!`);
       }
     }
   });
