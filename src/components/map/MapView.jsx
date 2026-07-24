@@ -563,7 +563,7 @@ export default function MapView({
   return (
     <div ref={containerRef} className="w-full h-full relative">
       {/* Search Bar — luxury minimalist, NO neon */}
-      <div className={`absolute z-[1000] flex gap-1.5 sm:gap-2 ${hideSearch ? 'right-3 sm:right-4 justify-end' : 'left-3 right-3 sm:left-4 sm:right-4'}`} style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 60px)' : 'max(12px, env(safe-area-inset-top))' }}>
+      <div className={`absolute z-[1000] flex gap-1.5 sm:gap-2 ${hideSearch ? 'right-3 sm:right-4 justify-end' : 'left-3 right-3 sm:left-4 sm:right-4'}`} style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 56px)' : 'max(12px, env(safe-area-inset-top))' }}>
         {!hideSearch && (
           <div className="flex-1 min-w-0 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
@@ -609,7 +609,7 @@ export default function MapView({
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="absolute left-4 z-[1000]" style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 112px)' : 'calc(env(safe-area-inset-top) + 64px)' }}
+          className="absolute left-4 z-[1000]" style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 104px)' : 'calc(env(safe-area-inset-top) + 64px)' }}
         >
           <Badge className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold cursor-default bg-red-600/90 border border-red-500/50 text-white">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping inline-block" />
@@ -625,7 +625,7 @@ export default function MapView({
             initial={{ opacity: 0, scale: 0.95, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -8 }}
-            className="absolute right-4 z-[2000] bg-gray-950/95 backdrop-blur-xl border border-gray-700 rounded-xl p-2 min-w-[200px] shadow-lg" style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 112px)' : 'calc(env(safe-area-inset-top) + 64px)' }}
+            className="absolute right-4 z-[2000] bg-gray-950/95 backdrop-blur-xl border border-gray-700 rounded-xl p-2 min-w-[200px] shadow-lg" style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 104px)' : 'calc(env(safe-area-inset-top) + 64px)' }}
           >
             <Button variant="ghost" onClick={() => { onOpenVibe(); setShowMenu(false); }} className="w-full justify-start text-gray-200 hover:bg-gray-800 hover:text-white">
               🎭 Vibe Selector
