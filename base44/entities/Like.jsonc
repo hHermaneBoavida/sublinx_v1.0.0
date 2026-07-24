@@ -4,16 +4,19 @@
   "properties": {
     "user_id": {
       "type": "string",
-      "description": "ID do usu\u00e1rio que curtiu"
+      "description": "ID do usuario que curtiu"
     },
     "event_id": {
       "type": "string",
-      "description": "ID do evento curtido"
+      "description": "ID do evento curtido (opcional)"
+    },
+    "target_user_id": {
+      "type": "string",
+      "description": "ID do usuario curtido (para curtir perfil)"
     }
   },
   "required": [
-    "user_id",
-    "event_id"
+    "user_id"
   ],
   "rls": {
     "create": {

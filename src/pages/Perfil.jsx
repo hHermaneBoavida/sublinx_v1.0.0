@@ -124,24 +124,48 @@ export default function Perfil() {
     gcTime: Infinity,
   });
 
+  const { data: userGenres = [] } = useQuery({
+    queryKey: ['userGenres', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        return await base44.entities.UserGenre.filter({ user_id: user.id });
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!user?.id && !user?.is_organizer,
+    staleTime: 2 * 60 * 1000,
+  });
+
   const getUserDisplayName = (u) => u?.display_name || u?.full_name || u?.email?.split('@')[0] || 'Usuário';
   const getUserAvatar = (u) => u?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getUserDisplayName(u))}&background=06b6d4&color=fff&size=128`;
 
   const favoriteGenres = useMemo(() => {
-    const events = user?.is_organizer ? myEvents : [];
-    if (!events || events.length === 0) return [];
-    
-    const genreCounts = events.reduce((acc, event) => {
-      const genre = event.genre || 'outros';
-      acc[genre] = (acc[genre] || 0) + 1;
-      return acc;
-    }, {});
-
-    return Object.entries(genreCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([genre, count]) => ({ genre, count }));
-  }, [myEvents, user?.is_organizer]);
+    if (user?.is_organizer) {
+      if (!myEvents || myEvents.length === 0) return [];
+      const genreCounts = myEvents.reduce((acc, event) => {
+        const genre = event.genre || 'outros';
+        acc[genre] = (acc[genre] || 0) + 1;
+        return acc;
+      }, {});
+      return Object.entries(genreCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([genre, count]) => ({ genre, count }));
+    } else {
+      if (!userGenres || userGenres.length === 0) return [];
+      const genreCounts = userGenres.reduce((acc, ug) => {
+        const genre = ug.genre || 'outros';
+        acc[genre] = (acc[genre] || 0) + 1;
+        return acc;
+      }, {});
+      return Object.entries(genreCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([genre, count]) => ({ genre, count }));
+    }
+  }, [myEvents, userGenres, user?.is_organizer]);
 
   const handleLogout = () => {
     base44.auth.logout();
@@ -391,25 +415,33 @@ export default function Perfil() {
           <TabsContent value="music" className="mt-4">
             {favoriteGenres.length > 0 ? (
               <div className="space-y-2">
-                {favoriteGenres.map((item, index) => (
-                  <div key={item.genre} className="flex items-center justify-between p-3 bg-gray-900 rounded border border-gray-800">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-sm font-bold">{index + 1}</div>
-                      <div>
-                        <p className="font-semibold capitalize text-sm">{item.genre}</p>
-                        <p className="text-xs text-gray-500">{item.count} evento{item.count !== 1 ? 's' : ''}</p>
+                {favoriteGenres.map((item, index) => {
+                  const total = user?.is_organizer ? myEvents.length : userGenres.length;
+                  return (
+                    <div key={item.genre} className="flex items-center justify-between p-3 bg-gray-900 rounded border border-gray-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-sm font-bold">{index + 1}</div>
+                        <div>
+                          <p className="font-semibold capitalize text-sm">{item.genre}</p>
+                          <p className="text-xs text-gray-500">{user?.is_organizer ? `${item.count} evento${item.count !== 1 ? 's' : ''}` : 'Genero favorito'}</p>
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {Math.round((item.count / Math.max(total, 1)) * 100)}%
                       </div>
                     </div>
-                    <div className="text-sm text-gray-400">
-                      {Math.round((item.count / myEvents.length) * 100)}%
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12">
                 <Music className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400 text-sm">Nenhum dado musical</p>
+                <p className="text-gray-400 text-sm mb-4">
+                  {user?.is_organizer ? 'Nenhum dado musical' : 'Nenhum genero favorito ainda'}
+                </p>
+                <Button onClick={() => navigate(createPageUrl("Feed"))} className="bg-cyan-600 hover:bg-cyan-700">
+                  Explorar Eventos
+                </Button>
               </div>
             )}
           </TabsContent>

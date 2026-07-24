@@ -12,6 +12,7 @@ import {
 import { format, isAfter, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import FollowButton from "../components/profile/FollowButton";
+import LikeProfileButton from "../components/profile/LikeProfileButton";
 import { CACHE_CONFIG, DEFAULT_AVATAR } from "../components/shared/helpers";
 import OrganizerRating from "../components/reviews/OrganizerRating";
 import { useSignalCapture } from "../components/resonance/SignalCapture";
@@ -341,20 +342,26 @@ export default function PerfilUsuario() {
 
             {/* Follow + Message Buttons */}
             {currentUser && currentUser.id !== userId && (
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex gap-2 flex-wrap">
                 <FollowButton
                   targetUserId={userId}
                   currentUserId={currentUser.id}
                   targetUserName={profileUser?.full_name}
                   size="default"
-                  className="flex-1 font-semibold shadow-lg border border-cyan-400/60 transition-all duration-300 hover:scale-105"
+                  className="flex-1 min-w-[120px] font-semibold shadow-lg border border-cyan-400/60 transition-all duration-300 hover:scale-105"
                   style={{ boxShadow: '0 0 25px rgba(6, 182, 212, 0.4)' }}
+                />
+                <LikeProfileButton
+                  targetUserId={userId}
+                  currentUserId={currentUser.id}
+                  size="default"
+                  className="min-w-[100px]"
                 />
                 <Button
                   onClick={() => setShowMessageModal(true)}
                   variant="outline"
                   size="default"
-                  className="border-cyan-500/40 text-cyan-400 hover:bg-cyan-900/20 hover:border-cyan-400"
+                  className="bg-black border-cyan-500/40 text-cyan-400 hover:bg-cyan-900/20 hover:border-cyan-400"
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Mensagem

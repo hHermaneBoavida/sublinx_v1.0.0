@@ -172,7 +172,7 @@ export default function NotificationSettings({ user }) {
           <div className="flex items-start gap-2">
             <Bell className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-gray-400">
-              💡 <strong className="text-yellow-400">Dica:</strong> Permita notificações no navegador para receber alertas mesmo quando o app estiver fechado
+              <strong className="text-yellow-400">Dica:</strong> Permita notificações no navegador para receber alertas mesmo quando o app estiver fechado
             </p>
           </div>
         </div>

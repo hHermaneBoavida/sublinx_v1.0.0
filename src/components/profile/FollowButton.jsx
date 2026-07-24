@@ -60,7 +60,7 @@ export default function FollowButton({ targetUserId, currentUserId, targetUserNa
           await base44.entities.Notification.create({
             user_id: targetUserId,
             type: 'new_follower',
-            title: '👥 Novo seguidor!',
+            title: 'Novo seguidor!',
             message: `${currentUser?.full_name || currentUser?.email || 'Alguém'} começou a seguir você`,
             is_read: false,
             location_match: false,

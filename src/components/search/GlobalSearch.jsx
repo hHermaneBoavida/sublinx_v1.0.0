@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Search, MapPin, Calendar, X } from "lucide-react";
+import { Search, MapPin, Calendar, X, User as UserIcon } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { useSearch } from "./SearchContext";
 
@@ -26,8 +26,14 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
     staleTime: 60000,
   });
 
+  const { data: users = [], isLoading: loadingUsers } = useQuery({
+    queryKey: ['globalSearchUsers'],
+    queryFn: async () => await base44.entities.User.list(),
+    staleTime: 60000,
+  });
+
   const results = useMemo(() => {
-    if (!searchQuery.trim()) return { venues: [], events: [] };
+    if (!searchQuery.trim()) return { venues: [], events: [], users: [] };
     const q = searchQuery.toLowerCase().trim();
     return {
       venues: venues
@@ -50,11 +56,17 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
           e.organizer?.toLowerCase().includes(q)
         )
         .slice(0, 5),
+      users: users
+        .filter(u =>
+          u.full_name?.toLowerCase().includes(q) ||
+          u.email?.split('@')[0]?.toLowerCase().includes(q)
+        )
+        .slice(0, 5),
     };
-  }, [searchQuery, venues, events]);
+  }, [searchQuery, venues, events, users]);
 
-  const hasResults = results.venues.length > 0 || results.events.length > 0;
-  const isLoading = loadingVenues || loadingEvents;
+  const hasResults = results.venues.length > 0 || results.events.length > 0 || results.users.length > 0;
+  const isLoading = loadingVenues || loadingEvents || loadingUsers;
 
   const handleSelectEvent = (event) => {
     setShowResults(false);
@@ -72,6 +84,12 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
     } else {
       navigate(createPageUrl("Mapa"));
     }
+  };
+
+  const handleSelectUser = (user) => {
+    setShowResults(false);
+    clearSearch();
+    navigate(createPageUrl("PerfilUsuario") + `?id=${user.id}`);
   };
 
   const handleChange = (e) => {
@@ -95,7 +113,7 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
           onChange={handleChange}
           onFocus={() => !isFeedPage && setShowResults(true)}
           onBlur={() => setTimeout(() => setShowResults(false), 200)}
-          placeholder="Buscar eventos e locais..."
+          placeholder="Buscar eventos, locais e pessoas..."
           className="w-full h-10 pl-10 pr-10 rounded-xl bg-black/60 border border-white/10 text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
         />
         {searchQuery && (
@@ -129,6 +147,32 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
                           <div className="text-sm text-white truncate">{event.title}</div>
                           <div className="text-xs text-gray-500 truncate">
                             {event.genre}{event.location?.city ? ` · ${event.location.city}` : ''}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {results.users.length > 0 && (
+                  <div>
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-t border-white/5">Pessoas</div>
+                    {results.users.map(user => (
+                      <button
+                        key={user.id}
+                        onClick={() => handleSelectUser(user)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {user.avatar_url ? (
+                            <img src={user.avatar_url} alt={user.full_name} className="w-full h-full object-cover" />
+                          ) : (
+                            <UserIcon className="w-4 h-4 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm text-white truncate">{user.full_name || user.email?.split('@')[0]}</div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {user.is_organizer ? 'Organizador' : 'Membro'}
                           </div>
                         </div>
                       </button>
