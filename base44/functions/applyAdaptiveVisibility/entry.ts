@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { hasProAccess } from '../../shared/subscriptionAuth.ts';
 
 // Calcula similaridade entre dois vetores de ressonância
 function calculateResonanceSimilarity(stateA, stateB) {
@@ -188,31 +189,85 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Buscar estado de ressonância do usuário
-    const userStates = await base44.asServiceRole.entities.UserResonanceState.filter({
-      user_id: user.id
+    // SEGURANÇA: Validar e limitar eventIds recebidos do frontend
+    const MAX_EVENT_IDS = 200;
+    const safeEventIds = Array.isArray(eventIds)
+      ? eventIds.filter(id => typeof id === 'string' && id.length > 0).slice(0, MAX_EVENT_IDS)
+      : [];
+
+    if (safeEventIds.length === 0) {
+      return Response.json({ 
+        filteredEvents: [],
+        metadata: { reason: 'no_valid_events' }
+      });
+    }
+
+    // Buscar eventos via asServiceRole (bypass RLS — validação de escopo abaixo)
+    let allEvents;
+    try {
+      allEvents = await base44.asServiceRole.entities.Event.filter({
+        id: { $in: safeEventIds }
+      });
+    } catch {
+      allEvents = [];
+    }
+    if (!Array.isArray(allEvents)) allEvents = [];
+
+    // SEGURANÇA: Filtrar eventos por escopo de acesso do usuário
+    // - Admin: acesso a todos
+    // - Organizador: próprios eventos + eventos públicos
+    // - PRO: eventos públicos + eventos secretos
+    // - Usuário comum: apenas eventos públicos
+    const isAdmin = user.role === 'admin';
+    const PUBLIC_TRUST = ['verified', 'confirmed', 'partner'];
+    const hasPro = isAdmin ? true : await hasProAccess(base44, user.id);
+
+    const events = allEvents.filter(event => {
+      if (isAdmin) return true;
+      if (event.organizer_id === user.id) return true;
+      if (event.is_secret) return hasPro;
+      return event.is_published !== false && PUBLIC_TRUST.includes(event.trust_level);
     });
 
-    if (userStates.length === 0) {
-      // Usuário sem estado = mostrar tudo (modo descoberta inicial)
+    if (events.length === 0) {
       return Response.json({ 
-        filteredEvents: eventIds.map(id => ({ event_id: id, visible: true, level: 'medium' })),
+        filteredEvents: [],
+        metadata: { reason: 'no_accessible_events' }
+      });
+    }
+
+    // Buscar estado de ressonância do usuário
+    let userStates;
+    try {
+      userStates = await base44.asServiceRole.entities.UserResonanceState.filter({
+        user_id: user.id
+      });
+    } catch {
+      userStates = [];
+    }
+    if (!Array.isArray(userStates)) userStates = [];
+
+    if (userStates.length === 0) {
+      // Usuário sem estado = mostrar eventos acessíveis (modo descoberta inicial)
+      return Response.json({ 
+        filteredEvents: events.map(e => ({ event_id: e.id, visible: true, level: 'medium' })),
         metadata: { reason: 'no_user_state', mode: 'discovery' }
       });
     }
 
     const userState = userStates[0];
 
-    // Buscar eventos
-    const events = await base44.asServiceRole.entities.Event.filter({
-      id: { $in: eventIds }
-    });
-
     // Buscar estados dos organizadores
-    const organizerIds = [...new Set(events.map(e => e.organizer_id))];
-    const organizerStates = await base44.asServiceRole.entities.UserResonanceState.filter({
-      user_id: { $in: organizerIds }
-    });
+    const organizerIds = [...new Set(events.map(e => e.organizer_id).filter(Boolean))];
+    let organizerStates = [];
+    if (organizerIds.length > 0) {
+      try {
+        organizerStates = await base44.asServiceRole.entities.UserResonanceState.filter({
+          user_id: { $in: organizerIds }
+        });
+      } catch { /* ignore */ }
+    }
+    if (!Array.isArray(organizerStates)) organizerStates = [];
 
     const organizerStatesMap = new Map();
     for (const state of organizerStates) {
@@ -252,7 +307,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Erro ao aplicar visibilidade adaptativa:', error);
     return Response.json({ 
-      error: error.message,
+      error: 'Erro ao processar visibilidade',
       filteredEvents: [],
       metadata: { error: true }
     }, { status: 500 });

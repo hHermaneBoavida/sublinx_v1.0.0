@@ -1,12 +1,22 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { hasOrganizerAccess } from '../../shared/subscriptionAuth.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
     const user = await base44.auth.me();
-    if (!user || !user.is_organizer) {
+    if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Autorização via Subscription — não confiar em user.is_organizer (manipulável via updateMe)
+    const isAdmin = user.role === 'admin';
+    if (!isAdmin) {
+      const hasAccess = await hasOrganizerAccess(base44, user.id);
+      if (!hasAccess) {
+        return Response.json({ error: 'Acesso negado — assinatura de organizador inativa' }, { status: 403 });
+      }
     }
 
     // Fetch organizer events first
@@ -162,6 +172,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Erro:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: 'Erro ao buscar métricas' }, { status: 500 });
   }
 });

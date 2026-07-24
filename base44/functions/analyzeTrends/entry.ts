@@ -9,6 +9,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Acesso administrativo obrigatório — função acessa dados globais via asServiceRole
+    if (user.role !== 'admin') {
+      return Response.json({ error: 'Acesso negado — apenas administradores' }, { status: 403 });
+    }
+
     // Buscar eventos recentes
     const recentEvents = await base44.asServiceRole.entities.Event.list('-created_date', 100);
     const recentInteractions = await base44.asServiceRole.entities.Like.list('-created_date', 200);
@@ -162,9 +167,6 @@ Seja específico, autêntico e focado na cultura eletrônica underground.`;
 
   } catch (error) {
     console.error('Error analyzing trends:', error);
-    return Response.json({ 
-      error: 'Failed to analyze trends',
-      details: error.message 
-    }, { status: 500 });
+    return Response.json({ error: 'Erro ao analisar tendências' }, { status: 500 });
   }
 });

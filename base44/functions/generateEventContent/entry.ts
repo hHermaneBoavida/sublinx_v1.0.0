@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { wrapUntrusted } from '../../shared/sanitize.ts';
+import { hasOrganizerAccess } from '../../shared/subscriptionAuth.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -10,8 +11,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!user.is_organizer) {
-      return Response.json({ error: 'Only organizers can use this feature' }, { status: 403 });
+    // Autorização via Subscription — não confiar em user.is_organizer (manipulável via updateMe)
+    const isAdmin = user.role === 'admin';
+    if (!isAdmin) {
+      const hasAccess = await hasOrganizerAccess(base44, user.id);
+      if (!hasAccess) {
+        return Response.json({ error: 'Only organizers can use this feature' }, { status: 403 });
+      }
     }
 
     const { genre, type, location, keywords } = await req.json();
@@ -55,9 +61,6 @@ Seja autêntico, use linguagem da cena eletrônica, evite clichês comerciais.`;
 
   } catch (error) {
     console.error('Error generating content:', error);
-    return Response.json({ 
-      error: 'Failed to generate content',
-      details: error.message 
-    }, { status: 500 });
+    return Response.json({ error: 'Erro ao gerar conteúdo' }, { status: 500 });
   }
 });

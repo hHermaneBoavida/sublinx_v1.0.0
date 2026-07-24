@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { hasOrganizerAccess } from '../../shared/subscriptionAuth.ts';
 
 // Batch notification helper
 async function createNotificationsInBatches(base44, notifications, batchSize = 50) {
@@ -23,8 +24,17 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     
-    if (!user || !user.is_organizer) {
+    if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Autorização via Subscription — não confiar em user.is_organizer (manipulável via updateMe)
+    const isAdmin = user.role === 'admin';
+    if (!isAdmin) {
+      const hasAccess = await hasOrganizerAccess(base44, user.id);
+      if (!hasAccess) {
+        return Response.json({ error: 'Acesso negado — assinatura de organizador inativa' }, { status: 403 });
+      }
     }
 
     const eventData = await req.json();
@@ -86,8 +96,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error creating event:', error);
-    return Response.json({ 
-      error: error.message 
-    }, { status: 500 });
+    return Response.json({ error: 'Erro ao criar evento' }, { status: 500 });
   }
 });
