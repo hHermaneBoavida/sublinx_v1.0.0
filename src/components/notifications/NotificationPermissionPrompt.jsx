@@ -3,9 +3,13 @@ import { Bell, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
+// Module-level flag: previta reinicio do timer em remontagens dentro da mesma sessao
+let hasTimerStartedThisSession = false;
+
 export default function NotificationPermissionPrompt() {
   const [show, setShow] = useState(false);
   const [permission, setPermission] = useState('default');
+  const [isRequesting, setIsRequesting] = useState(false);
 
   useEffect(() => {
     if (!('Notification' in window)) return;
@@ -13,23 +17,31 @@ export default function NotificationPermissionPrompt() {
     const currentPermission = Notification.permission;
     setPermission(currentPermission);
 
-    const dismissed = localStorage.getItem('notification_prompt_permanently_dismissed');
-    if (dismissed === 'true') return;
+    // Ja decidiu permanentemente
+    const permanentlyDismissed = localStorage.getItem('notification_prompt_permanently_dismissed');
+    if (permanentlyDismissed === 'true') return;
 
+    // Dispensado nas ultimas 24h
     const lastDismissed = localStorage.getItem('notification_prompt_dismissed');
     if (lastDismissed) {
-      const daysSinceDismissed = (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24);
-      if (daysSinceDismissed < 1) return;
+      const hoursSinceDismissed = (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60);
+      if (hoursSinceDismissed < 24) return;
     }
 
-    if (currentPermission === 'default') {
-      const timer = setTimeout(() => setShow(true), 5000);
-      return () => clearTimeout(timer);
-    }
+    // Permissao ja concedida ou negada
+    if (currentPermission !== 'default') return;
+
+    // Previta timer duplicado em remontagens (navegacao entre paginas)
+    if (hasTimerStartedThisSession) return;
+    hasTimerStartedThisSession = true;
+
+    const timer = setTimeout(() => setShow(true), 5000);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleRequestPermission = async () => {
-    if (!('Notification' in window)) return;
+    if (!('Notification' in window) || isRequesting) return;
+    setIsRequesting(true);
     try {
       const result = await Notification.requestPermission();
       setPermission(result);
@@ -37,6 +49,9 @@ export default function NotificationPermissionPrompt() {
       localStorage.setItem('notification_prompt_permanently_dismissed', 'true');
     } catch (error) {
       setShow(false);
+      localStorage.setItem('notification_prompt_permanently_dismissed', 'true');
+    } finally {
+      setIsRequesting(false);
     }
   };
 
@@ -95,10 +110,11 @@ export default function NotificationPermissionPrompt() {
               <div className="flex gap-1.5">
                 <Button
                   onClick={handleRequestPermission}
+                  disabled={isRequesting}
                   className="flex-1 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white font-semibold text-[10px] sm:text-xs h-7"
                 >
                   <Bell className="w-3 h-3 mr-1" />
-                  Ativar
+                  {isRequesting ? 'Ativando...' : 'Ativar'}
                 </Button>
                 <Button
                   onClick={handleDismiss}
@@ -120,6 +136,7 @@ export default function NotificationPermissionPrompt() {
             {/* Close Button */}
             <button
               onClick={handleDismiss}
+              aria-label="Fechar aviso de notificações"
               className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-colors"
             >
               <X className="w-3.5 h-3.5 text-gray-600" />
