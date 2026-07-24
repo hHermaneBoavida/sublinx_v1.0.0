@@ -58,49 +58,22 @@
   ],
   "rls": {
     "create": {
-      "$or": [
-        {
-          "user_condition": {
-            "data.is_organizer": true
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "read": {
       "data.is_active": true
     },
     "update": {
-      "$or": [
-        {
-          "user_condition": {
-            "data.is_organizer": true
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "data.is_organizer": true
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     }
   }
 }
