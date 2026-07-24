@@ -375,28 +375,28 @@ export default function PerfilUsuario() {
           <TabsList className="w-full grid grid-cols-4 bg-black border-b border-gray-800 rounded-none h-auto p-0">
             <TabsTrigger 
               value="eventos" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3"
+              className="rounded-none border-b-2 border-transparent text-gray-300 data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent data-[state=active]:text-white py-3 font-medium"
             >
               <Calendar className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Eventos</span>
             </TabsTrigger>
             <TabsTrigger 
               value="badges" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3"
+              className="rounded-none border-b-2 border-transparent text-gray-300 data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent data-[state=active]:text-white py-3 font-medium"
             >
               <Trophy className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Badges</span>
             </TabsTrigger>
             <TabsTrigger 
               value="music" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3"
+              className="rounded-none border-b-2 border-transparent text-gray-300 data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent data-[state=active]:text-white py-3 font-medium"
             >
               <Music className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Música</span>
+              <span className="hidden sm:inline">Músicas</span>
             </TabsTrigger>
             <TabsTrigger 
               value="activity" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3"
+              className="rounded-none border-b-2 border-transparent text-gray-300 data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent data-[state=active]:text-white py-3 font-medium"
             >
               <Clock className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Atividade</span>
@@ -410,7 +410,7 @@ export default function PerfilUsuario() {
                  variant={eventFilter === 'all' ? 'default' : 'ghost'}
                  size="sm"
                  onClick={() => setEventFilter('all')}
-                 className={eventFilter === 'all' ? 'bg-cyan-600 hover:bg-cyan-700 font-semibold text-white' : 'text-gray-400 hover:text-cyan-300'}
+                 className={eventFilter === 'all' ? 'bg-cyan-600 hover:bg-cyan-700 font-semibold text-white' : 'text-gray-200 hover:text-cyan-300 font-medium'}
                >
                  Todos
                </Button>
@@ -418,7 +418,7 @@ export default function PerfilUsuario() {
                  variant={eventFilter === 'upcoming' ? 'default' : 'ghost'}
                  size="sm"
                  onClick={() => setEventFilter('upcoming')}
-                 className={eventFilter === 'upcoming' ? 'bg-cyan-600 hover:bg-cyan-700 font-semibold text-white' : 'text-gray-400 hover:text-cyan-300'}
+                 className={eventFilter === 'upcoming' ? 'bg-cyan-600 hover:bg-cyan-700 font-semibold text-white' : 'text-gray-200 hover:text-cyan-300 font-medium'}
                >
                  Próximos
                </Button>
@@ -426,7 +426,7 @@ export default function PerfilUsuario() {
                  variant={eventFilter === 'active' ? 'default' : 'ghost'}
                  size="sm"
                  onClick={() => setEventFilter('active')}
-                 className={eventFilter === 'active' ? 'bg-green-600 hover:bg-green-700 font-semibold text-white' : 'text-gray-400 hover:text-green-300'}
+                 className={eventFilter === 'active' ? 'bg-green-600 hover:bg-green-700 font-semibold text-white' : 'text-gray-200 hover:text-green-300 font-medium'}
                >
                  Ativos
                </Button>
@@ -434,7 +434,7 @@ export default function PerfilUsuario() {
                  variant={eventFilter === 'past' ? 'default' : 'ghost'}
                  size="sm"
                  onClick={() => setEventFilter('past')}
-                 className={eventFilter === 'past' ? 'bg-gray-600 hover:bg-gray-700 font-semibold text-white' : 'text-gray-400 hover:text-gray-300'}
+                 className={eventFilter === 'past' ? 'bg-gray-600 hover:bg-gray-700 font-semibold text-white' : 'text-gray-200 hover:text-gray-300 font-medium'}
                >
                  Passados
                </Button>

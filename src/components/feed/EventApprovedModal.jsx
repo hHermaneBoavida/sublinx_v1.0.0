@@ -140,7 +140,7 @@ export default function EventApprovedModal({ event, onClose }) {
             {/* Badges */}
             <div className="flex flex-wrap gap-2 justify-center">
               <Badge className="bg-green-600/20 border-green-500/30 text-green-300">
-                ✅ Aprovado
+                Aprovado
               </Badge>
               <Badge className="bg-cyan-600/20 border-cyan-500/30 text-cyan-300">
                 {event.genre}
@@ -152,7 +152,7 @@ export default function EventApprovedModal({ event, onClose }) {
 
             {/* Informações Importantes */}
             <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3">
-              <p className="text-yellow-300 text-xs font-semibold mb-1">⚠️ Informações Importantes</p>
+              <p className="text-yellow-300 text-xs font-semibold mb-1">Informações Importantes</p>
               <ul className="text-yellow-200 text-xs space-y-1">
                 <li>• Chegue com 30 minutos de antecedência</li>
                 <li>• Leve documento com foto</li>

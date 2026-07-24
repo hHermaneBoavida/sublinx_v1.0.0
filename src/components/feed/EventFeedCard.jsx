@@ -277,8 +277,8 @@ export default function EventFeedCard({
                 <p className="text-xs text-gray-400 truncate">{displayEvent.location?.city || "Local Desconhecido"}</p>
               </div>
               {displayEvent.is_secret && (
-                <Badge className="bg-purple-600/90 border border-purple-400 text-white font-bold px-1.5 py-0 text-xs h-4">
-                  🔒
+                <Badge className="bg-purple-600/90 border border-purple-400 text-white font-bold px-1.5 py-0 text-xs h-4 flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
                 </Badge>
               )}
             </div>

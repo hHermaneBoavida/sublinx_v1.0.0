@@ -244,7 +244,7 @@ export default function Perfil() {
               <Button 
                 onClick={() => setShowEditModal(true)} 
                 variant="outline" 
-                className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="flex-1 border-gray-500 text-white font-semibold hover:bg-gray-800 hover:text-white"
               >
                 <Edit2 className="w-4 h-4 mr-2" />
                 Editar Perfil
@@ -252,7 +252,7 @@ export default function Perfil() {
               <Button 
                 onClick={handleShareProfile} 
                 variant="outline" 
-                className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="flex-1 border-gray-500 text-white font-semibold hover:bg-gray-800 hover:text-white"
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 Compartilhar
@@ -294,21 +294,21 @@ export default function Perfil() {
 
         <Tabs defaultValue={user.is_organizer ? "eventos" : "ingressos"} className="w-full">
           <TabsList className="w-full flex overflow-x-auto bg-black border-b border-gray-800 rounded-none h-auto p-0 no-scrollbar" style={{ scrollbarWidth: 'none' }}>
-            <TabsTrigger value={user.is_organizer ? "eventos" : "ingressos"} className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
+            <TabsTrigger value={user.is_organizer ? "eventos" : "ingressos"} className="rounded-none border-b-2 border-transparent text-gray-300 data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent data-[state=active]:text-white py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
               {user.is_organizer ? <Calendar className="w-4 h-4" /> : <Ticket className="w-4 h-4" />}
-              <span className="text-xs">{user.is_organizer ? 'Eventos' : 'Ingressos'}</span>
+              <span className="text-xs font-medium">{user.is_organizer ? 'Eventos' : 'Ingressos'}</span>
             </TabsTrigger>
-            <TabsTrigger value="reels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-pink-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
+            <TabsTrigger value="reels" className="rounded-none border-b-2 border-transparent text-gray-300 data-[state=active]:border-pink-500 data-[state=active]:bg-transparent data-[state=active]:text-white py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
               <Video className="w-4 h-4" />
-              <span className="text-xs">Reels</span>
+              <span className="text-xs font-medium">Reels</span>
             </TabsTrigger>
-            <TabsTrigger value="music" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
+            <TabsTrigger value="music" className="rounded-none border-b-2 border-transparent text-gray-300 data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent data-[state=active]:text-white py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
               <Music className="w-4 h-4" />
-              <span className="text-xs">Música</span>
+              <span className="text-xs font-medium">Músicas</span>
             </TabsTrigger>
-            <TabsTrigger value="config" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
+            <TabsTrigger value="config" className="rounded-none border-b-2 border-transparent text-gray-300 data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent data-[state=active]:text-white py-3 flex flex-col items-center gap-1 flex-shrink-0 min-w-[72px]">
               <Settings className="w-4 h-4" />
-              <span className="text-xs">Ajustes</span>
+              <span className="text-xs font-medium">Ajustes</span>
             </TabsTrigger>
           </TabsList>
 
@@ -439,7 +439,7 @@ export default function Perfil() {
               </div>
             </div>
 
-            <Button onClick={() => navigate(createPageUrl("ConfiguracoesPrivacidade"))} variant="outline" className="w-full border-gray-700 text-gray-300 hover:bg-gray-900">
+            <Button onClick={() => navigate(createPageUrl("ConfiguracoesPrivacidade"))} variant="outline" className="w-full border-gray-500 text-white font-semibold hover:bg-gray-900 hover:text-white">
               <Shield className="w-4 h-4 mr-2" />
               Privacidade e Segurança
             </Button>
