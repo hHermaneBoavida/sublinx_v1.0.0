@@ -6,6 +6,7 @@ import { UserPlus, UserCheck, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "../shared/helpers";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function FollowButton({ targetUserId, currentUserId, targetUserName, size = "default", className = "", style }) {
   const queryClient = useQueryClient();
@@ -30,17 +31,7 @@ export default function FollowButton({ targetUserId, currentUserId, targetUserNa
     setIsFollowing(!!followData);
   }, [followData]);
 
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      try {
-        return await base44.auth.me();
-      } catch {
-        return null;
-      }
-    },
-    ...CACHE_CONFIG.STATIC,
-  });
+  const { user: currentUser } = useAuth();
 
   const followMutation = useMutation({
     mutationFn: async () => {

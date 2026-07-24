@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import GoogleIcon from "@/components/GoogleIcon";
@@ -17,6 +18,8 @@ import { useToast } from "@/components/ui/use-toast";
 
 export default function Register() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoadingAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,6 +28,12 @@ export default function Register() {
   const [showForm, setShowForm] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
+
+  useEffect(() => {
+    if (!isLoadingAuth && isAuthenticated) {
+      navigate("/Onboarding", { replace: true });
+    }
+  }, [isAuthenticated, isLoadingAuth, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

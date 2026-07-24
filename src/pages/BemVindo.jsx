@@ -61,11 +61,7 @@ export default function BemVindo() {
   if (loading) {
     return (
       <div className="w-full h-screen bg-black flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full"
-        />
+        <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -107,11 +103,7 @@ export default function BemVindo() {
         <div className="bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-700/50 shadow-2xl overflow-hidden">
           {/* Header com Logo */}
           <div className="p-8 sm:p-10 text-center border-b border-gray-700/50">
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="flex justify-center mb-6"
-            >
+            <div className="flex justify-center mb-6">
               <div className="relative">
                 <img
                   src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/116e0559c_Sublinx_icon.png"
@@ -120,7 +112,7 @@ export default function BemVindo() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-500 opacity-20 blur-2xl animate-pulse" />
               </div>
-            </motion.div>
+            </div>
 
             <h1 className="text-3xl sm:text-4xl font-bold mb-2">
               <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -189,11 +181,7 @@ export default function BemVindo() {
                   style={{ background: "linear-gradient(135deg, #0d4f4f 0%, #00b894 100%)" }}
                 >
                   {isLogging ? (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                    />
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     "Entrar"
                   )}

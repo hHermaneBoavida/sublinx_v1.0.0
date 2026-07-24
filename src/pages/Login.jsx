@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import GoogleIcon from "@/components/GoogleIcon";
 import FacebookIcon from "@/components/FacebookIcon";
@@ -14,11 +15,19 @@ import {
 } from "@/components/auth/AuthButtons";
 
 export default function Login() {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoadingAuth } = useAuth();
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isLoadingAuth && isAuthenticated) {
+      navigate("/Onboarding", { replace: true });
+    }
+  }, [isAuthenticated, isLoadingAuth, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
