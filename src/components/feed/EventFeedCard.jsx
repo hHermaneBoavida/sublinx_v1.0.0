@@ -252,13 +252,13 @@ export default function EventFeedCard({
                     {organizerName}
                   </p>
                   {organizerData?.is_organizer && (
-                    <Badge className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-[8px] px-0.5 py-0 h-3.5">
+                    <Badge className="bg-yellow-600/20 border-yellow-500/30 text-yellow-300 text-xs px-0.5 py-0 h-3.5">
                       <Shield className="w-2 h-2 mr-0.5" />
                       ORG
                     </Badge>
                   )}
                   {isRealtime && (
-                    <Badge className="bg-green-600/20 border-green-500/50 text-green-300 text-[8px] px-1 py-0 h-3.5">
+                    <Badge className="bg-green-600/20 border-green-500/50 text-green-300 text-xs px-1 py-0 h-3.5">
                       <motion.div
                         className="w-1 h-1 rounded-full bg-green-500 mr-0.5"
                         animate={{
@@ -274,10 +274,10 @@ export default function EventFeedCard({
                     </Badge>
                   )}
                 </div>
-                <p className="text-[10px] text-gray-400 truncate">{displayEvent.location?.city || "Local Desconhecido"}</p>
+                <p className="text-xs text-gray-400 truncate">{displayEvent.location?.city || "Local Desconhecido"}</p>
               </div>
               {displayEvent.is_secret && (
-                <Badge className="bg-purple-600/90 border border-purple-400 text-white font-bold px-1.5 py-0 text-[9px] h-4">
+                <Badge className="bg-purple-600/90 border border-purple-400 text-white font-bold px-1.5 py-0 text-xs h-4">
                   🔒
                 </Badge>
               )}
@@ -305,15 +305,15 @@ export default function EventFeedCard({
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="absolute top-1.5 right-1.5 backdrop-blur-md px-1.5 py-0.5 rounded-full flex items-center gap-0.5 border"
+                  className="absolute top-1.5 right-1.5 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-0.5 border"
                   style={{
                     background: 'linear-gradient(to right, rgba(251, 191, 36, 0.9), rgba(245, 158, 11, 0.9))',
                     borderColor: 'rgba(255, 255, 255, 0.3)',
                     boxShadow: '0 0 20px rgba(251, 191, 36, 0.7)'
                   }}
                 >
-                  <Lock className="w-2 h-2 text-white" />
-                  <span className="text-white text-[9px] font-bold">PRO</span>
+                  <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                  <span className="text-white text-xs font-bold">PRO</span>
                 </motion.div>
               )}
 
@@ -329,7 +329,7 @@ export default function EventFeedCard({
                   {displayEvent.vibe_tags.slice(0, 2).map((tag, idx) => (
                     <Badge
                       key={idx}
-                      className="backdrop-blur-md border text-[9px] px-1 py-0"
+                      className="backdrop-blur-md border text-xs px-1 py-0"
                       style={{
                         background: 'linear-gradient(to right, rgba(168, 85, 247, 0.9), rgba(236, 72, 153, 0.9))',
                         borderColor: 'rgba(255, 255, 255, 0.3)'
@@ -355,57 +355,57 @@ export default function EventFeedCard({
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="hover:text-red-500 h-7 px-1.5" 
+                  className="hover:text-red-500 h-9 w-9 px-2" 
                   onClick={handleLike}
                   disabled={likeMutation.isPending}
                   title={isLiked ? "Curtido" : "Curtir"}
                 >
-                  <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                  <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                 </Button>
 
-                <Button variant="ghost" size="sm" className="hover:text-cyan-400 h-7 px-1.5" onClick={handleComment} title="Comentar">
-                  <MessageCircle className="w-3.5 h-3.5" />
+                <Button variant="ghost" size="sm" className="hover:text-cyan-400 h-9 w-9 px-2" onClick={handleComment} title="Comentar">
+                  <MessageCircle className="w-4 h-4" />
                 </Button>
 
-                <Button variant="ghost" size="sm" className="hover:text-green-400 h-7 px-1.5" onClick={() => setShowShareModal(true)}>
-                  <Share2 className="w-3.5 h-3.5" />
+                <Button variant="ghost" size="sm" className="hover:text-green-400 h-9 w-9 px-2" onClick={() => setShowShareModal(true)}>
+                  <Share2 className="w-4 h-4" />
                 </Button>
               </div>
 
               <Button
                 size="sm"
                 variant="outline"
-                className="border-cyan-500/30 h-6 text-[10px] px-2"
+                className="border-cyan-500/30 h-6 text-xs px-2"
                 onClick={() => user?.is_pro_member ? alert("🎉 Detalhes PRO") : setShowUpgradePrompt(true)}
               >
-                {user?.is_pro_member ? <><Eye className="w-2.5 h-2.5 mr-0.5" />Ver+</> : <><Lock className="w-2.5 h-2.5 mr-0.5" />PRO</>}
+                {user?.is_pro_member ? <><Eye className="w-3.5 h-3.5 mr-0.5" />Ver+</> : <><Lock className="w-3.5 h-3.5 mr-0.5" />PRO</>}
               </Button>
             </div>
 
             <div>
               <h3 className="text-sm font-bold mb-0.5 line-clamp-1">{displayEvent.title}</h3>
-              <div className="flex items-center gap-2 text-[10px] text-gray-400 flex-wrap">
+              <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
                 <div className="flex items-center gap-0.5">
-                  <Clock className="w-2.5 h-2.5" />
+                  <Clock className="w-3.5 h-3.5" />
                   <span>{format(new Date(displayEvent.date), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
                 </div>
                 <div className="flex items-center gap-0.5">
-                  <MapPin className="w-2.5 h-2.5" />
+                  <MapPin className="w-3.5 h-3.5" />
                   <span className="truncate max-w-[120px]">{displayEvent.location?.venue_name || displayEvent.location?.city}</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-1 mt-1">
-                <Badge className="border text-[9px] px-1 py-0 h-4" style={{ background: 'rgba(6, 182, 212, 0.2)', borderColor: 'rgba(6, 182, 212, 0.4)', color: '#06B6D4' }}>
+                <Badge className="border text-xs px-1 py-0 h-4" style={{ background: 'rgba(6, 182, 212, 0.2)', borderColor: 'rgba(6, 182, 212, 0.4)', color: '#06B6D4' }}>
                   {displayEvent.genre}
                 </Badge>
-                <Badge className="border text-[9px] px-1 py-0 h-4" style={{ background: 'rgba(168, 85, 247, 0.2)', borderColor: 'rgba(168, 85, 247, 0.4)', color: '#A855F7' }}>
+                <Badge className="border text-xs px-1 py-0 h-4" style={{ background: 'rgba(168, 85, 247, 0.2)', borderColor: 'rgba(168, 85, 247, 0.4)', color: '#A855F7' }}>
                   {displayEvent.type}
                 </Badge>
               </div>
 
               {displayEvent.description && (
-                <p className="mt-1 text-[10px] text-gray-300 line-clamp-1">{displayEvent.description}</p>
+                <p className="mt-1 text-xs text-gray-300 line-clamp-1">{displayEvent.description}</p>
               )}
             </div>
 
@@ -428,9 +428,9 @@ export default function EventFeedCard({
                   <>
                     <div className="flex items-center gap-1 text-green-400">
                       <Check className="w-3 h-3" />
-                      <span className="font-semibold text-[10px]">Aprovado!</span>
+                      <span className="font-semibold text-xs">Aprovado!</span>
                     </div>
-                    <Button onClick={() => setShowApprovedModal(true)} className="h-6 text-[10px] px-2 bg-green-600">
+                    <Button onClick={() => setShowApprovedModal(true)} className="h-6 text-xs px-2 bg-green-600">
                       Ingresso
                     </Button>
                   </>
@@ -438,9 +438,9 @@ export default function EventFeedCard({
                   <>
                     <div className="flex items-center gap-1 text-yellow-400">
                       <Clock className="w-3 h-3" />
-                      <span className="font-semibold text-[10px]">Pendente</span>
+                      <span className="font-semibold text-xs">Pendente</span>
                     </div>
-                    <Button variant="outline" disabled className="border-gray-600 h-6 text-[10px] px-2">
+                    <Button variant="outline" disabled className="border-gray-600 h-6 text-xs px-2">
                       Aguardando
                     </Button>
                   </>
@@ -448,9 +448,9 @@ export default function EventFeedCard({
                   <>
                     <div className="flex items-center gap-1 text-red-400">
                       <AlertCircle className="w-3 h-3" />
-                      <span className="font-semibold text-[10px]">Negado</span>
+                      <span className="font-semibold text-xs">Negado</span>
                     </div>
-                    <Button variant="outline" disabled className="border-gray-600 h-6 text-[10px] px-2">
+                    <Button variant="outline" disabled className="border-gray-600 h-6 text-xs px-2">
                       Negado
                     </Button>
                   </>

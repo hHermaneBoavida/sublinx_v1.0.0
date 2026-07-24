@@ -190,7 +190,7 @@ export default function EventDetailsModal({ event, onClose }) {
       className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 overflow-y-auto"
       onClick={onClose}
     >
-      <div className="max-w-2xl mx-auto min-h-screen flex items-center p-4" onClick={(e) => e.stopPropagation()}>
+      <div className="max-w-2xl mx-auto min-h-screen flex items-center p-3 sm:p-4" style={{ minHeight: '100dvh' }} onClick={(e) => e.stopPropagation()}>
         <motion.div
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}

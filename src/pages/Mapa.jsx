@@ -13,6 +13,8 @@ import { matchesVibe, calculateDistance } from "../components/shared/helpers";
 import { filterPublicEvents } from "../components/shared/eventValidation";
 import { isWithinInterval, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
+import GlobalSearch from "../components/search/GlobalSearch";
+import { useSearch } from "../components/search/SearchContext";
 
 export default function Mapa() {
   const [viewMode, setViewMode] = useState("map");
@@ -25,7 +27,7 @@ export default function Mapa() {
   const [showVenueDetails, setShowVenueDetails] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const { searchQuery: searchTerm, setSearchQuery: setSearchTerm } = useSearch();
   const [activeVibe, setActiveVibe] = useState('all');
   const [filters, setFilters] = useState({
     genre: 'all', type: 'all', dateRange: 'all',
@@ -321,6 +323,9 @@ export default function Mapa() {
               transition={{ duration: 0.3 }}
               className="absolute inset-0 z-10"
             >
+              <div className="absolute top-0 left-0 right-0 z-[1001] safe-area-top">
+                <GlobalSearch />
+              </div>
               <MapView
                 events={filteredEvents}
                 venues={venuesData}
@@ -338,6 +343,7 @@ export default function Mapa() {
                 onFiltersChange={setFilters}
                 suggestedEvents={[]}
                 onMapReady={(cleanupFn) => { mapCleanupRef.current = cleanupFn; }}
+                hideSearch
               />
 
               {/* Botão Ver Reels */}

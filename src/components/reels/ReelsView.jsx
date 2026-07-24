@@ -137,7 +137,7 @@ export default function ReelsView({ reels, events, initialEventId, onClose }) {
       {/* Close button - minimal */}
       <button
         onClick={onClose}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center active:scale-90 transition-transform">
           <ChevronDown className="w-5 h-5 text-white" />

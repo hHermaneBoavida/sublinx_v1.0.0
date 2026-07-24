@@ -7,7 +7,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import LoadingSkeleton from "../components/feed/LoadingSkeleton";
 import InfiniteScrollTrigger from "../components/feed/InfiniteScrollTrigger";
 
-import { Search, Heart, Sparkles, TrendingUp, Crown, Menu, ArrowLeft } from "lucide-react";
+import { Search, Heart, Sparkles, TrendingUp, Crown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
@@ -212,27 +212,10 @@ export default function Feed() {
 
   return (
     <div className="max-w-xl mx-auto px-0 py-0">
-      <div className="sticky top-0 z-10 bg-black/95 backdrop-blur-lg border-b border-gray-800/50 px-3 sm:px-4 py-2.5 sm:py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigate(createPageUrl("Mapa"))} className="text-cyan-400 hover:text-cyan-300 p-1 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
-              Feed
-            </h1>
-          </div>
-          {isGuest && (
-            <Button
-              onClick={() => navigate(createPageUrl("BemVindo"))}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:bg-gray-800 text-gray-300"
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-          )}
-        </div>
+      <div className="px-3 sm:px-4 py-3 border-b border-gray-800/30">
+        <h1 className="text-xl sm:text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
+          Feed
+        </h1>
       </div>
 
       {/* Seção Descubra */}

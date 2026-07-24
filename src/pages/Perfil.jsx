@@ -196,12 +196,12 @@ export default function Perfil() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-3">
-        <div className="flex items-start gap-6 mb-6">
-          <div className="relative flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 mb-6">
+          <div className="relative flex-shrink-0 mx-auto sm:mx-0">
             <img
               src={getUserAvatar(user)}
               alt={getUserDisplayName(user)}
-              className="w-24 h-24 rounded-full object-cover border-2 border-gray-800"
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-gray-800"
             />
             {(user.is_pro_member || user.is_organizer) && (
               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center border-2 border-black">
@@ -210,8 +210,8 @@ export default function Perfil() {
             )}
           </div>
 
-          <div className="flex-1">
-            <div className="flex items-center gap-6 mb-4">
+          <div className="flex-1 min-w-0 w-full">
+            <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 mb-4">
               <div className="text-center">
                 <div className="text-xl font-bold">{stats.events}</div>
                 <div className="text-sm text-gray-400">{user.is_organizer ? 'eventos' : 'ingressos'}</div>
@@ -294,17 +294,21 @@ export default function Perfil() {
 
         <Tabs defaultValue={user.is_organizer ? "eventos" : "ingressos"} className="w-full">
           <TabsList className="w-full grid grid-cols-4 bg-black border-b border-gray-800 rounded-none h-auto p-0">
-            <TabsTrigger value={user.is_organizer ? "eventos" : "ingressos"} className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3">
+            <TabsTrigger value={user.is_organizer ? "eventos" : "ingressos"} className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1">
               {user.is_organizer ? <Calendar className="w-4 h-4" /> : <Ticket className="w-4 h-4" />}
+              <span className="text-xs">{user.is_organizer ? 'Eventos' : 'Ingressos'}</span>
             </TabsTrigger>
-            <TabsTrigger value="reels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-pink-500 data-[state=active]:bg-transparent py-3">
+            <TabsTrigger value="reels" className="rounded-none border-b-2 border-transparent data-[state=active]:border-pink-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1">
               <Video className="w-4 h-4" />
+              <span className="text-xs">Reels</span>
             </TabsTrigger>
-            <TabsTrigger value="music" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3">
+            <TabsTrigger value="music" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1">
               <Music className="w-4 h-4" />
+              <span className="text-xs">Música</span>
             </TabsTrigger>
-            <TabsTrigger value="config" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3">
+            <TabsTrigger value="config" className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent py-3 flex flex-col items-center gap-1">
               <Settings className="w-4 h-4" />
+              <span className="text-xs">Ajustes</span>
             </TabsTrigger>
           </TabsList>
 

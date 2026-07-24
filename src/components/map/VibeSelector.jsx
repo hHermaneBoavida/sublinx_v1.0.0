@@ -223,13 +223,13 @@ export default function VibeSelector({ onClose, onVibeSelect, events = [] }) {
                   {/* Badge com contador de eventos */}
                   <div className="flex items-center gap-0.5 mt-0.5">
                     <MapPin className="w-2.5 h-2.5 text-gray-400" />
-                    <span className="text-[9px] text-gray-400 font-semibold">
+                    <span className="text-xs text-gray-400 font-semibold">
                       {eventCount} {eventCount === 1 ? 'evento' : 'eventos'}
                     </span>
                   </div>
 
                   {/* Descrição da vibe */}
-                  <p className="text-[8px] text-gray-500 text-center line-clamp-2 mt-0.5">
+                  <p className="text-xs text-gray-500 text-center line-clamp-2 mt-0.5">
                     {vibe.description}
                   </p>
                 </div>
@@ -322,12 +322,12 @@ export default function VibeSelector({ onClose, onVibeSelect, events = [] }) {
                 {/* Info adicional */}
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <MapPin className="w-3 h-3 text-gray-400" />
-                  <span className="text-[10px] text-gray-400 font-semibold">
+                  <span className="text-xs text-gray-400 font-semibold">
                     {eventCount} {eventCount === 1 ? 'evento' : 'eventos'}
                   </span>
                 </div>
 
-                <p className="text-[9px] text-gray-500 text-center">
+                <p className="text-xs text-gray-500 text-center">
                   {vibe.description}
                 </p>
               </div>
@@ -361,7 +361,7 @@ export default function VibeSelector({ onClose, onVibeSelect, events = [] }) {
 
         {/* Footer com dica */}
         <div className="mt-3 text-center">
-          <p className="text-[8px] text-gray-600">
+          <p className="text-xs text-gray-600">
             💡 Cada vibe filtra eventos com a energia perfeita para você
           </p>
         </div>

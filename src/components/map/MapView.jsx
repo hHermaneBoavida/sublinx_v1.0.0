@@ -325,7 +325,8 @@ export default function MapView({
   filters: externalFilters,
   onFiltersChange,
   suggestedEvents = [],
-  onMapReady
+  onMapReady,
+  hideSearch = false
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -559,28 +560,30 @@ export default function MapView({
   return (
     <div ref={containerRef} className="w-full h-full relative">
       {/* Search Bar — luxury minimalist, NO neon */}
-      <div className="absolute left-4 right-4 z-[1000] flex gap-2" style={{ top: 'max(12px, env(safe-area-inset-top))' }}>
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-          <Input
-            placeholder="Buscar eventos, locais, vibe..."
-            value={localSearch}
-            onChange={(e) => handleSearchInput(e.target.value)}
-            className="pl-10 h-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 text-white placeholder:text-gray-500 focus:border-gray-500"
-          />
-          {localSearch && (
-            <button
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-              onClick={() => handleSearchInput('')}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      <div className={`absolute z-[1000] flex gap-2 ${hideSearch ? 'right-3 sm:right-4 justify-end' : 'left-3 right-3 sm:left-4 sm:right-4'}`} style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 60px)' : 'max(12px, env(safe-area-inset-top))' }}>
+        {!hideSearch && (
+          <div className="flex-1 min-w-0 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+            <Input
+              placeholder="Buscar eventos, locais, vibe..."
+              value={localSearch}
+              onChange={(e) => handleSearchInput(e.target.value)}
+              className="pl-10 h-10 sm:h-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 text-white placeholder:text-gray-500 focus:border-gray-500"
+            />
+            {localSearch && (
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                onClick={() => handleSearchInput('')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
         <Button
           size="icon"
           onClick={() => setShowAdvancedFilters(true)}
-          className="h-11 w-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 hover:bg-gray-800 hover:border-gray-600 relative flex-shrink-0"
+          className="h-10 w-10 sm:h-11 sm:w-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 hover:bg-gray-800 hover:border-gray-600 relative flex-shrink-0"
         >
           <Filter className="w-5 h-5 text-gray-300" />
           {activeFiltersCount > 0 && (
@@ -592,7 +595,7 @@ export default function MapView({
         <Button
           size="icon"
           onClick={() => setShowMenu(!showMenu)}
-          className="h-11 w-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 hover:bg-gray-800 hover:border-gray-600 flex-shrink-0"
+          className="h-10 w-10 sm:h-11 sm:w-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 hover:bg-gray-800 hover:border-gray-600 flex-shrink-0"
         >
           {showMenu ? <X className="w-5 h-5 text-gray-300" /> : <Menu className="w-5 h-5 text-gray-300" />}
         </Button>
@@ -603,7 +606,7 @@ export default function MapView({
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="absolute left-4 z-[1000]" style={{ top: 'calc(env(safe-area-inset-top) + 64px)' }}
+          className="absolute left-4 z-[1000]" style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 112px)' : 'calc(env(safe-area-inset-top) + 64px)' }}
         >
           <Badge className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold cursor-default bg-red-600/90 border border-red-500/50 text-white">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping inline-block" />
@@ -619,7 +622,7 @@ export default function MapView({
             initial={{ opacity: 0, scale: 0.95, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -8 }}
-            className="absolute right-4 z-[2000] bg-gray-950/95 backdrop-blur-xl border border-gray-700 rounded-xl p-2 min-w-[200px] shadow-lg" style={{ top: 'calc(env(safe-area-inset-top) + 64px)' }}
+            className="absolute right-4 z-[2000] bg-gray-950/95 backdrop-blur-xl border border-gray-700 rounded-xl p-2 min-w-[200px] shadow-lg" style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 112px)' : 'calc(env(safe-area-inset-top) + 64px)' }}
           >
             <Button variant="ghost" onClick={() => { onOpenVibe(); setShowMenu(false); }} className="w-full justify-start text-gray-200 hover:bg-gray-800 hover:text-white">
               🎭 Vibe Selector
@@ -639,7 +642,7 @@ export default function MapView({
       </AnimatePresence>
 
       {/* Stats bar — clean, NO neon */}
-      <div className="absolute bottom-28 left-4 z-[999] flex gap-2">
+      <div className="absolute bottom-44 sm:bottom-32 left-4 z-[999] flex gap-2">
         {filteredEvents.length !== events.length && (
           <Badge className="bg-gray-800/90 backdrop-blur-md border border-gray-700 text-gray-200 text-xs">
             <Zap className="w-3 h-3 mr-1" />
