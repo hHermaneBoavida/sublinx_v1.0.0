@@ -749,7 +749,7 @@ export default function MapView({
                 <div className="p-2 min-w-[200px]">
                   <h3 className="font-bold text-sm mb-1">{event.title}</h3>
                   <p className="text-xs text-gray-500 mb-2">{event.location?.venue_name || 'Local não informado'}</p>
-                  {live && <Badge className="bg-red-100 text-red-700 text-[10px] mb-2">🔴 Ao Vivo</Badge>}
+                  {live && <Badge className="bg-red-100 text-red-700 text-xs mb-2">🔴 Ao Vivo</Badge>}
                   <Button size="sm" onClick={() => onPinDetailsClick?.(event)} className="w-full bg-gray-800 hover:bg-gray-700 text-white text-xs border border-gray-600">
                     Ver Detalhes
                   </Button>
@@ -781,7 +781,7 @@ export default function MapView({
                     <p className="text-xs text-gray-500 mb-2">📍 {venue.location.address}{venue.location?.city ? `, ${venue.location.city}` : ''}</p>
                   )}
                   {venue.rating > 0 && (
-                    <Badge className="bg-gray-100 text-gray-700 text-[10px] mr-1">★ {venue.rating}</Badge>
+                    <Badge className="bg-gray-100 text-gray-700 text-xs mr-1">★ {venue.rating}</Badge>
                   )}
                 </div>
               </Popup>

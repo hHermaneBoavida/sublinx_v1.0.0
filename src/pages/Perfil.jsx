@@ -368,7 +368,7 @@ export default function Perfil() {
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-purple-900/80 to-pink-900/80 gap-2">
                           <Video className="w-8 h-8 text-white/60" />
-                          <span className="text-white/40 text-[10px] text-center px-2 leading-tight truncate w-full text-center">
+                          <span className="text-white/40 text-xs text-center px-2 leading-tight truncate w-full text-center">
                             {reel.description?.slice(0, 20) || 'Reel'}
                           </span>
                         </div>
