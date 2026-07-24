@@ -186,9 +186,9 @@ export default function Layout({ children, currentPageName }) {
                       to={item.url}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105"
                       style={{
-                        background: active ? 'rgba(6,182,212,0.15)' : 'transparent',
-                        color: active ? '#67e8f9' : 'rgba(255,255,255,0.6)',
-                        border: active ? '1px solid rgba(6,182,212,0.3)' : '1px solid transparent',
+                        background: active ? 'rgba(123,97,255,0.15)' : 'transparent',
+                        color: active ? '#a78bfa' : 'rgba(255,255,255,0.6)',
+                        border: active ? '1px solid rgba(123,97,255,0.3)' : '1px solid transparent',
                       }}
                     >
                       <Icon className="w-4 h-4" />

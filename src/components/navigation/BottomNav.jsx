@@ -39,8 +39,12 @@ export default function BottomNav({ location, isOrganizer, isGuest }) {
             <motion.div key={item.title} whileTap={{ scale: 0.88 }} style={{ flex: 1 }}>
               <Link
                 to={item.url}
-                className="flex flex-col items-center justify-center gap-[3px]"
-                style={{ minHeight: 44 }}
+                className="flex flex-col items-center justify-center gap-[3px] rounded-xl transition-colors"
+                style={{ 
+                  minHeight: 44,
+                  background: active && !item.isAction ? 'rgba(123,97,255,0.12)' : 'transparent',
+                  border: active && !item.isAction ? '1px solid rgba(123,97,255,0.25)' : '1px solid transparent',
+                }}
               >
                 {item.isAction ? (
                   <div

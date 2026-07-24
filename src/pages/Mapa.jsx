@@ -396,7 +396,7 @@ export default function Mapa() {
               transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
               className="absolute inset-0 z-20"
             >
-              <ReelsView reels={reelsRealtime} events={events} initialEventId={selectedEventId} onClose={handleCloseReels} />
+              <ReelsView reels={reelsRealtime} events={events} initialEventId={selectedEventId} onClose={handleCloseReels} onSelectEvent={handlePinDetailsClick} />
             </motion.div>
           )}
         </AnimatePresence>

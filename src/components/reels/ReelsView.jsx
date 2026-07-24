@@ -36,7 +36,7 @@ function useVideoPreload(reels, currentIndex) {
   }, [reels, currentIndex]);
 }
 
-export default function ReelsView({ reels, events, initialEventId, onClose }) {
+export default function ReelsView({ reels, events, initialEventId, onClose, onSelectEvent }) {
   const containerRef = useRef(null);
   const [sortedReels, setSortedReels] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -99,6 +99,7 @@ export default function ReelsView({ reels, events, initialEventId, onClose }) {
           reel={reel}
           isActive={index === currentIndex}
           shouldLoad={loadedVideos.has(index)}
+          onSelectEvent={onSelectEvent}
         />
       </div>
     )),

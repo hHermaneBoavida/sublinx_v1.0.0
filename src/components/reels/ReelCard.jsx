@@ -3,7 +3,7 @@ import { Heart, MessageCircle, Share2, Volume2, VolumeX, MapPin, Calendar, Bookm
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-function ReelCardInner({ reel, isActive, shouldLoad }) {
+function ReelCardInner({ reel, isActive, shouldLoad, onSelectEvent }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
@@ -150,10 +150,13 @@ function ReelCardInner({ reel, isActive, shouldLoad }) {
       <div className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-10"
         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }} />
 
-      {/* Event Info - Header */}
+      {/* Event Info - Header (tap to view event details) */}
       {showInfo && reel.event && (
         <div className="absolute top-4 left-4 right-16 z-30">
-          <div className="bg-black/40 backdrop-blur-md rounded-xl px-3 py-2">
+          <div
+            className="bg-black/40 backdrop-blur-md rounded-xl px-3 py-2 cursor-pointer active:scale-95 transition-transform"
+            onClick={() => onSelectEvent?.(reel.event)}
+          >
             <p className="text-white text-sm font-semibold truncate">{reel.event.title}</p>
             {reel.event.location && (
               <div className="flex items-center gap-1 text-white/70 text-xs mt-0.5">
