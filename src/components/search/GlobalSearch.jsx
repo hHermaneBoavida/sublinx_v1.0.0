@@ -68,7 +68,7 @@ export default function GlobalSearch() {
   const showDropdown = !isFeedPage && showResults && searchQuery.trim();
 
   return (
-    <div className="relative px-4 py-2 z-20">
+    <div className="relative px-3 sm:px-4 py-2 z-20">
       <div className="relative max-w-3xl mx-auto">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
         <input

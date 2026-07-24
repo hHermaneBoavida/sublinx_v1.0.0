@@ -560,7 +560,7 @@ export default function MapView({
   return (
     <div ref={containerRef} className="w-full h-full relative">
       {/* Search Bar — luxury minimalist, NO neon */}
-      <div className={`absolute z-[1000] flex gap-2 ${hideSearch ? 'right-3 sm:right-4 justify-end' : 'left-3 right-3 sm:left-4 sm:right-4'}`} style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 60px)' : 'max(12px, env(safe-area-inset-top))' }}>
+      <div className={`absolute z-[1000] flex gap-1.5 sm:gap-2 ${hideSearch ? 'right-3 sm:right-4 justify-end' : 'left-3 right-3 sm:left-4 sm:right-4'}`} style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 60px)' : 'max(12px, env(safe-area-inset-top))' }}>
         {!hideSearch && (
           <div className="flex-1 min-w-0 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
@@ -583,7 +583,7 @@ export default function MapView({
         <Button
           size="icon"
           onClick={() => setShowAdvancedFilters(true)}
-          className="h-10 w-10 sm:h-11 sm:w-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 hover:bg-gray-800 hover:border-gray-600 relative flex-shrink-0"
+          className="h-9 w-9 sm:h-10 sm:w-10 bg-gray-900/90 backdrop-blur-md border border-gray-700 hover:bg-gray-800 hover:border-gray-600 relative flex-shrink-0"
         >
           <Filter className="w-5 h-5 text-gray-300" />
           {activeFiltersCount > 0 && (
@@ -595,7 +595,7 @@ export default function MapView({
         <Button
           size="icon"
           onClick={() => setShowMenu(!showMenu)}
-          className="h-10 w-10 sm:h-11 sm:w-11 bg-gray-900/90 backdrop-blur-md border border-gray-700 hover:bg-gray-800 hover:border-gray-600 flex-shrink-0"
+          className="h-9 w-9 sm:h-10 sm:w-10 bg-gray-900/90 backdrop-blur-md border border-gray-700 hover:bg-gray-800 hover:border-gray-600 flex-shrink-0"
         >
           {showMenu ? <X className="w-5 h-5 text-gray-300" /> : <Menu className="w-5 h-5 text-gray-300" />}
         </Button>
@@ -642,7 +642,7 @@ export default function MapView({
       </AnimatePresence>
 
       {/* Stats bar — clean, NO neon */}
-      <div className="absolute bottom-44 sm:bottom-32 left-4 z-[999] flex gap-2">
+      <div className="absolute bottom-48 left-4 z-[999] flex gap-2 safe-area-bottom">
         {filteredEvents.length !== events.length && (
           <Badge className="bg-gray-800/90 backdrop-blur-md border border-gray-700 text-gray-200 text-xs">
             <Zap className="w-3 h-3 mr-1" />
