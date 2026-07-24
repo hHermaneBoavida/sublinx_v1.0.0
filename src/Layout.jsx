@@ -175,6 +175,29 @@ export default function Layout({ children, currentPageName }) {
                 </Link>
               </div>
 
+              {/* CENTER: Desktop Navigation */}
+              <nav className="hidden md:flex items-center gap-1">
+                {navigationItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = location.pathname === item.url.split("?")[0];
+                  return (
+                    <Link
+                      key={item.title}
+                      to={item.url}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+                      style={{
+                        background: active ? 'rgba(6,182,212,0.15)' : 'transparent',
+                        color: active ? '#67e8f9' : 'rgba(255,255,255,0.6)',
+                        border: active ? '1px solid rgba(6,182,212,0.3)' : '1px solid transparent',
+                      }}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+
               {/* RIGHT: Notificações + Menu */}
               <div className="flex items-center gap-2">
                 {!isGuest && (

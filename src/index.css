@@ -201,77 +201,11 @@ img, video, canvas, svg {
   display: block;
 }
 
-/* Global text scaling */
-:root {
-  font-size: 16px;
-}
-
-/* Responsive typography scale */
-@media (max-width: 480px) {
-  :root { font-size: 14px; }
-  h1 { font-size: 1.6rem !important; }
-  h2 { font-size: 1.3rem !important; }
-  h3 { font-size: 1.1rem !important; }
-}
-
-@media (min-width: 481px) and (max-width: 768px) {
-  :root { font-size: 15px; }
-  h1 { font-size: 1.8rem !important; }
-  h2 { font-size: 1.4rem !important; }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-  :root { font-size: 15px; }
-}
-
-@media (min-width: 1025px) {
-  :root { font-size: 16px; }
-}
-
-/* Responsive buttons */
-button, .btn, [class*="Button"] {
-  min-height: 36px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-@media (max-width: 480px) {
-  button, .btn {
-    font-size: 14px !important;
-    padding-left: 10px !important;
-    padding-right: 10px !important;
-  }
-}
-
 /* Responsive containers */
 .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl {
   width: 100%;
   padding-left: 1rem;
   padding-right: 1rem;
-}
-
-@media (max-width: 320px) {
-  .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-}
-
-/* Grid responsive helpers */
-@media (max-width: 640px) {
-  .grid-cols-2 { grid-template-columns: 1fr !important; }
-  .grid-cols-3 { grid-template-columns: 1fr !important; }
-  .grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
-}
-
-@media (min-width: 641px) and (max-width: 1024px) {
-  .grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
-}
-
-/* Flex wrapping */
-@media (max-width: 480px) {
-  .flex { flex-wrap: wrap; }
-  .flex-nowrap { flex-wrap: nowrap !important; }
 }
 
 /* Prevent text overflow */
@@ -280,21 +214,16 @@ p, span, label, li, td, th {
   word-break: break-word;
 }
 
-/* Input fields full width on mobile */
-@media (max-width: 640px) {
-  input, textarea, select {
-    width: 100%;
-    font-size: 16px !important; /* prevent iOS zoom */
-  }
+/* Allow flex-1 children to shrink below content size — prevents horizontal overflow */
+.flex-1 {
+  min-width: 0;
 }
 
-/* Cards responsive */
-@media (max-width: 480px) {
-  .rounded-2xl, .rounded-xl { border-radius: 12px !important; }
-  .p-8 { padding: 1rem !important; }
-  .p-6 { padding: 0.875rem !important; }
-  .gap-6 { gap: 0.75rem !important; }
-  .gap-8 { gap: 1rem !important; }
+/* Prevent iOS zoom on input focus (mobile only) */
+@media (max-width: 640px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
 }
 
 /* Modal / dialogs */
@@ -313,17 +242,6 @@ p, span, label, li, td, th {
 .safe-area-bottom,
 .safe-area-inset-bottom {
   padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* Minimum touch target size */
-a, button, [role="button"] {
-  min-width: 44px;
-  min-height: 44px;
-}
-/* except icon-only small buttons */
-.h-8.w-8, .h-9.w-9 {
-  min-width: unset;
-  min-height: unset;
 }
 
 /* Clear persistent focus/active states on buttons after interaction */
