@@ -36,36 +36,6 @@ export default function Mapa() {
   const queryClient = useQueryClient();
   const mapCleanupRef = useRef(null);
 
-  // Abrir detalhes do evento via URL param (?event=ID)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const eventId = urlParams.get('event');
-    if (!eventId) return;
-    // Procurar o evento nos dados carregados (ou buscar diretamente)
-    const findAndOpen = async () => {
-      try {
-        const events = eventsData?.events || [];
-        const found = events.find(e => e.id === eventId);
-        if (found) {
-          setSelectedEventForDetails(found);
-          setShowEventDetails(true);
-        } else {
-          // Buscar diretamente se não estiver nos dados carregados
-          const all = await base44.entities.Event.filter({ id: eventId });
-          if (all?.[0]) {
-            setSelectedEventForDetails(all[0]);
-            setShowEventDetails(true);
-          }
-        }
-      } catch (e) {
-        console.log('Erro ao abrir evento via URL:', e);
-      }
-    };
-    findAndOpen();
-    // Limpar o param da URL após abrir
-    window.history.replaceState({}, '', window.location.pathname);
-  }, [eventsData]);
-
   // Localização do usuário — sem bloquear o carregamento
   useEffect(() => {
     let isMounted = true;
@@ -132,6 +102,33 @@ export default function Mapa() {
       eventsDataRef.current = eventsData.events;
       setEventsRealtime(prev => prev === null ? eventsData.events : prev);
     }
+  }, [eventsData]);
+
+  // Abrir detalhes do evento via URL param (?event=ID)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventId = urlParams.get('event');
+    if (!eventId) return;
+    const findAndOpen = async () => {
+      try {
+        const events = eventsData?.events || [];
+        const found = events.find(e => e.id === eventId);
+        if (found) {
+          setSelectedEventForDetails(found);
+          setShowEventDetails(true);
+        } else {
+          const all = await base44.entities.Event.filter({ id: eventId });
+          if (all?.[0]) {
+            setSelectedEventForDetails(all[0]);
+            setShowEventDetails(true);
+          }
+        }
+      } catch (e) {
+        console.log('Erro ao abrir evento via URL:', e);
+      }
+    };
+    findAndOpen();
+    window.history.replaceState({}, '', window.location.pathname);
   }, [eventsData]);
 
   // Subscrição realtime de eventos
