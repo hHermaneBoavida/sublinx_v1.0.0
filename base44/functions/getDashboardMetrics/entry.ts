@@ -19,8 +19,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch organizer events first
-    const events = await base44.asServiceRole.entities.Event.filter({ organizer_id: user.id });
+    // ADMIN: métricas globais (todos os eventos). ORGANIZER: apenas próprios eventos.
+    const events = isAdmin
+      ? await base44.asServiceRole.entities.Event.list('-created_date', 500)
+      : await base44.asServiceRole.entities.Event.filter({ organizer_id: user.id });
     const eventIds = events.map(e => e.id);
 
     if (eventIds.length === 0) {

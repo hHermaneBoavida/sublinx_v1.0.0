@@ -22,7 +22,10 @@ Deno.serve(async (req) => {
 
     const { reportType } = await req.json();
 
-    const events = await base44.asServiceRole.entities.Event.filter({ organizer_id: user.id });
+    // ADMIN: relatório global (todos os eventos). ORGANIZER: apenas próprios eventos.
+    const events = isAdmin
+      ? await base44.asServiceRole.entities.Event.list('-created_date', 500)
+      : await base44.asServiceRole.entities.Event.filter({ organizer_id: user.id });
     const eventIds = events.map(e => e.id);
 
     // SEGURANÇA: filtrar tickets no banco por event_id do organizador — nunca listar tudo.

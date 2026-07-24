@@ -203,15 +203,23 @@ Deno.serve(async (req) => {
     }
 
     // Buscar eventos via asServiceRole (bypass RLS — validação de escopo abaixo)
-    let allEvents;
+    // Tenta filtro em lote primeiro; se falhar, usa fallback individual via Event.get()
+    let allEvents = [];
     try {
       allEvents = await base44.asServiceRole.entities.Event.filter({
         id: { $in: safeEventIds }
       });
-    } catch {
-      allEvents = [];
+      if (!Array.isArray(allEvents)) allEvents = [];
+    } catch (batchErr) {
+      console.error('Event.filter $in falhou, usando fallback:', batchErr.message || batchErr);
+      // Fallback: buscar individualmente via Event.get()
+      const results = await Promise.allSettled(
+        safeEventIds.map(id => base44.asServiceRole.entities.Event.get(id))
+      );
+      allEvents = results
+        .filter(r => r.status === 'fulfilled' && r.value)
+        .map(r => r.value);
     }
-    if (!Array.isArray(allEvents)) allEvents = [];
 
     // SEGURANÇA: Filtrar eventos por escopo de acesso do usuário
     // - Admin: acesso a todos
