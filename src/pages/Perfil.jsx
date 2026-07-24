@@ -216,6 +216,14 @@ export default function Perfil() {
                 <div className="text-xl font-bold">{stats.events}</div>
                 <div className="text-sm text-gray-400">{user.is_organizer ? 'eventos' : 'ingressos'}</div>
               </div>
+              <div className="text-center">
+                <div className="text-xl font-bold">{stats.followers}</div>
+                <div className="text-sm text-gray-400">seguidores</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold">{stats.following}</div>
+                <div className="text-sm text-gray-400">seguindo</div>
+              </div>
             </div>
 
             <div className="mb-4">
@@ -230,6 +238,25 @@ export default function Perfil() {
                 )}
                 {user.verified_organizer && <CheckCircle className="w-4 h-4 text-blue-500" />}
               </div>
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <Button 
+                onClick={() => setShowEditModal(true)} 
+                variant="outline" 
+                className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Editar Perfil
+              </Button>
+              <Button 
+                onClick={handleShareProfile} 
+                variant="outline" 
+                className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Compartilhar
+              </Button>
             </div>
 
             {user.is_organizer && (

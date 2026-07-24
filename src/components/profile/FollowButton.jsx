@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "../shared/helpers";
 import { useToast } from "@/components/ui/use-toast";
 
-export default function FollowButton({ targetUserId, currentUserId, targetUserName, size = "default" }) {
+export default function FollowButton({ targetUserId, currentUserId, targetUserName, size = "default", className = "", style }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
@@ -112,10 +112,11 @@ export default function FollowButton({ targetUserId, currentUserId, targetUserNa
         onClick={() => followMutation.mutate()}
         disabled={followMutation.isPending}
         size={size}
+        style={style}
         className={
           isFollowing
-            ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
-            : 'bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700'
+            ? `bg-gray-700 hover:bg-gray-600 border border-gray-600 ${className}`
+            : `bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 ${className}`
         }
       >
         {followMutation.isPending ? (
