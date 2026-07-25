@@ -47,7 +47,10 @@ export default function Register() {
       await base44.auth.register({ email, password });
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Falha no cadastro");
+      const isNetworkError = !err?.status || err?.status >= 500;
+      setError(isNetworkError
+        ? "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente."
+        : "Não foi possível criar sua conta. Verifique os dados e tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -63,7 +66,7 @@ export default function Register() {
       }
       window.location.href = "/Onboarding";
     } catch (err) {
-      setError(err.message || "Código inválido");
+      setError("Não foi possível verificar o código. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -75,7 +78,7 @@ export default function Register() {
       await base44.auth.resendOtp(email);
       toast({ title: "Código enviado", description: "Verifique seu email." });
     } catch (err) {
-      setError(err.message || "Erro ao reenviar código");
+      setError("Não foi possível reenviar o código. Tente novamente.");
     }
   };
 

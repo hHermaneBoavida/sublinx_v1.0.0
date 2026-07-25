@@ -37,7 +37,10 @@ export default function Login() {
       await base44.auth.loginViaEmailPassword(email, password);
       window.location.href = "/Onboarding";
     } catch (err) {
-      setError(err.message || "Email ou senha inválidos");
+      const isNetworkError = !err?.status || err?.status >= 500;
+      setError(isNetworkError
+        ? "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente."
+        : "Email ou senha inválidos.");
     } finally {
       setLoading(false);
     }

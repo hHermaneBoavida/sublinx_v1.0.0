@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,17 +19,7 @@ export default function UploadReelModal({ onClose, onUploadComplete, events, use
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   
-  const { data: user } = useQuery({ 
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      try {
-        return await base44.auth.me();
-      } catch {
-        return null;
-      }
-    },
-    ...CACHE_CONFIG.STATIC
-  });
+  const { user } = useAuth();
 
   const { data: availableEvents, isLoading: loadingEvents } = useQuery({
     queryKey: ['uploadReelEvents'],

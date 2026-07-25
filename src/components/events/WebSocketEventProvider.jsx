@@ -48,7 +48,7 @@ export default function WebSocketEventProvider({ children, user }) {
           updates[event.id] = {
             current_attendees: event.current_attendees || 0,
             max_capacity: event.max_capacity || 0,
-            status: event.status || 'active',
+            event_status: event.event_status || 'published',
             updated_at: new Date().toISOString()
           };
         }

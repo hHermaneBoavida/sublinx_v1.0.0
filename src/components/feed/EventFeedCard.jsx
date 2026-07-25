@@ -471,6 +471,13 @@ export default function EventFeedCard({
                 onClick={(e) => {
                   e.stopPropagation();
                   const url = displayEvent.ticket_url || displayEvent.purchase_url || FALLBACK_TICKET_URL;
+                  base44.functions.invoke('trackEventClick', {
+                    event_id: event.id,
+                    user_id: user?.id || null,
+                    action_type: 'purchase',
+                    provider: displayEvent.booking_provider || displayEvent.external_source || displayEvent.source || 'unknown',
+                    destination_url: url,
+                  }).catch(() => {});
                   window.open(url, '_blank', 'noopener,noreferrer');
                 }}
                 className="w-full h-8 text-xs bg-gradient-to-r from-green-600 to-emerald-600"

@@ -51,7 +51,7 @@ export default function useRealtimeEvent(eventId) {
       ...event,
       current_attendees: updates.current_attendees ?? event.current_attendees,
       max_capacity: updates.max_capacity ?? event.max_capacity,
-      status: updates.status ?? event.status,
+      event_status: updates.event_status ?? event.event_status,
       is_secret: updates.is_secret ?? event.is_secret,
       requires_approval: updates.requires_approval ?? event.requires_approval,
       _realtime: true,
