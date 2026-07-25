@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { FALLBACK_EVENT_IMAGE } from './eventImageFallback';
 
 /**
  * COMPONENTE DE IMAGEM OTIMIZADO
@@ -16,7 +17,7 @@ export default function LazyImage({
   aspectRatio = '1/1',
   priority = false,
   onLoad,
-  fallback = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/5048ab8ec_perfil.png'
+  fallback = FALLBACK_EVENT_IMAGE
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(priority);

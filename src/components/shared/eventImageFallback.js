@@ -5,3 +5,34 @@ export const FALLBACK_EVENT_IMAGE =
 
 // Fallback ticket URL — Sympla São Paulo search (verified bilheteria platform).
 export const FALLBACK_TICKET_URL = "https://www.sympla.com.br/eventos/sao-paulo-sp";
+
+// URL do logo SUBLINX que era erroneamente armazenado como image_url de eventos
+// sem imagem original. Deve ser filtrado — NUNCA exibido como imagem de evento.
+const PLACEHOLDER_LOGO_URL = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png";
+
+/**
+ * Resolve a imagem correta de um evento com prioridade consistente.
+ * Garante que o logo genérico do SUBLINX (antigo DEFAULT_IMAGE) NUNCA
+ * seja exibido como imagem de evento — apenas a imagem original real
+ * da fonte, ou o fallback SVG estático.
+ *
+ * Prioridade:
+ * 1. image_url original da fonte (se válida e não-placeholder)
+ * 2. thumbnail_url (se válido e não-placeholder)
+ * 3. FALLBACK_EVENT_IMAGE (SVG estático)
+ */
+export function resolveEventImage(event) {
+  if (!event) return FALLBACK_EVENT_IMAGE;
+
+  const imageUrl = event.image_url;
+  if (imageUrl && typeof imageUrl === "string" && imageUrl.trim() !== "" && imageUrl !== PLACEHOLDER_LOGO_URL) {
+    return imageUrl;
+  }
+
+  const thumbUrl = event.thumbnail_url;
+  if (thumbUrl && typeof thumbUrl === "string" && thumbUrl.trim() !== "" && thumbUrl !== PLACEHOLDER_LOGO_URL) {
+    return thumbUrl;
+  }
+
+  return FALLBACK_EVENT_IMAGE;
+}

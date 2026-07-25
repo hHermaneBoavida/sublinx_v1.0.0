@@ -20,7 +20,7 @@ import ShareModal from "./ShareModal";
 import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "../shared/helpers";
 import LazyImage from "./LazyImage";
-import { FALLBACK_EVENT_IMAGE, FALLBACK_TICKET_URL } from "../shared/eventImageFallback";
+import { FALLBACK_EVENT_IMAGE, FALLBACK_TICKET_URL, resolveEventImage } from "../shared/eventImageFallback";
 import useRealtimeEvent from "../events/useRealtimeEvent";
 import AttendeeCounter from "../events/AttendeeCounter";
 import EventRatingDisplay from "../reviews/EventRatingDisplay";
@@ -286,7 +286,7 @@ export default function EventFeedCard({
           </CardHeader>
 
           <LazyImage
-            src={displayEvent.image_url || FALLBACK_EVENT_IMAGE}
+            src={resolveEventImage(displayEvent)}
             alt={displayEvent.title}
             aspectRatio="16/9"
             className="cursor-pointer"

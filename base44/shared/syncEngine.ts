@@ -745,11 +745,10 @@ export async function runSync(base44, options = {}) {
               continue;
             }
 
-            // ETAPA 2: Imagem fallback
-            if (!normalized.image_url) {
-              normalized.image_url = DEFAULT_IMAGE;
-              normalized.thumbnail_url = DEFAULT_IMAGE;
-            }
+            // ETAPA 2: Imagem — preservar apenas image_url real da fonte.
+            // Se a fonte não forneceu imagem, deixar null — o frontend
+            // exibe o fallback SVG estático (FALLBACK_EVENT_IMAGE).
+            // NUNCA armazenar logo genérico como imagem do evento.
 
             // Criar evento
             await base44.asServiceRole.entities.Event.create({
