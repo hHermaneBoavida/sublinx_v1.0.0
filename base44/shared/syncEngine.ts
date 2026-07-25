@@ -323,13 +323,12 @@ export function consolidateEvents(events) {
     if (te < tb) return best;
     return (e.description?.length || 0) > (best.description?.length || 0) ? e : best;
   });
-  const bestImage = events.filter(e => e.image_url).sort((a, b) => (b.image_url?.length || 0) - (a.image_url?.length || 0))[0];
   const longestDesc = events.filter(e => e.description).sort((a, b) => (b.description?.length || 0) - (a.description?.length || 0))[0];
   const officialUrl = events.find(e => e.source_url && e.source !== 'organizer');
   return {
     ...canonical,
-    image_url: bestImage?.image_url || canonical.image_url,
-    thumbnail_url: bestImage?.thumbnail_url || canonical.thumbnail_url,
+    image_url: canonical.image_url,
+    thumbnail_url: canonical.thumbnail_url,
     description: longestDesc?.description || canonical.description,
     source_url: officialUrl?.source_url || canonical.source_url,
     gallery_urls: [...new Set(events.flatMap(e => e.gallery_urls || []))],

@@ -120,10 +120,9 @@ export function consolidateEvents(events) {
   if (!events?.length) return null;
   const canonical = pickCanonicalEvent(events);
 
-  // Merge: keep best image, longest description, official link
-  const bestImage = events
-    .filter(e => e.image_url)
-    .sort((a, b) => (b.image_url?.length || 0) - (a.image_url?.length || 0))[0];
+  // Merge: keep canonical image (by trust level), longest description, official link.
+  // NEVER pick an image from a different duplicate event based on arbitrary criteria
+  // (URL length, array position, etc.) — that would cross-contaminate images.
   const longestDesc = events
     .filter(e => e.description)
     .sort((a, b) => (b.description?.length || 0) - (a.description?.length || 0))[0];
@@ -131,8 +130,8 @@ export function consolidateEvents(events) {
 
   return {
     ...canonical,
-    image_url: bestImage?.image_url || canonical.image_url,
-    thumbnail_url: bestImage?.thumbnail_url || canonical.thumbnail_url,
+    image_url: canonical.image_url,
+    thumbnail_url: canonical.thumbnail_url,
     description: longestDesc?.description || canonical.description,
     source_url: officialUrl?.source_url || canonical.source_url,
     gallery_urls: [...new Set(events.flatMap(e => e.gallery_urls || []))],
