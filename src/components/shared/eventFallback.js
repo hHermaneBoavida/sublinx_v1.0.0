@@ -17,7 +17,13 @@ import { RAW_FALLBACK_EVENTS } from './fallbackEventsData';
  * Usado quando a API retorna erro ou array vazio.
  */
 export function getFallbackEvents() {
-  return filterPublicEvents(RAW_FALLBACK_EVENTS);
+  const events = filterPublicEvents(RAW_FALLBACK_EVENTS);
+  // Marcar explicitamente como seed/demo — NUNCA enviar ao pipeline de sincronização externa.
+  return events.map(e => ({
+    ...e,
+    is_seed: true,
+    is_external: false,
+  }));
 }
 
 /**

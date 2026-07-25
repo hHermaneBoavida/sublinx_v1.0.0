@@ -545,7 +545,7 @@ const EVENT_SCHEMA = {
   },
 };
 
-export async function discoverEvents(base44, city, category) {
+export async function discoverEvents(base44, city, category, limit = 10) {
   const now = new Date();
   const futureDate = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
   const dateStr = now.toISOString().split('T')[0];
@@ -567,7 +567,7 @@ CRITICAL — IMAGE URL RULES:
 - If the source page does not contain a real image for this specific event, return null for image_url.
 - Do NOT return Unsplash, placeholder, or avatar URLs.
 
-Only include REAL events you are confident exist. Return up to 30 events.`;
+Only include REAL events you are confident exist. Return up to ${limit} events.`;
 
   const result = await withRetry(
     () => base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -607,8 +607,55 @@ export async function createSyncLog(base44, logData) {
 // ==================== MOTOR PRINCIPAL ====================
 
 export async function runSync(base44, options = {}) {
-  const startTime = new Date();
-  const { city, category, sync_type = 'incremental' } = options;
+  const startTime = Date.now();
+  const {
+    city,
+    category,
+    sync_type = 'incremental',
+    dry_run = false,
+    limit = 10,
+    timeout_ms = 120000,
+  } = options;
+
+  const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 30);
+
+  function logSync(stage, extra = {}) {
+    console.log(JSON.stringify({
+      tag: '[SYNC]',
+      stage,
+      elapsed_ms: Date.now() - startTime,
+      city: city || null,
+      category: category || null,
+      dry_run,
+      limit: safeLimit,
+      ...extra,
+    }));
+  }
+
+  function checkTimeout(stage) {
+    const elapsed = Date.now() - startTime;
+    if (elapsed >= timeout_ms) {
+      const error = new Error(`SYNC_TIMEOUT:${stage}`);
+      error.code = 'SYNC_TIMEOUT';
+      error.stage = stage;
+      error.elapsed_ms = elapsed;
+      throw error;
+    }
+  }
+
+  const imageStats = {
+    total_events: 0,
+    total_with_image: 0,
+    total_without_image: 0,
+    total_images_preserved: 0,
+    total_images_rejected: 0,
+    total_images_added: 0,
+    total_images_not_overwritten: 0,
+  };
+
+  const timings = { total_ms: 0 };
+
+  logSync('START');
 
   const cities = city ? [city] : SYNC_CITIES;
   const categories = category ? [category] : SYNC_CATEGORIES;
@@ -620,7 +667,7 @@ export async function runSync(base44, options = {}) {
     sources: {},
   };
 
-  // ETAPA 10: Cache — buscar eventos existentes para dedup
+  // ETAPA 10: Cache — buscar eventos existentes para dedup (read-only, OK em dry_run)
   const existingEvents = await base44.asServiceRole.entities.Event.list('-created_date', 1000);
   const existingByHash = new Map();
   const existingBySource = new Map();
@@ -632,13 +679,27 @@ export async function runSync(base44, options = {}) {
   for (const cityName of cities) {
     for (const cat of categories) {
       try {
-        const rawEvents = await discoverEvents(base44, cityName, cat);
-        stats.api_calls++;
-        stats.sources[`${cityName}/${cat}`] = rawEvents.length;
+        // ETAPA 2: Descoberta
+        checkTimeout('DISCOVERY');
+        logSync('DISCOVERY_START', { city: cityName, category: cat });
 
-        for (const raw of rawEvents) {
+        const rawEvents = await discoverEvents(base44, cityName, cat, safeLimit);
+        const limitedEvents = rawEvents.slice(0, safeLimit);
+        stats.api_calls++;
+        stats.sources[`${cityName}/${cat}`] = limitedEvents.length;
+
+        logSync('DISCOVERY_END', { city: cityName, category: cat, discovered: limitedEvents.length });
+
+        // ETAPA 4: Normalização + sanitização
+        checkTimeout('NORMALIZATION');
+        logSync('NORMALIZATION_START', { count: limitedEvents.length });
+
+        const normalizedEvents = [];
+
+        for (const raw of limitedEvents) {
           try {
-            // ETAPA 4: Normalizar
+            const rawImageUrl = raw.image_url || null;
+
             const normalized = normalizeEvent({
               title: raw.title,
               subtitle: raw.subtitle,
@@ -677,15 +738,46 @@ export async function runSync(base44, options = {}) {
               max_capacity: raw.max_capacity,
             });
 
-            // ETAPA 8: Validar (pré-geocodificação — coordenadas podem vir da API)
+            // Track image provenance — sanitização
+            imageStats.total_events++;
+            if (rawImageUrl && !normalized.image_url) {
+              imageStats.total_images_rejected++;
+            }
+            if (normalized.image_url) {
+              imageStats.total_with_image++;
+            } else {
+              imageStats.total_without_image++;
+            }
+
+            // ETAPA 8: Validar (pré-geocodificação)
             if (!normalized.title || !normalized.date) {
               stats.ignored++;
               stats.errors.push(`${normalized.title || 'unknown'}: campos obrigatórios ausentes`);
               continue;
             }
 
-            // ETAPA 7: Geocodificar se coordenadas ausentes
-            if (!normalized.location.lat || !normalized.location.lng) {
+            // In dry_run, set placeholder organizer_id so validation passes
+            // without creating organizers in the database.
+            if (dry_run && !normalized.organizer_id) {
+              normalized.organizer_id = 'dry-run-org-id';
+            }
+
+            normalizedEvents.push(normalized);
+          } catch (e) {
+            stats.errors.push(e.message);
+            stats.ignored++;
+          }
+        }
+
+        logSync('NORMALIZATION_END', { processed: normalizedEvents.length });
+
+        // ETAPA 7: Geocodificação
+        checkTimeout('GEOCODING');
+        logSync('GEOCODING_START', { count: normalizedEvents.length });
+
+        for (const normalized of normalizedEvents) {
+          if (!normalized.location.lat || !normalized.location.lng) {
+            try {
               const geo = await geocodeAddress(
                 base44,
                 normalized.location.address || normalized.location.venue_name,
@@ -698,29 +790,58 @@ export async function runSync(base44, options = {}) {
                 normalized.location.lat = geo.lat;
                 normalized.location.lng = geo.lng;
               }
+            } catch (e) {
+              stats.errors.push(`Geocode error: ${e.message}`);
             }
+          }
+        }
 
-            // Validar novamente com coordenadas
-            const validation = validateEvent(normalized);
-            if (!validation.valid) {
-              stats.ignored++;
-              stats.errors.push(`${normalized.title}: ${validation.errors.join(', ')}`);
-              continue;
-            }
+        logSync('GEOCODING_END', { geocoded: normalizedEvents.length });
 
-            // ETAPA 5: Deduplicação
-            const hash = generateSyncHash(normalized);
-            normalized.sync_hash = hash;
+        // ETAPA 8: Validar novamente com coordenadas
+        const validEvents = [];
+        for (const normalized of normalizedEvents) {
+          const validation = validateEvent(normalized);
+          if (!validation.valid) {
+            stats.ignored++;
+            stats.errors.push(`${normalized.title}: ${validation.errors.join(', ')}`);
+            continue;
+          }
+          validEvents.push(normalized);
+        }
 
-            const existingByHashMatch = existingByHash.get(hash);
-            const existingBySourceMatch = existingBySource.get(`${normalized.source}:${normalized.source_id}`);
+        // ETAPA 5: Deduplicação
+        checkTimeout('DEDUP');
+        logSync('DEDUP_START', { count: validEvents.length });
 
-            if (existingByHashMatch || existingBySourceMatch) {
-              const existing = existingByHashMatch || existingBySourceMatch;
-              const dupeCheck = eventsAreDuplicates(existing, normalized);
-              if (dupeCheck.duplicate) {
-                stats.duplicates++;
-                // ETAPA 9: Atualizar se houver mudanças
+        const eventsToPersist = [];
+
+        for (const normalized of validEvents) {
+          const hash = generateSyncHash(normalized);
+          normalized.sync_hash = hash;
+
+          const existingByHashMatch = existingByHash.get(hash);
+          const existingBySourceMatch = existingBySource.get(`${normalized.source}:${normalized.source_id}`);
+
+          if (existingByHashMatch || existingBySourceMatch) {
+            const existing = existingByHashMatch || existingBySourceMatch;
+            const dupeCheck = eventsAreDuplicates(existing, normalized);
+            if (dupeCheck.duplicate) {
+              stats.duplicates++;
+
+              // ETAPA 7: Estatísticas de proveniência de imagem — duplicatas
+              if (existing.image_url) {
+                imageStats.total_images_preserved++;
+              }
+              if (normalized.image_url && existing.image_url) {
+                imageStats.total_images_not_overwritten++;
+              }
+              if (normalized.image_url && !existing.image_url) {
+                imageStats.total_images_added++;
+              }
+
+              // ETAPA 8: Preservação da imagem existente — nunca sobrescrever
+              if (!dry_run) {
                 const updates = {};
                 if (normalized.image_url && !existing.image_url) updates.image_url = normalized.image_url;
                 if (normalized.description?.length > (existing.description?.length || 0)) updates.description = normalized.description;
@@ -739,10 +860,24 @@ export async function runSync(base44, options = {}) {
                   await base44.asServiceRole.entities.Event.update(existing.id, updates);
                   stats.updated++;
                 }
-                continue;
+              } else {
+                stats.updated++;
               }
+              continue;
             }
+          }
 
+          eventsToPersist.push(normalized);
+        }
+
+        logSync('DEDUP_END', { duplicates: stats.duplicates, toPersist: eventsToPersist.length });
+
+        // ETAPA 6: Organizador + Persistência
+        checkTimeout('PERSISTENCE');
+        logSync('PERSISTENCE_START', { count: eventsToPersist.length });
+
+        for (const normalized of eventsToPersist) {
+          try {
             // ETAPA 6: Organizador — extrair do título se ausente
             if (!normalized.organizer && normalized.title) {
               const presMatch = normalized.title.match(/^(.+?)\s+(?:pres(?:\.|ents)?|apresenta)/i);
@@ -752,64 +887,81 @@ export async function runSync(base44, options = {}) {
                 normalized.organizer = 'Organizador Externo';
               }
             }
-            if (normalized.organizer) {
-              try {
-                const org = await findOrCreateOrganizer(
-                  base44, normalized.organizer, 'serpapi', normalized.source_id,
-                  {
-                    website: normalized.organizer_website,
-                    instagram: normalized.organizer_instagram,
-                    facebook: normalized.organizer_facebook,
-                    tiktok: normalized.organizer_tiktok,
-                    logo_url: normalized.organizer_logo,
-                    city: normalized.location.city,
-                    country: normalized.location.country,
-                  }
-                );
-                if (org) normalized.organizer_id = org.id;
-              } catch (e) {
-                stats.errors.push(`Organizer error: ${e.message}`);
+
+            if (dry_run) {
+              // Dry-run: simular sem persistir
+              normalized.organizer_id = normalized.organizer_id || 'dry-run-org-id';
+              if (normalized.image_url) {
+                imageStats.total_images_added++;
               }
+              stats.imported++;
+            } else {
+              if (normalized.organizer) {
+                try {
+                  const org = await findOrCreateOrganizer(
+                    base44, normalized.organizer, 'serpapi', normalized.source_id,
+                    {
+                      website: normalized.organizer_website,
+                      instagram: normalized.organizer_instagram,
+                      facebook: normalized.organizer_facebook,
+                      tiktok: normalized.organizer_tiktok,
+                      logo_url: normalized.organizer_logo,
+                      city: normalized.location.city,
+                      country: normalized.location.country,
+                    }
+                  );
+                  if (org) normalized.organizer_id = org.id;
+                } catch (e) {
+                  stats.errors.push(`Organizer error: ${e.message}`);
+                }
+              }
+
+              if (!normalized.organizer_id) {
+                stats.ignored++;
+                stats.errors.push(`${normalized.title}: sem organizador`);
+                continue;
+              }
+
+              // ETAPA 2: Imagem — preservar apenas image_url real da fonte.
+              // Se a fonte não forneceu imagem, deixar null — o frontend
+              // exibe o fallback SVG estático (FALLBACK_EVENT_IMAGE).
+              // NUNCA armazenar logo genérico como imagem do evento.
+              await base44.asServiceRole.entities.Event.create({
+                ...normalized,
+                is_published: false,
+                trust_level: 'pending',
+                is_expired: false,
+                last_synced_at: new Date().toISOString(),
+                verified_at: null,
+                verification_status: 'pending',
+                last_verified_at: null,
+                verification_score: 0,
+                ticket_status: 'unknown',
+              });
+
+              if (normalized.image_url) {
+                imageStats.total_images_added++;
+              }
+              stats.imported++;
             }
-
-            if (!normalized.organizer_id) {
-              stats.ignored++;
-              stats.errors.push(`${normalized.title}: sem organizador`);
-              continue;
-            }
-
-            // ETAPA 2: Imagem — preservar apenas image_url real da fonte.
-            // Se a fonte não forneceu imagem, deixar null — o frontend
-            // exibe o fallback SVG estático (FALLBACK_EVENT_IMAGE).
-            // NUNCA armazenar logo genérico como imagem do evento.
-
-            // Criar evento
-            await base44.asServiceRole.entities.Event.create({
-              ...normalized,
-              is_published: false,
-              trust_level: 'pending',
-              is_expired: false,
-              last_synced_at: new Date().toISOString(),
-              verified_at: null,
-              verification_status: 'pending',
-              last_verified_at: null,
-              verification_score: 0,
-              ticket_status: 'unknown',
-            });
-            stats.imported++;
 
             // Atualizar cache de dedup
-            existingByHash.set(hash, normalized);
+            existingByHash.set(normalized.sync_hash, normalized);
             if (normalized.source && normalized.source_id) {
               existingBySource.set(`${normalized.source}:${normalized.source_id}`, normalized);
             }
-
           } catch (e) {
             stats.errors.push(e.message);
             stats.ignored++;
           }
         }
+
+        logSync('PERSISTENCE_END', { imported: stats.imported, updated: stats.updated });
       } catch (e) {
+        // Re-throw timeout para ser tratado pelo entry.ts
+        if (e?.code === 'SYNC_TIMEOUT') {
+          throw e;
+        }
         stats.errors.push(`${cityName}/${cat}: ${e.message}`);
         if (e.message?.includes('rate limit') || e.message?.includes('429')) {
           stats.rate_limit_hits++;
@@ -818,29 +970,45 @@ export async function runSync(base44, options = {}) {
     }
   }
 
-  // ETAPA 11: Log
-  const duration = Math.round((Date.now() - startTime.getTime()) / 1000);
-  await createSyncLog(base44, {
-    sync_type,
-    source: 'web_search',
-    status: stats.errors.length > 0 && stats.imported > 0 ? 'partial' : (stats.errors.length > 0 ? 'failed' : 'completed'),
-    started_at: startTime.toISOString(),
-    completed_at: new Date().toISOString(),
-    imported: stats.imported,
+  // ETAPA 11: Log — NÃO criar SyncLog em dry_run
+  const duration = Math.round((Date.now() - startTime) / 1000);
+  timings.total_ms = Date.now() - startTime;
+
+  if (!dry_run) {
+    await createSyncLog(base44, {
+      sync_type,
+      source: 'web_search',
+      status: stats.errors.length > 0 && stats.imported > 0 ? 'partial' : (stats.errors.length > 0 ? 'failed' : 'completed'),
+      started_at: new Date(startTime).toISOString(),
+      completed_at: new Date().toISOString(),
+      imported: stats.imported,
+      updated: stats.updated,
+      ignored: stats.ignored,
+      duplicates: stats.duplicates,
+      errors: stats.errors,
+      duration_seconds: duration,
+      api_calls: stats.api_calls,
+      rate_limit_hits: stats.rate_limit_hits,
+      summary: `Sync ${sync_type}${dry_run ? ' (DRY_RUN)' : ''}: ${stats.imported} importados, ${stats.updated} atualizados, ${stats.duplicates} duplicados, ${stats.ignored} ignorados em ${duration}s.`,
+    });
+  }
+
+  logSync('COMPLETE', {
+    processed: stats.imported + stats.updated + stats.ignored + stats.duplicates,
+    created: stats.imported,
     updated: stats.updated,
-    ignored: stats.ignored,
-    duplicates: stats.duplicates,
-    errors: stats.errors,
-    duration_seconds: duration,
-    api_calls: stats.api_calls,
-    rate_limit_hits: stats.rate_limit_hits,
-    summary: `Sync ${sync_type}: ${stats.imported} importados, ${stats.updated} atualizados, ${stats.duplicates} duplicados, ${stats.ignored} ignorados em ${duration}s.`,
+    skipped: stats.ignored,
+    errors: stats.errors.length,
   });
 
   return {
     success: true,
+    dry_run,
+    persisted: !dry_run,
     sync_type,
     duration_seconds: duration,
+    discovered: Object.values(stats.sources).reduce((a, b) => a + b, 0),
+    processed: stats.imported + stats.updated + stats.ignored + stats.duplicates,
     stats: {
       imported: stats.imported,
       updated: stats.updated,
@@ -850,6 +1018,8 @@ export async function runSync(base44, options = {}) {
       rate_limit_hits: stats.rate_limit_hits,
       sources: stats.sources,
     },
+    image_stats: imageStats,
+    timings,
     errors: stats.errors.slice(0, 20),
   };
 }
