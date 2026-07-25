@@ -96,7 +96,7 @@ export default function SocialRecommendations({ user }) {
             transition={{ delay: index * 0.1 }}
           >
             <Card
-              onClick={() => navigate(createPageUrl("ComprarIngresso") + `?eventId=${event.id}`)}
+              onClick={(e) => { e.stopPropagation(); const url = event.ticket_url || event.purchase_url; window.open(url && url.startsWith('http') ? url : 'https://www.sympla.com.br/eventos/sao-paulo-sp', '_blank', 'noopener,noreferrer'); }}
               className="bg-gradient-to-br from-cyan-900/20 via-gray-900/80 to-purple-900/20 border-cyan-500/30 cursor-pointer hover:border-cyan-500/50 transition-all"
             >
               <CardContent className="p-4">

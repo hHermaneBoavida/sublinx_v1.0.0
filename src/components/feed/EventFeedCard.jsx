@@ -466,7 +466,7 @@ export default function EventFeedCard({
               </Button>
             ) : (
               <Button
-                onClick={() => navigate(createPageUrl("ComprarIngresso") + `?eventId=${displayEvent.id}`)}
+                onClick={(e) => { e.stopPropagation(); const url = displayEvent.ticket_url || displayEvent.purchase_url; window.open(url && url.startsWith('http') ? url : 'https://www.sympla.com.br/eventos/sao-paulo-sp', '_blank', 'noopener,noreferrer'); }}
                 className="w-full h-8 text-xs bg-gradient-to-r from-green-600 to-emerald-600"
               >
                 <Users className="w-3 h-3 mr-1" />

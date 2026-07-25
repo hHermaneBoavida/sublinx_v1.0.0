@@ -19,8 +19,10 @@ export default function ApprovedRequestCard({ request }) {
     );
   }
 
-  const handleBuyTicket = () => {
-    navigate(createPageUrl(`ComprarIngresso?eventId=${event.id}&requestId=${request.id}`));
+  const handleBuyTicket = (e) => {
+    if (e) e.stopPropagation();
+    const url = event.ticket_url || event.purchase_url;
+    window.open(url && url.startsWith('http') ? url : 'https://www.sympla.com.br/eventos/sao-paulo-sp', '_blank', 'noopener,noreferrer');
   };
 
   return (

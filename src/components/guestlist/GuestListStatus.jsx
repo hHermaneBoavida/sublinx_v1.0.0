@@ -130,7 +130,7 @@ export default function GuestListStatus({ event, user }) {
 
           {guestStatus.status === 'accepted' && guestStatus.status !== 'used' && (
             <Button
-              onClick={() => navigate(createPageUrl("ComprarIngresso") + `?eventId=${event.id}&guestList=true`)}
+              onClick={(e) => { e.stopPropagation(); const url = event.ticket_url || event.purchase_url; window.open(url && url.startsWith('http') ? url : 'https://www.sympla.com.br/eventos/sao-paulo-sp', '_blank', 'noopener,noreferrer'); }}
               className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white font-bold"
             >
               <Crown className="w-4 h-4 mr-2" />
