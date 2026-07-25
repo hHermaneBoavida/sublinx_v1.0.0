@@ -73,6 +73,33 @@ export function normalizeURL(url) {
   try { return new URL(u).href; } catch { return null; }
 }
 
+// URL do logo SUBLINX que era erroneamente armazenado como image_url.
+// Deve ser filtrado — nunca aceito como imagem de evento.
+const PLACEHOLDER_LOGO_URL = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png';
+
+/**
+ * Valida a proveniência de uma URL de imagem.
+ * Garante que apenas URLs HTTP(S) reais sejam aceitas — nunca data: URIs,
+ * logos placeholder, avatares, ou URLs inventadas.
+ */
+export function sanitizeImageUrl(url) {
+  if (!url) return null;
+  const u = String(url).trim();
+  if (!u) return null;
+  // Rejeitar data: URIs, blob:, e outros protocolos não-HTTP
+  if (!/^https?:\/\//i.test(u)) return null;
+  // Rejeitar o logo placeholder do SUBLINX
+  if (u === PLACEHOLDER_LOGO_URL) return null;
+  try {
+    const parsed = new URL(u);
+    // Garantir HTTPS quando possível
+    if (parsed.protocol === 'http:') {
+      return 'https://' + u.substring(7);
+    }
+    return parsed.href;
+  } catch { return null; }
+}
+
 export function normalizeCoordinates(lat, lng) {
   const la = parseFloat(lat);
   const ln = parseFloat(lng);
@@ -202,8 +229,8 @@ export function normalizeEvent(raw) {
     organizer_phone: raw.organizer_phone,
     max_capacity: raw.max_capacity,
     current_attendees: raw.current_attendees || 0,
-    image_url: normalizeURL(raw.image_url),
-    thumbnail_url: normalizeURL(raw.thumbnail_url || raw.image_url),
+    image_url: sanitizeImageUrl(raw.image_url),
+    thumbnail_url: sanitizeImageUrl(raw.thumbnail_url || raw.image_url),
     gallery_urls: Array.isArray(raw.gallery_urls) ? raw.gallery_urls.map(normalizeURL).filter(Boolean) : [],
     video_urls: Array.isArray(raw.video_urls) ? raw.video_urls.map(normalizeURL).filter(Boolean) : [],
     logo_url: normalizeURL(raw.logo_url),
@@ -506,7 +533,7 @@ const EVENT_SCHEMA = {
           max_price: { type: 'number' },
           currency: { type: 'string' },
           ticket_url: { type: 'string' },
-          image_url: { type: 'string' },
+          image_url: { type: ['string', 'null'] },
           source_url: { type: 'string' },
           age_restriction: { type: 'string' },
           category: { type: 'string' },
@@ -533,6 +560,13 @@ Date range: ${dateStr} to ${futureStr}.
 For each event provide ALL available info: title, subtitle, description, start date (ISO 8601), end date, venue name, full address, neighborhood, city, state, postal code, country, latitude, longitude, organizer_name, organizer_website, organizer_instagram, organizer_facebook, organizer_tiktok, organizer_logo, min_price, max_price, currency, ticket_url, image_url, source_url, age_restriction, category, tags, is_free, max_capacity.
 
 CRITICAL: Every event MUST have an organizer_name. If the organizer is not explicitly listed, extract it from the event title (e.g., "The Grid Presents: X" -> organizer_name: "The Grid"). If truly unknown, use "Organizador Externo".
+
+CRITICAL — IMAGE URL RULES:
+- image_url MUST be the actual image URL found on the event's source page.
+- NEVER invent, infer, guess, generate, search for, or substitute an image URL.
+- NEVER use a stock photo, generic image, or image from a different event.
+- If the source page does not contain a real image for this specific event, return null for image_url.
+- Do NOT return Unsplash, placeholder, or avatar URLs.
 
 Only include REAL events you are confident exist. Return up to 30 events.`;
 
