@@ -98,7 +98,7 @@ export default function EventCard({ event, onClose, user, isGuest, onRequirePlan
     if (eventRequest) {
       switch (eventRequest.status) {
         case 'pending': return <Button disabled className="w-full bg-yellow-600"><Clock className="w-4 h-4 mr-2" />Solicitação Pendente</Button>;
-        case 'approved': return <Button onClick={() => navigate(createPageUrl(`ComprarIngresso?eventId=${event.id}&requestId=${eventRequest.id}`))} className="w-full bg-gradient-to-r from-lime-500 to-green-500 hover:from-lime-600 hover:to-green-600"><Ticket className="w-4 h-4 mr-2" />Comprar Ingresso</Button>;
+        case 'approved': return <Button onClick={(e) => { e.stopPropagation(); window.open(event.ticket_url || event.purchase_url || 'https://www.sympla.com.br/eventos/sao-paulo-sp', '_blank', 'noopener,noreferrer'); }} className="w-full bg-gradient-to-r from-lime-500 to-green-500 hover:from-lime-600 hover:to-green-600"><Ticket className="w-4 h-4 mr-2" />Comprar Ingresso</Button>;
         case 'denied': return <Button disabled className="w-full bg-red-600"><X className="w-4 h-4 mr-2" />Solicitação Negada</Button>;
       }
     }
