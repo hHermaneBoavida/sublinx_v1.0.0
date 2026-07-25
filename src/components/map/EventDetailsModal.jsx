@@ -24,6 +24,7 @@ import GuestListStatus from "../guestlist/GuestListStatus";
 import SponsorsSection from "../events/SponsorsSection";
 import EventActionButtons from "../events/EventActionButtons";
 import EventVerificationBadge from "../events/EventVerificationBadge";
+import { FALLBACK_EVENT_IMAGE } from "../shared/eventImageFallback";
 
 export default function EventDetailsModal({ event, onClose }) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -203,12 +204,17 @@ export default function EventDetailsModal({ event, onClose }) {
             {/* Image Header */}
             <div className="relative h-64 sm:h-80 overflow-hidden">
               <img
-                src={event.image_url || `https://picsum.photos/800/600?random=${event.id}`}
+                src={event.image_url || FALLBACK_EVENT_IMAGE}
                 alt={event.title}
                 className={`w-full h-full object-cover transition-all duration-500 ${
                   imageLoaded ? 'scale-100 blur-0' : 'scale-110 blur-sm'
                 }`}
                 onLoad={() => setImageLoaded(true)}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = FALLBACK_EVENT_IMAGE;
+                  setImageLoaded(true);
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
 

@@ -20,6 +20,7 @@ import ShareModal from "./ShareModal";
 import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "../shared/helpers";
 import LazyImage from "./LazyImage";
+import { FALLBACK_EVENT_IMAGE, FALLBACK_TICKET_URL } from "../shared/eventImageFallback";
 import useRealtimeEvent from "../events/useRealtimeEvent";
 import AttendeeCounter from "../events/AttendeeCounter";
 import EventRatingDisplay from "../reviews/EventRatingDisplay";
@@ -285,10 +286,11 @@ export default function EventFeedCard({
           </CardHeader>
 
           <LazyImage
-            src={displayEvent.image_url || `https://picsum.photos/800/450?random=${displayEvent.id}`}
+            src={displayEvent.image_url || FALLBACK_EVENT_IMAGE}
             alt={displayEvent.title}
             aspectRatio="16/9"
             className="cursor-pointer"
+            fallback={<img src={FALLBACK_EVENT_IMAGE} alt={displayEvent.title} className="w-full h-full object-cover" />}
           >
             <div
               className="absolute inset-0 cursor-pointer"
@@ -466,7 +468,11 @@ export default function EventFeedCard({
               </Button>
             ) : (
               <Button
-                onClick={(e) => { e.stopPropagation(); const url = displayEvent.ticket_url || displayEvent.purchase_url; window.open(url && url.startsWith('http') ? url : 'https://www.sympla.com.br/eventos/sao-paulo-sp', '_blank', 'noopener,noreferrer'); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = displayEvent.ticket_url || displayEvent.purchase_url || FALLBACK_TICKET_URL;
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
                 className="w-full h-8 text-xs bg-gradient-to-r from-green-600 to-emerald-600"
               >
                 <Users className="w-3 h-3 mr-1" />

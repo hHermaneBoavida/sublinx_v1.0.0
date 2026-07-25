@@ -6,6 +6,9 @@ import { useEventUpdates } from './WebSocketEventProvider';
 export default function useRealtimeEvent(eventId) {
   const { eventUpdates, subscribeToEvent, unsubscribeFromEvent, isConnected } = useEventUpdates();
 
+  // Eventos estáticos (prefixo 'sp-') são imutáveis — nunca inscrever nem sobrescrever
+  const isStatic = typeof eventId === 'string' && eventId.startsWith('sp-');
+
   // Buscar dados completos do evento
   const { data: event, isLoading, error } = useQuery({
     queryKey: ['eventDetails', eventId],
@@ -20,21 +23,24 @@ export default function useRealtimeEvent(eventId) {
       }
     },
     enabled: !!eventId,
-    staleTime: 10000, // 10 segundos
-    refetchInterval: 15000, // Refetch a cada 15s como fallback
+    staleTime: isStatic ? Infinity : 10000, // Estáticos nunca expiram
+    refetchInterval: isStatic ? false : 15000, // Estáticos não sofrem refetch
   });
 
-  // Inscrever/desinscrever no evento para updates em tempo real
+  // Inscrever/desinscrever no evento para updates em tempo real (apenas dinâmicos)
   useEffect(() => {
-    if (eventId) {
+    if (eventId && !isStatic) {
       subscribeToEvent(eventId);
       return () => unsubscribeFromEvent(eventId);
     }
-  }, [eventId, subscribeToEvent, unsubscribeFromEvent]);
+  }, [eventId, subscribeToEvent, unsubscribeFromEvent, isStatic]);
 
   // Merge dos dados do evento com updates em tempo real
   const realtimeEvent = useMemo(() => {
     if (!event) return null;
+
+    // Eventos estáticos retornam dados brutos — sem merge de updates
+    if (isStatic) return event;
 
     const updates = eventUpdates[eventId];
     
@@ -76,6 +82,6 @@ export default function useRealtimeEvent(eventId) {
     isConnected,
     occupancyPercentage,
     availabilityStatus,
-    isRealtime: !!eventUpdates[eventId]
+    isRealtime: !isStatic && !!eventUpdates[eventId]
   };
 }
