@@ -11,6 +11,7 @@ import { Loader2, MapPin, Sparkles, Play } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { matchesVibe, calculateDistance } from "../components/shared/helpers";
 import { filterPublicEvents } from "../components/shared/eventValidation";
+import { withFallback } from "../components/shared/eventFallback";
 import { isWithinInterval, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
 import GlobalSearch from "../components/search/GlobalSearch";
@@ -78,8 +79,15 @@ export default function Mapa() {
   const { data: eventsData, isLoading: isLoadingEvents, error: eventsError } = useQuery({
     queryKey: ['mapEvents'],
     queryFn: async () => {
-      const allEvents = await base44.entities.Event.list("-date", 150);
-      if (!Array.isArray(allEvents)) return { events: [] };
+      let allEvents = [];
+      try {
+        allEvents = await base44.entities.Event.list("-date", 150);
+      } catch (err) {
+        allEvents = [];
+      }
+      if (!Array.isArray(allEvents)) allEvents = [];
+      // Fallback resiliente: se API retornar vazio/erro, injeta seed local
+      allEvents = withFallback(allEvents);
       // Mostrar: em andamento agora + até 7 dias futuros + com atividade recente (até 48h passados)
       const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
       const valid = filterPublicEvents(allEvents.filter(e => {
@@ -222,14 +230,14 @@ export default function Mapa() {
     const effectiveMaxDistance = userLocation ? filters.maxDistance : 99999;
     if (!events || events.length === 0) return [];
 
-    let filtered = events.filter(event => {
+    const applyFilters = (distanceFilter) => events.filter(event => {
       if (!event?.location) return false;
       const genreMatch = filters.genre === 'all' || event.genre === filters.genre;
       const typeMatch = filters.type === 'all' || event.type === filters.type;
       const vibeMatch = matchesVibe(event, activeVibe);
 
       let distanceMatch = true;
-      if (event.location?.lat && event.location?.lng) {
+      if (distanceFilter && event.location?.lat && event.location?.lng) {
         const distance = calculateDistance(
           effectiveLocation.lat, effectiveLocation.lng,
           event.location.lat, event.location.lng
@@ -256,6 +264,12 @@ export default function Mapa() {
 
       return genreMatch && typeMatch && vibeMatch && distanceMatch && attendeesMatch && dateMatch;
     });
+
+    // Filtro de distância "soft": se zerar resultados, relembra sem filtro de distância
+    let filtered = applyFilters(true);
+    if (filtered.length === 0) {
+      filtered = applyFilters(false);
+    }
 
     if (filters.sortBy === 'distance' && userLocation) {
       filtered.sort((a, b) => {

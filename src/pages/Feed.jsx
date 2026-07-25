@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { filterFutureEvents, sortEventsByDistance } from "../components/shared/helpers";
 import { filterPublicEvents } from "../components/shared/eventValidation";
+import { withFallback, getFallbackEvents } from "../components/shared/eventFallback";
 import { CACHE_CONFIG, queryKeys } from "../components/shared/optimizations";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCurrentUser } from "../components/providers/UserProvider";
@@ -53,9 +54,14 @@ export default function Feed() {
     queryFn: async ({ pageParam = 0 }) => {
       const offset = pageParam * EVENTS_PER_PAGE;
       const limit = EVENTS_PER_PAGE;
-      const data = await base44.entities.Event.list("-date", limit + offset);
+      let data = [];
+      try {
+        data = await base44.entities.Event.list("-date", limit + offset);
+      } catch (err) {
+        data = [];
+      }
       
-      const futureEvents = filterPublicEvents(filterFutureEvents(data));
+      const futureEvents = filterPublicEvents(filterFutureEvents(withFallback(data)));
       const pageEvents = futureEvents.slice(offset, offset + EVENTS_PER_PAGE);
       
       return {

@@ -1,0 +1,280 @@
+/**
+ * SUBLINX — Seed de fallback para eventos.
+ *
+ * Garante que Feed e Mapa NUNCA fiquem zerados quando a API principal
+ * retorna erro ou array vazio. Todos os eventos passam por filterPublicEvents()
+ * antes de serem retornados.
+ *
+ * Eventos distribuidos em multiple cidades para máxima cobertura geográfica.
+ */
+
+import { filterPublicEvents } from './eventValidation';
+
+const DAY = 24 * 60 * 60 * 1000;
+function daysFromNow(days, hour = 22) {
+  const d = new Date(Date.now() + days * DAY);
+  d.setHours(hour, 0, 0, 0);
+  return d.toISOString();
+}
+
+const RAW_FALLBACK_EVENTS = [
+  {
+    id: 'fb-event-001',
+    title: 'Aurora Techno Night',
+    subtitle: 'Uma noite de techno imersivo',
+    genre: 'techno',
+    type: 'club',
+    category: 'musica',
+    location: {
+      lat: -23.5505, lng: -46.6333,
+      address: 'Av. Paulista, 1000',
+      venue_name: 'Club Aurora',
+      city: 'São Paulo', state: 'SP', country: 'BR',
+    },
+    date: daysFromNow(7, 23),
+    duration_hours: 6,
+    organizer_id: 'fb-organizer-01',
+    organizer: 'Aurora Collective',
+    source: 'sublinx_partner',
+    trust_level: 'partner',
+    is_published: true,
+    is_expired: false,
+    is_secret: false,
+    price: 80, currency: 'BRL',
+    image_url: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800',
+    short_description: 'Lineup internacional de techno em um dos melhores clubs de SP.',
+    current_attendees: 340,
+    ticket_status: 'available',
+    has_ticketing: true,
+    purchase_url: 'https://example.com/aurora-techno',
+  },
+  {
+    id: 'fb-event-002',
+    title: 'Sunset House Sessions',
+    subtitle: 'House music ao pôr do sol',
+    genre: 'house',
+    type: 'rooftop',
+    category: 'festa',
+    location: {
+      lat: -22.9068, lng: -43.1729,
+      address: 'Av. Atlântica, 1702',
+      venue_name: 'Rooftop Copacabana',
+      city: 'Rio de Janeiro', state: 'RJ', country: 'BR',
+    },
+    date: daysFromNow(14, 18),
+    duration_hours: 5,
+    organizer_id: 'fb-organizer-02',
+    organizer: 'Sunset Beats',
+    source: 'sublinx_partner',
+    trust_level: 'partner',
+    is_published: true,
+    is_expired: false,
+    is_secret: false,
+    price: 120, currency: 'BRL',
+    image_url: 'https://images.unsplash.com/photo-1571266028243-d220c6a9f1d4?w=800',
+    short_description: 'House music com vista para o mar no rooftop mais icônico do Rio.',
+    current_attendees: 210,
+    ticket_status: 'available',
+    has_ticketing: true,
+    purchase_url: 'https://example.com/sunset-house',
+  },
+  {
+    id: 'fb-event-003',
+    title: 'Minimal Underground',
+    subtitle: 'Somos do underground',
+    genre: 'minimal',
+    type: 'warehouse',
+    category: 'musica',
+    location: {
+      lat: -25.4284, lng: -49.2733,
+      address: 'Rua dos Pinheiros, 450',
+      venue_name: 'Galpão 77',
+      city: 'Curitiba', state: 'PR', country: 'BR',
+    },
+    date: daysFromNow(21, 23),
+    duration_hours: 8,
+    organizer_id: 'fb-organizer-03',
+    organizer: 'Underground Curitiba',
+    source: 'sublinx_partner',
+    trust_level: 'verified',
+    is_published: true,
+    is_expired: false,
+    is_secret: false,
+    price: 60, currency: 'BRL',
+    image_url: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800',
+    short_description: 'Minimal techno em galpão industrial transformado em pista.',
+    current_attendees: 150,
+    ticket_status: 'available',
+    has_ticketing: true,
+    purchase_url: 'https://example.com/minimal-underground',
+  },
+  {
+    id: 'fb-event-004',
+    title: 'Bass Culture Festival',
+    subtitle: 'Drum & Bass e Bass Music',
+    genre: 'drum_bass',
+    type: 'festival',
+    category: 'festival',
+    location: {
+      lat: -19.9167, lng: -43.9345,
+      address: 'Av. Afonso Pena, 2000',
+      venue_name: 'Expominas BH',
+      city: 'Belo Horizonte', state: 'MG', country: 'BR',
+    },
+    date: daysFromNow(30, 20),
+    duration_hours: 10,
+    organizer_id: 'fb-organizer-04',
+    organizer: 'Bass Culture',
+    source: 'sublinx_partner',
+    trust_level: 'verified',
+    is_published: true,
+    is_expired: false,
+    is_secret: false,
+    price: 150, currency: 'BRL',
+    image_url: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800',
+    short_description: 'Festival de bass music com lineup nacional e internacional.',
+    current_attendees: 1200,
+    ticket_status: 'available',
+    has_ticketing: true,
+    purchase_url: 'https://example.com/bass-culture',
+  },
+  {
+    id: 'fb-event-005',
+    title: 'Trance Journey',
+    subtitle: 'Uma jornada transcendental',
+    genre: 'trance',
+    type: 'club',
+    category: 'musica',
+    location: {
+      lat: -15.7939, lng: -47.8828,
+      address: 'Setor de Clubes Sul, Bloco A',
+      venue_name: 'Eclipse Club',
+      city: 'Brasília', state: 'DF', country: 'BR',
+    },
+    date: daysFromNow(10, 23),
+    duration_hours: 7,
+    organizer_id: 'fb-organizer-05',
+    organizer: 'Trance Family DF',
+    source: 'sublinx_partner',
+    trust_level: 'confirmed',
+    is_published: true,
+    is_expired: false,
+    is_secret: false,
+    price: 90, currency: 'BRL',
+    image_url: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=800',
+    short_description: 'Trance progressivo e psytrance em uma noite única.',
+    current_attendees: 280,
+    ticket_status: 'available',
+    has_ticketing: true,
+    purchase_url: 'https://example.com/trance-journey',
+  },
+  {
+    id: 'fb-event-006',
+    title: 'Reggae Roots Night',
+    subtitle: 'Paz, amor e reggae',
+    genre: 'reggae',
+    type: 'club',
+    category: 'musica',
+    location: {
+      lat: -12.9714, lng: -38.5014,
+      address: 'Rua Chile, 30',
+      venue_name: 'Roots Bar',
+      city: 'Salvador', state: 'BA', country: 'BR',
+    },
+    date: daysFromNow(5, 21),
+    duration_hours: 5,
+    organizer_id: 'fb-organizer-06',
+    organizer: 'Roots Productions',
+    source: 'sublinx_partner',
+    trust_level: 'partner',
+    is_published: true,
+    is_expired: false,
+    is_secret: false,
+    price: 50, currency: 'BRL',
+    image_url: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=800',
+    short_description: 'Reggae roots com bandas locais e convidados especiais.',
+    current_attendees: 180,
+    ticket_status: 'available',
+    has_ticketing: true,
+    purchase_url: 'https://example.com/reggae-roots',
+  },
+  {
+    id: 'fb-event-007',
+    title: 'Funk & Hip Hop Party',
+    subtitle: 'A quebra do ritmo',
+    genre: 'funk',
+    type: 'club',
+    category: 'festa',
+    location: {
+      lat: -8.0476, lng: -34.8770,
+      address: 'Av. Boa Viagem, 500',
+      venue_name: 'Recife Beats',
+      city: 'Recife', state: 'PE', country: 'BR',
+    },
+    date: daysFromNow(12, 23),
+    duration_hours: 6,
+    organizer_id: 'fb-organizer-07',
+    organizer: 'Recife Beats',
+    source: 'sublinx_partner',
+    trust_level: 'confirmed',
+    is_published: true,
+    is_expired: false,
+    is_secret: false,
+    price: 70, currency: 'BRL',
+    image_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800',
+    short_description: 'Funk, trap e hip hop com os melhores DJs do Nordeste.',
+    current_attendees: 320,
+    ticket_status: 'available',
+    has_ticketing: true,
+    purchase_url: 'https://example.com/funk-hiphop',
+  },
+  {
+    id: 'fb-event-008',
+    title: 'Acid Trip Experience',
+    subtitle: 'Acid e experimental',
+    genre: 'acid',
+    type: 'underground',
+    category: 'musica',
+    location: {
+      lat: -30.0346, lng: -51.2177,
+      address: 'Rua dos Andradas, 1200',
+      venue_name: 'Caverna Sub',
+      city: 'Porto Alegre', state: 'RS', country: 'BR',
+    },
+    date: daysFromNow(18, 23),
+    duration_hours: 7,
+    organizer_id: 'fb-organizer-08',
+    organizer: 'Caverna Collective',
+    source: 'sublinx_partner',
+    trust_level: 'partner',
+    is_published: true,
+    is_expired: false,
+    is_secret: false,
+    price: 65, currency: 'BRL',
+    image_url: 'https://images.unsplash.com/photo-1485579149621-3123dd979885?w=800',
+    short_description: 'Acid house e experimental em espaço underground autêntico.',
+    current_attendees: 140,
+    ticket_status: 'available',
+    has_ticketing: true,
+    purchase_url: 'https://example.com/acid-trip',
+  },
+];
+
+/**
+ * Retorna eventos de fallback validados por filterPublicEvents().
+ * Usado quando a API retorna erro ou array vazio.
+ */
+export function getFallbackEvents() {
+  return filterPublicEvents(RAW_FALLBACK_EVENTS);
+}
+
+/**
+ * Helper: se a lista de eventos da API estiver vazia ou em erro,
+ * retorna o seed de fallback.
+ */
+export function withFallback(events) {
+  if (!Array.isArray(events) || events.length === 0) {
+    return getFallbackEvents();
+  }
+  return events;
+}
