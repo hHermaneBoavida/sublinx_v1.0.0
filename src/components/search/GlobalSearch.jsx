@@ -162,6 +162,7 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
                     {results.events.map(event => (
                       <button
                         key={event.id}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleSelectEvent(event)}
                         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
                       >
@@ -182,6 +183,7 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
                     {results.users.map(user => (
                       <button
                         key={user.id}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleSelectUser(user)}
                         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
                       >
@@ -208,6 +210,7 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
                     {results.venues.map(venue => (
                       <button
                         key={venue.id}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleSelectVenue(venue)}
                         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
                       >
