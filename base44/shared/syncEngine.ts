@@ -77,6 +77,17 @@ export function normalizeURL(url) {
 // Deve ser filtrado — nunca aceito como imagem de evento.
 const PLACEHOLDER_LOGO_URL = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png';
 
+// Lista de domínios de banco de imagens PROIBIDOS como image_url de eventos.
+// Imagens destas fontes são genéricas/ilustrativas — não pertencem ao evento real.
+const BANNED_IMAGE_DOMAINS = [
+  'unsplash.com', 'images.unsplash.com',
+  'pexels.com', 'images.pexels.com',
+  'pixabay.com', 'cdn.pixabay.com',
+  'stocksnap.com', 'shutterstock.com',
+  'gettyimages.com', 'istockphoto.com',
+  'commons.wikimedia.org',
+];
+
 /**
  * Valida a proveniência de uma URL de imagem.
  * Garante que apenas URLs HTTP(S) reais sejam aceitas — nunca data: URIs,
@@ -90,6 +101,10 @@ export function sanitizeImageUrl(url) {
   if (!/^https?:\/\//i.test(u)) return null;
   // Rejeitar o logo placeholder do SUBLINX
   if (u === PLACEHOLDER_LOGO_URL) return null;
+  // Rejeitar imagens de bancos de imagens (Unsplash, Pexels, Pixabay, etc.)
+  const lowerUrl = u.toLowerCase();
+  if (BANNED_IMAGE_DOMAINS.some(d => lowerUrl.includes(d))) return null;
+
   try {
     const parsed = new URL(u);
     // Garantir HTTPS quando possível
@@ -214,7 +229,7 @@ export function normalizeEvent(raw) {
     has_reservation: !!raw.reservation_url,
     external_source: raw.source || raw.external_source || 'serpapi',
     external_id: String(raw.source_id || raw.external_id || ''),
-    source_event_url: normalizeURL(raw.source_url || raw.source_event_url),
+    source_event_url: normalizeURL(raw.source_event_url || raw.source_url),
     external_url: normalizeURL(raw.external_url || raw.source_url),
     is_online: raw.is_online || false,
     organizer: normalizeText(raw.organizer),
@@ -316,20 +331,21 @@ export function eventsAreDuplicates(e1, e2) {
 export function consolidateEvents(events) {
   if (!events?.length) return null;
   const TRUST_ORDER = { verified: 5, confirmed: 4, partner: 3, pending: 2, rejected: 1 };
+  // Seleção canônica baseada APENAS em trust_level — nunca em tamanho de descrição,
+  // URL ou posição no array. Empate mantém o primeiro (seleção estável).
   const canonical = events.reduce((best, e) => {
     const te = TRUST_ORDER[e.trust_level] || 0;
     const tb = TRUST_ORDER[best.trust_level] || 0;
-    if (te > tb) return e;
-    if (te < tb) return best;
-    return (e.description?.length || 0) > (best.description?.length || 0) ? e : best;
+    return te > tb ? e : best;
   });
-  const longestDesc = events.filter(e => e.description).sort((a, b) => (b.description?.length || 0) - (a.description?.length || 0))[0];
+  // Fonte oficial: preserva apenas a URL do próprio evento canônico, nunca copia de outro.
   const officialUrl = events.find(e => e.source_url && e.source !== 'organizer');
   return {
     ...canonical,
+    // A imagem pertence ao evento canônico — nunca copiada de outro registro.
     image_url: canonical.image_url,
     thumbnail_url: canonical.thumbnail_url,
-    description: longestDesc?.description || canonical.description,
+    description: canonical.description,
     source_url: officialUrl?.source_url || canonical.source_url,
     gallery_urls: [...new Set(events.flatMap(e => e.gallery_urls || []))],
     tags: [...new Set(events.flatMap(e => e.tags || []))],
@@ -506,8 +522,6 @@ Return the latitude and longitude coordinates as JSON.`;
 }
 
 // ==================== ETAPA 2: DESCOBERTA DE EVENTOS ====================
-
-const DEFAULT_IMAGE = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a70ee66a1156f1068d2903/de9996d20_500x500.png';
 
 export const SYNC_CITIES = [
   'São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador', 'Fortaleza',
@@ -760,7 +774,7 @@ export async function runSync(base44, options = {}) {
               image_url: raw.image_url,
               age_restriction: raw.age_restriction || '18+',
               source: 'serpapi',
-              source_id: raw.source_url || raw.title,
+              source_id: raw.source_url || '',
               source_url: raw.source_url,
               is_free: raw.is_free,
               max_capacity: raw.max_capacity,

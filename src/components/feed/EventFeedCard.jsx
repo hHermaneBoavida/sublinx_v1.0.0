@@ -20,7 +20,7 @@ import ShareModal from "./ShareModal";
 import { motion } from "framer-motion";
 import { CACHE_CONFIG } from "../shared/helpers";
 import LazyImage from "./LazyImage";
-import { FALLBACK_EVENT_IMAGE, FALLBACK_TICKET_URL, resolveEventImage } from "../shared/eventImageFallback";
+import { FALLBACK_EVENT_IMAGE, resolveEventImage } from "../shared/eventImageFallback";
 import useRealtimeEvent from "../events/useRealtimeEvent";
 import AttendeeCounter from "../events/AttendeeCounter";
 import EventRatingDisplay from "../reviews/EventRatingDisplay";
@@ -470,7 +470,8 @@ export default function EventFeedCard({
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const url = displayEvent.ticket_url || displayEvent.purchase_url || FALLBACK_TICKET_URL;
+                  const url = displayEvent.ticket_url || displayEvent.purchase_url;
+                  if (!url) return;
                   base44.functions.invoke('trackEventClick', {
                     event_id: event.id,
                     user_id: user?.id || null,
@@ -480,10 +481,11 @@ export default function EventFeedCard({
                   }).catch(() => {});
                   window.open(url, '_blank', 'noopener,noreferrer');
                 }}
-                className="w-full h-8 text-xs bg-gradient-to-r from-green-600 to-emerald-600"
+                disabled={!displayEvent.ticket_url && !displayEvent.purchase_url}
+                className="w-full h-8 text-xs bg-gradient-to-r from-green-600 to-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Users className="w-3 h-3 mr-1" />
-                Comprar Ingresso
+                {displayEvent.ticket_url || displayEvent.purchase_url ? 'Comprar Ingresso' : 'Sem Ingresso'}
               </Button>
             )}
           </CardContent>
