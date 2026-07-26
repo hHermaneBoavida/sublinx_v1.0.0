@@ -6,7 +6,7 @@ import { Search, MapPin, Calendar, X, User as UserIcon } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { useSearch } from "./SearchContext";
 import { filterPublicEvents } from "../shared/eventValidation";
-import { withFallback } from "../shared/eventFallback";
+
 
 export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = false }) {
   const navigate = useNavigate();
@@ -42,7 +42,7 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
       } catch (err) {
         all = [];
       }
-      return filterPublicEvents(withFallback(all || []));
+      return filterPublicEvents(all || []);
     },
     staleTime: 60000,
   });

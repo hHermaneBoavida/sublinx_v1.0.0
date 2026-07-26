@@ -1,38 +1,29 @@
 /**
- * SUBLINX — Seed de fallback para eventos (São Paulo / SP).
+ * SUBLINX — Empty-state helper for event lists.
  *
- * Garante que Feed e Mapa NUNCA fiquem zerados quando a API principal
- * retorna erro ou array vazio. Todos os eventos passam por filterPublicEvents()
- * antes de serem retornados.
- *
- * Todos os eventos utilizam venues reais de São Paulo, fotografias reais
- * (Unsplash) e links de compra em plataformas oficiais de ingressos.
+ * REGRAS:
+ * - NUNCA injetar eventos fictícios, seed ou demo.
+ * - Quando a API retorna vazio ou erro, o sistema deve exibir
+ *   um estado vazio amigável — nunca preencher com dados inventados.
+ * - withFallback(events) retorna events inalterado (ou [] se vazio).
+ * - getFallbackEvents() retorna [] — sem fallback de eventos fictícios.
  */
-
-import { filterPublicEvents } from './eventValidation';
-import { RAW_FALLBACK_EVENTS } from './fallbackEventsData';
 
 /**
- * Retorna eventos de fallback validados por filterPublicEvents().
- * Usado quando a API retorna erro ou array vazio.
+ * Retorna eventos de fallback. SEMPRE retorna array vazio —
+ * o SUBLINX não utiliza eventos fictícios para preencher a interface.
+ * Quando não há eventos válidos, o frontend exibe um estado vazio.
  */
 export function getFallbackEvents() {
-  const events = filterPublicEvents(RAW_FALLBACK_EVENTS);
-  // Marcar explicitamente como seed/demo — NUNCA enviar ao pipeline de sincronização externa.
-  return events.map(e => ({
-    ...e,
-    is_seed: true,
-    is_external: false,
-  }));
+  return [];
 }
 
 /**
- * Helper: se a lista de eventos da API estiver vazia ou em erro,
- * retorna o seed de fallback.
+ * Helper: retorna a lista de eventos inalterada.
+ * Se a lista for vazia ou inválida, retorna [].
+ * NUNCA injeta eventos fictícios.
  */
 export function withFallback(events) {
-  if (!Array.isArray(events) || events.length === 0) {
-    return getFallbackEvents();
-  }
+  if (!Array.isArray(events)) return [];
   return events;
 }

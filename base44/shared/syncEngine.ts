@@ -355,12 +355,32 @@ export function validateEvent(event) {
     if (typeof event.location.lat !== 'number' || typeof event.location.lng !== 'number') errors.push('Coordenadas ausentes');
     if (!event.location.address && !event.location.venue_name && !event.location.city) errors.push('Endereço ausente');
   }
-  if (!event.organizer_id) errors.push('Evento sem organizador');
   if (!event.organizer || !String(event.organizer).trim()) errors.push('Nome do organizador ausente');
   if (!event.genre) errors.push('Evento sem gênero');
   if (!event.type) errors.push('Evento sem tipo');
   if (!event.source) errors.push('Evento sem fonte de origem');
   if (!event.source_url && !event.source_id) errors.push('Evento sem identificação única');
+
+  // ETAPA 4: Proveniência — rejeitar URLs genéricas como prova
+  const sourceUrl = event.source_event_url || event.source_url;
+  if (!sourceUrl) {
+    errors.push('Evento sem URL de fonte verificável');
+  } else {
+    const urlStr = String(sourceUrl).toLowerCase();
+    // Rejeitar URLs de busca genérica
+    if (urlStr.includes('?s=') || urlStr.includes('?q=') || urlStr.includes('/search') || urlStr.includes('/busca') || urlStr.includes('/eventos?')) {
+      errors.push('URL de origem é busca genérica, não página específica do evento');
+    }
+    // Rejeitar homepages de plataforma e listagens genéricas
+    const genericPatterns = [
+      /^https?:\/\/[^\/]+\/?$/,
+      /^https?:\/\/[^\/]+\/eventos\/?$/,
+      /^https?:\/\/[^\/]+\/eventos\/[a-z-]+\/?$/,
+    ];
+    if (genericPatterns.some(p => p.test(urlStr))) {
+      errors.push('URL de origem é página genérica, não evento específico');
+    }
+  }
   return { valid: errors.length === 0, errors };
 }
 
@@ -567,6 +587,13 @@ CRITICAL — IMAGE URL RULES:
 - If the source page does not contain a real image for this specific event, return null for image_url.
 - Do NOT return Unsplash, placeholder, or avatar URLs.
 
+CRITICAL — SOURCE URL RULES:
+- source_url MUST be the specific event page URL on the source platform.
+- NEVER use a generic search URL, category listing, or platform homepage.
+- Example VALID: https://www.sympla.com.br/evento/x-tech-party-12345
+- Example INVALID: https://www.sympla.com.br/eventos/sao-paulo-sp (generic listing)
+- If you cannot find the specific event page URL, do NOT include the event.
+
 Only include REAL events you are confident exist. Return up to ${limit} events.`;
 
   const result = await withRetry(
@@ -662,6 +689,7 @@ export async function runSync(base44, options = {}) {
 
   const stats = {
     imported: 0, updated: 0, ignored: 0, duplicates: 0, removed: 0,
+    normalized: 0, valid: 0,
     api_calls: 0, rate_limit_hits: 0,
     errors: [],
     sources: {},
@@ -756,12 +784,23 @@ export async function runSync(base44, options = {}) {
               continue;
             }
 
+            // ETAPA 6: Extrair nome do organizador do título se ausente (antes da validação)
+            if (!normalized.organizer && normalized.title) {
+              const presMatch = normalized.title.match(/^(.+?)\s+(?:pres(?:\.|ents)?|apresenta)/i);
+              if (presMatch) {
+                normalized.organizer = normalizeText(presMatch[1]);
+              } else {
+                normalized.organizer = 'Organizador Externo';
+              }
+            }
+
             // In dry_run, set placeholder organizer_id so validation passes
             // without creating organizers in the database.
             if (dry_run && !normalized.organizer_id) {
               normalized.organizer_id = 'dry-run-org-id';
             }
 
+            stats.normalized++;
             normalizedEvents.push(normalized);
           } catch (e) {
             stats.errors.push(e.message);
@@ -807,6 +846,7 @@ export async function runSync(base44, options = {}) {
             stats.errors.push(`${normalized.title}: ${validation.errors.join(', ')}`);
             continue;
           }
+          stats.valid++;
           validEvents.push(normalized);
         }
 
@@ -878,16 +918,7 @@ export async function runSync(base44, options = {}) {
 
         for (const normalized of eventsToPersist) {
           try {
-            // ETAPA 6: Organizador — extrair do título se ausente
-            if (!normalized.organizer && normalized.title) {
-              const presMatch = normalized.title.match(/^(.+?)\s+(?:pres(?:\.|ents)?|apresenta)/i);
-              if (presMatch) {
-                normalized.organizer = normalizeText(presMatch[1]);
-              } else {
-                normalized.organizer = 'Organizador Externo';
-              }
-            }
-
+            // Organizador já extraído na fase de normalização
             if (dry_run) {
               // Dry-run: simular sem persistir
               normalized.organizer_id = normalized.organizer_id || 'dry-run-org-id';
@@ -1008,7 +1039,14 @@ export async function runSync(base44, options = {}) {
     sync_type,
     duration_seconds: duration,
     discovered: Object.values(stats.sources).reduce((a, b) => a + b, 0),
+    normalized: stats.normalized,
+    valid: stats.valid,
+    rejected: stats.ignored,
     processed: stats.imported + stats.updated + stats.ignored + stats.duplicates,
+    with_image: imageStats.total_with_image,
+    without_image: imageStats.total_without_image,
+    would_create: stats.imported,
+    would_update: stats.updated,
     stats: {
       imported: stats.imported,
       updated: stats.updated,

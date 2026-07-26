@@ -11,7 +11,7 @@ import { Loader2, MapPin, Sparkles, Play } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { matchesVibe, calculateDistance } from "../components/shared/helpers";
 import { filterPublicEvents } from "../components/shared/eventValidation";
-import { withFallback } from "../components/shared/eventFallback";
+
 import { isWithinInterval, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import ErrorBoundary from "../components/shared/ErrorBoundary";
 import GlobalSearch from "../components/search/GlobalSearch";
@@ -86,8 +86,7 @@ export default function Mapa() {
         allEvents = [];
       }
       if (!Array.isArray(allEvents)) allEvents = [];
-      // Fallback resiliente: se API retornar vazio/erro, injeta seed local
-      allEvents = withFallback(allEvents);
+      // Sem fallback fictício — se API retornar vazio, exibe estado vazio
       // Mostrar: em andamento agora + até 7 dias futuros + com atividade recente (até 48h passados)
       const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
       const valid = filterPublicEvents(allEvents.filter(e => {
