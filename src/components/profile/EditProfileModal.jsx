@@ -92,15 +92,15 @@ export default function EditProfileModal({ user, onClose }) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
-        <DialogHeader>
+      <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg max-h-[90vh] flex flex-col p-0 sm:rounded-lg">
+        <DialogHeader className="px-5 pt-5 pb-3 border-b border-gray-800 flex-shrink-0">
           <DialogTitle className="text-xl font-bold text-white">Editar Perfil</DialogTitle>
           <Button variant="ghost" size="icon" onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
             <X className="w-5 h-5" />
           </Button>
         </DialogHeader>
 
-        <div className="py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
           {error && (
             <Alert className="bg-red-900/20 border-red-500/50">
               <AlertCircle className="h-4 w-4 text-red-400" />
@@ -219,7 +219,7 @@ export default function EditProfileModal({ user, onClose }) {
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 px-5 py-4 border-t border-gray-800 flex-shrink-0 bg-gray-900">
           <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300" disabled={loading || uploading}>
             Cancelar
           </Button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/lib/AuthContext";
 
 const plans = [
   {
@@ -62,26 +63,15 @@ const plans = [
   }
 ];
 
+const SUBSCRIPTION_TIMEOUT_MS = 15000;
+
 export default function Planos() {
-  const [processing, setProcessing] = useState(false);
+  const [processingPlanId, setProcessingPlanId] = useState(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // CORREÇÃO: Usar base44.auth.me() e base44.entities
-  const { data: user, isLoading: loadingUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      try {
-        return await base44.auth.me();
-      } catch (error) {
-        navigate(createPageUrl("BemVindo"));
-        throw error;
-      }
-    },
-    retry: false,
-    staleTime: Infinity,
-  });
+  const { user, isLoadingAuth } = useAuth();
 
   const { data: currentSubscription } = useQuery({
     queryKey: ['subscription', user?.id],
@@ -93,17 +83,41 @@ export default function Planos() {
       return subscriptions.length > 0 ? subscriptions[0] : null;
     },
     enabled: !!user?.id,
+    staleTime: 0,
+  });
+
+  const { data: pendingSubscription } = useQuery({
+    queryKey: ['pendingSubscription', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const subscriptions = await base44.entities.Subscription.filter(
+        { user_id: user.id, status: "pending" }
+      );
+      return subscriptions.length > 0 ? subscriptions[0] : null;
+    },
+    enabled: !!user?.id,
+    staleTime: 0,
   });
 
   const handleSubscribe = async (planId) => {
+    if (processingPlanId) return;
+
     const plan = plans.find(p => p.id === planId);
+    setProcessingPlanId(planId);
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), SUBSCRIPTION_TIMEOUT_MS)
+    );
 
     try {
-      setProcessing(true);
-      const data = await base44.functions.invoke('manageSubscription', { plan_id: planId });
+      const data = await Promise.race([
+        base44.functions.invoke('manageSubscription', { plan_id: planId }),
+        timeoutPromise,
+      ]);
 
-      queryClient.invalidateQueries(['currentUser']);
-      queryClient.invalidateQueries(['subscription']);
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingSubscription'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
 
       if (data.status === 'active') {
         toast({
@@ -123,22 +137,30 @@ export default function Planos() {
         });
       }
     } catch (error) {
+      const isTimeout = error?.message === 'timeout';
       toast({
-        title: "Erro ao processar assinatura",
-        description: "Não foi possível concluir a operação. Tente novamente.",
+        title: isTimeout ? "Tempo esgotado" : "Erro ao processar assinatura",
+        description: isTimeout
+          ? "O servidor demorou a responder. Tente novamente."
+          : "Não foi possível concluir a operação. Tente novamente.",
         variant: "destructive",
       });
     } finally {
-      setProcessing(false);
+      setProcessingPlanId(null);
     }
   };
 
-  if (loadingUser) {
+  if (isLoadingAuth) {
     return (
       <div className="w-full h-[calc(100vh-80px)] flex items-center justify-center">
         <Loader2 className="w-16 h-16 animate-spin text-cyan-500" />
       </div>
     );
+  }
+
+  if (!user) {
+    navigate(createPageUrl("BemVindo"));
+    return null;
   }
 
   return (
@@ -167,6 +189,11 @@ export default function Planos() {
             Plano atual: {plans.find(p => p.id === currentSubscription.plan_type)?.name}
           </Badge>
         )}
+        {!currentSubscription && pendingSubscription && (
+          <Badge className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white">
+            Pagamento pendente: {plans.find(p => p.id === pendingSubscription.plan_type)?.name}
+          </Badge>
+        )}
       </div>
 
       {/* Plans Grid */}
@@ -174,6 +201,8 @@ export default function Planos() {
         {plans.map((plan) => {
           const Icon = plan.icon;
           const isActive = currentSubscription?.plan_type === plan.id;
+          const isPending = pendingSubscription?.plan_type === plan.id;
+          const isProcessingThis = processingPlanId === plan.id;
           
           return (
             <Card
@@ -195,6 +224,12 @@ export default function Planos() {
               {isActive && (
                 <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-center py-0.5 text-xs font-semibold">
                   ✅ ATIVO
+                </div>
+              )}
+
+              {isPending && !isActive && (
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-yellow-500 to-orange-600 text-white text-center py-0.5 text-xs font-semibold">
+                  ⏳ PAGAMENTO PENDENTE
                 </div>
               )}
 
@@ -233,16 +268,31 @@ export default function Planos() {
 
                 <Button
                   onClick={() => handleSubscribe(plan.id)}
-                  disabled={isActive || processing}
+                  disabled={isActive || !!processingPlanId}
                   className={`w-full h-9 font-semibold text-xs px-4 mt-auto ${
                     isActive
                       ? "bg-green-600 text-white cursor-not-allowed"
+                      : isPending
+                      ? "bg-yellow-700 text-white cursor-not-allowed"
                       : plan.popular
                       ? "bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white"
                       : "bg-gray-800 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
                   }`}
                 >
-                  {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : isActive ? "Plano Ativo" : plan.price === 0 ? "Ativar" : "Iniciar Trial"}
+                  {isProcessingThis ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                      Processando...
+                    </>
+                  ) : isActive ? (
+                    "Plano Ativo"
+                  ) : isPending ? (
+                    "Pagamento Pendente"
+                  ) : plan.price === 0 ? (
+                    "Ativar"
+                  ) : (
+                    "Iniciar Trial"
+                  )}
                 </Button>
               </CardContent>
             </Card>

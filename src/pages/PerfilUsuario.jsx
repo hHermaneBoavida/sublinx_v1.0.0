@@ -29,7 +29,7 @@ export default function PerfilUsuario() {
   const searchParams = new URLSearchParams(location.search);
   const userId = searchParams.get('id');
 
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isLoadingAuth } = useAuth();
 
   const { captureArtistProfileView, captureOrganizerPattern } = useSignalCapture(currentUser, {
     profile_user_id: userId
@@ -274,8 +274,8 @@ export default function PerfilUsuario() {
       </div>
 
       {/* Profile Section */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex items-start gap-6 mb-6">
+      <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6">
           {/* Avatar Simples */}
           <div className="relative flex-shrink-0">
             <img
@@ -291,8 +291,8 @@ export default function PerfilUsuario() {
           </div>
 
           {/* Stats */}
-          <div className="flex-1">
-            <div className="flex items-center gap-6 mb-4">
+          <div className="flex-1 w-full">
+            <div className="flex items-center justify-center sm:justify-start gap-6 mb-4">
               <div className="text-center">
                 <div className="text-xl font-bold">{stats.events}</div>
                 <div className="text-sm text-gray-400">
@@ -310,14 +310,14 @@ export default function PerfilUsuario() {
             </div>
 
             {/* Bio */}
-            <div className="mb-4">
+            <div className="mb-4 text-center sm:text-left">
               <p className="font-semibold mb-1">{profileUser.full_name}</p>
               {profileUser.bio && (
                 <p className="text-sm text-gray-300">{profileUser.bio}</p>
               )}
               
               {/* Badges */}
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
                 {profileUser.is_organizer && (
                   <Badge variant="outline" className="text-xs border-cyan-500 text-cyan-400">
                     Organizador
@@ -330,22 +330,27 @@ export default function PerfilUsuario() {
               </div>
             </div>
 
-            {/* Follow + Message Buttons */}
-            {currentUser && currentUser.id !== userId && (
-              <div className="mt-4 flex gap-2 flex-wrap">
+            {/* Follow + Like + Message Buttons */}
+            {isLoadingAuth ? (
+              <div className="mt-4 flex gap-2">
+                <div className="h-9 flex-1 bg-gray-800 rounded-md animate-pulse" />
+                <div className="h-9 w-[100px] bg-gray-800 rounded-md animate-pulse" />
+              </div>
+            ) : currentUser && currentUser.id !== userId ? (
+              <div className="mt-4 flex gap-2 flex-wrap justify-center sm:justify-start">
                 <FollowButton
                   targetUserId={userId}
                   currentUserId={currentUser.id}
                   targetUserName={profileUser?.full_name}
                   size="default"
-                  className="flex-1 min-w-[120px] font-semibold shadow-lg border border-cyan-400/60 transition-all duration-300 hover:scale-105"
+                  className="flex-1 min-w-[110px] font-semibold shadow-lg border border-cyan-400/60 transition-all duration-300 hover:scale-105"
                   style={{ boxShadow: '0 0 25px rgba(6, 182, 212, 0.4)' }}
                 />
                 <LikeProfileButton
                   targetUserId={userId}
                   currentUserId={currentUser.id}
                   size="default"
-                  className="min-w-[100px]"
+                  className="min-w-[90px]"
                 />
                 <Button
                   onClick={() => setShowMessageModal(true)}
@@ -353,11 +358,22 @@ export default function PerfilUsuario() {
                   size="default"
                   className="bg-black border-cyan-500/40 text-cyan-400 hover:bg-cyan-900/20 hover:border-cyan-400"
                 >
-                  <MessageCircle className="w-4 h-4 mr-2" />
+                  <MessageCircle className="w-4 h-4 mr-1" />
                   Mensagem
                 </Button>
               </div>
-            )}
+            ) : !currentUser ? (
+              <div className="mt-4 flex flex-col gap-2 items-center sm:items-start">
+                <p className="text-xs text-gray-400 text-center sm:text-left">Faça login para interagir com este perfil</p>
+                <Button
+                  onClick={() => navigate(createPageUrl("BemVindo"))}
+                  size="sm"
+                  className="bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white w-full sm:w-auto"
+                >
+                  Entrar / Cadastrar
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
 
