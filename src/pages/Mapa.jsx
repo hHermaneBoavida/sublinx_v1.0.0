@@ -164,6 +164,32 @@ export default function Mapa() {
     staleTime: 10 * 60 * 1000,
   });
 
+  // Abrir detalhes do venue via URL param (?venue=ID)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const venueId = urlParams.get('venue');
+    if (!venueId) return;
+    const findAndOpenVenue = async () => {
+      try {
+        const found = (venuesData || []).find(v => v.id === venueId);
+        if (found) {
+          setSelectedVenue(found);
+          setShowVenueDetails(true);
+        } else {
+          const all = await base44.entities.Venue.filter({ id: venueId });
+          if (all?.[0]) {
+            setSelectedVenue(all[0]);
+            setShowVenueDetails(true);
+          }
+        }
+      } catch (e) {
+        console.log('Erro ao abrir venue via URL:', e);
+      }
+    };
+    findAndOpenVenue();
+    window.history.replaceState({}, '', window.location.pathname);
+  }, [venuesData]);
+
   // Real-time reels
   const [reelsRealtime, setReelsRealtime] = useState([]);
   const { data: reelsFetched = [] } = useQuery({

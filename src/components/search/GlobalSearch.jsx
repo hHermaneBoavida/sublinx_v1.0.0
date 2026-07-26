@@ -91,19 +91,21 @@ export default function GlobalSearch({ onSelectEvent, onSelectVenue, bare = fals
 
   const handleSelectEvent = (event) => {
     setShowResults(false);
+    clearSearch();
     if (onSelectEvent) {
       onSelectEvent(event);
     } else {
-      navigate(createPageUrl("Mapa"));
+      navigate(createPageUrl("Mapa") + `?event=${event.id}`);
     }
   };
 
   const handleSelectVenue = (venue) => {
     setShowResults(false);
+    clearSearch();
     if (onSelectVenue) {
       onSelectVenue(venue);
     } else {
-      navigate(createPageUrl("Mapa"));
+      navigate(createPageUrl("Mapa") + `?venue=${venue.id}`);
     }
   };
 
