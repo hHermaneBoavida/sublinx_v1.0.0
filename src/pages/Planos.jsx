@@ -7,6 +7,7 @@ import { Check, Crown, Zap, Star, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
 const plans = [
   {
@@ -65,6 +66,7 @@ export default function Planos() {
   const [processing, setProcessing] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // CORREÇÃO: Usar base44.auth.me() e base44.entities
   const { data: user, isLoading: loadingUser } = useQuery({
@@ -102,8 +104,30 @@ export default function Planos() {
 
       queryClient.invalidateQueries(['currentUser']);
       queryClient.invalidateQueries(['subscription']);
+
+      if (data.status === 'active') {
+        toast({
+          title: "Plano ativado!",
+          description: data.message || `Plano ${plan.name} ativado com sucesso.`,
+        });
+      } else if (data.status === 'pending') {
+        toast({
+          title: "Pagamento necessário",
+          description: data.message || `Assinatura criada. Conclua o pagamento para ativar o plano ${plan.name}.`,
+          variant: "default",
+        });
+      } else if (data.status === 'cancelled') {
+        toast({
+          title: "Assinatura cancelada",
+          description: data.message,
+        });
+      }
     } catch (error) {
-      console.error("Erro ao processar assinatura:", error);
+      toast({
+        title: "Erro ao processar assinatura",
+        description: "Não foi possível concluir a operação. Tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setProcessing(false);
     }
