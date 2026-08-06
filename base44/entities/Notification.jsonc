@@ -78,6 +78,11 @@
           "user_condition": {
             "role": "admin"
           }
+        },
+        {
+          "user_condition": {
+            "is_organizer": true
+          }
         }
       ]
     },
