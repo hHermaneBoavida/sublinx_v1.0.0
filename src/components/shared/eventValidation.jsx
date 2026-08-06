@@ -41,7 +41,9 @@ export function isEventPublishable(event) {
   const trustConfig = TRUST_LEVELS[event.trust_level];
   if (!trustConfig?.public) return false;
   if (!event.is_published) return false;
-  if (event.is_expired) return false;
+  // CAUSA RAIZ: o flag is_expired pode ficar stale (backend validateEvents nunca o reseta
+  // quando o organizador altera a data para o futuro). Derivar expiração da data real.
+  if (isEventExpired(event)) return false;
   if (!event.trust_level || !event.source) return false;
   return getValidationErrors(event).length === 0;
 }
