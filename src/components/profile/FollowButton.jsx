@@ -43,7 +43,8 @@ export default function FollowButton({ targetUserId, currentUserId, targetUserNa
         // Follow
         await base44.entities.Follow.create({
           follower_id: currentUserId,
-          following_id: targetUserId
+          following_id: targetUserId,
+          followed_at: new Date().toISOString()
         });
 
         // Criar notificação
