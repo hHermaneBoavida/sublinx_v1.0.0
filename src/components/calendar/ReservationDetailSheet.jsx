@@ -19,10 +19,66 @@ export default function ReservationDetailSheet({ reservation, open, onOpenChange
   const handleAction = async (action) => {
     setLoading(true);
     try {
-      await base44.functions.invoke('approveReservation', { reservation_id: reservation.id, action });
+      const now = new Date().toISOString();
+
+      if (action === 'confirm') {
+        // Gerar código de check-in único
+        const codeChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let randomPart = '';
+        for (let i = 0; i < 8; i++) {
+          randomPart += codeChars[Math.floor(Math.random() * codeChars.length)];
+        }
+        const checkInCode = `SBLX-${randomPart}`;
+
+        await base44.entities.Reservation.update(reservation.id, {
+          status: 'confirmed',
+          confirmed_at: now,
+          check_in_code: checkInCode,
+        });
+
+        // Notificar o usuário solicitante
+        try {
+          await base44.entities.Notification.create({
+            user_id: reservation.user_id,
+            type: 'reservation_confirmed',
+            title: 'Reserva Confirmada! ✅',
+            message: `Sua reserva em ${reservation.venue_name} foi confirmada! Apresente o código ${checkInCode} no local para o check-in.`,
+            reservation_id: reservation.id,
+            is_read: false,
+          });
+        } catch (notifErr) {
+          console.error('Erro ao criar notificação:', notifErr);
+        }
+      } else if (action === 'cancel') {
+        await base44.entities.Reservation.update(reservation.id, {
+          status: 'cancelled',
+          cancelled_at: now,
+          cancelled_by: 'organizer',
+        });
+
+        try {
+          await base44.entities.Notification.create({
+            user_id: reservation.user_id,
+            type: 'reservation_cancelled',
+            title: 'Reserva Cancelada',
+            message: `Infelizmente sua reserva em ${reservation.venue_name} foi cancelada pelo estabelecimento.`,
+            reservation_id: reservation.id,
+            is_read: false,
+          });
+        } catch (notifErr) {
+          console.error('Erro ao criar notificação:', notifErr);
+        }
+      } else if (action === 'complete') {
+        await base44.entities.Reservation.update(reservation.id, {
+          status: 'completed',
+          checked_out_at: now,
+        });
+      }
+
       await onStatusChange(reservation.id, action === 'confirm' ? 'confirmed' : action === 'cancel' ? 'cancelled' : 'completed');
     } catch (e) {
       console.error(e);
+      alert('Erro ao processar reserva: ' + (e.message || 'tente novamente'));
     } finally {
       setLoading(false);
     }
