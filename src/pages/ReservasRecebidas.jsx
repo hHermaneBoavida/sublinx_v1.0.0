@@ -57,11 +57,81 @@ export default function ReservasRecebidas() {
 
   const actionMutation = useMutation({
     mutationFn: async ({ id, action }) => {
-      return await base44.functions.invoke('approveReservation', { reservation_id: id, action });
+      // Buscar a reserva para verificar posse e obter user_id do solicitante
+      const reservation = await base44.entities.Reservation.get(id);
+      if (!reservation) throw new Error('Reserva não encontrada');
+
+      // Validar que o usuário atual é o organizador (RLS também valida)
+      if (reservation.organizer_id !== user?.id && user?.role !== 'admin') {
+        throw new Error('Apenas o organizador pode aprovar reservas');
+      }
+
+      const now = new Date().toISOString();
+
+      if (action === 'confirm') {
+        // Gerar código de check-in único: SBLX-XXXXXXXX
+        const codeChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let randomPart = '';
+        for (let i = 0; i < 8; i++) {
+          randomPart += codeChars[Math.floor(Math.random() * codeChars.length)];
+        }
+        const checkInCode = `SBLX-${randomPart}`;
+
+        await base44.entities.Reservation.update(id, {
+          status: 'confirmed',
+          confirmed_at: now,
+          check_in_code: checkInCode,
+        });
+
+        // Notificar o usuário solicitante
+        await base44.entities.Notification.create({
+          user_id: reservation.user_id,
+          type: 'reservation_confirmed',
+          title: 'Reserva Confirmada! ✅',
+          message: `Sua reserva em ${reservation.venue_name} foi confirmada! Apresente o código ${checkInCode} no local para o check-in.`,
+          reservation_id: id,
+          is_read: false,
+        });
+
+        return { success: true, status: 'confirmed', check_in_code: checkInCode };
+      }
+
+      if (action === 'cancel') {
+        await base44.entities.Reservation.update(id, {
+          status: 'cancelled',
+          cancelled_at: now,
+          cancelled_by: 'organizer',
+        });
+
+        await base44.entities.Notification.create({
+          user_id: reservation.user_id,
+          type: 'reservation_cancelled',
+          title: 'Reserva Cancelada',
+          message: `Infelizmente sua reserva em ${reservation.venue_name} foi cancelada pelo estabelecimento.`,
+          reservation_id: id,
+          is_read: false,
+        });
+
+        return { success: true, status: 'cancelled' };
+      }
+
+      if (action === 'complete') {
+        await base44.entities.Reservation.update(id, {
+          status: 'completed',
+          checked_out_at: now,
+        });
+        return { success: true, status: 'completed' };
+      }
+
+      throw new Error('Ação inválida. Use: confirm, cancel, ou complete');
     },
     onSuccess: () => {
       queryClientInstance.invalidateQueries({ queryKey: ['organizerReservations'] });
       queryClientInstance.invalidateQueries({ queryKey: ['calendarReservations'] });
+      queryClientInstance.invalidateQueries({ queryKey: ['notifications'] });
+    },
+    onError: (e) => {
+      alert('Erro ao processar reserva: ' + (e.message || 'tente novamente'));
     },
   });
 

@@ -287,10 +287,15 @@ export default function CriarEvento() {
         organizer_avatar: user.avatar_url,
         current_attendees: 0,
         // Campos de autenticidade obrigatórios
+        // Organizador verificado = "confirmed" (Publicado pelo estabelecimento)
         source: "organizer",
-        trust_level: "pending",
-        is_published: false,
+        trust_level: "confirmed",
+        is_published: true,
         is_expired: false,
+        event_status: "published",
+        verification_status: "verified",
+        verified_at: new Date().toISOString(),
+        verified_by: "auto_organizer",
         last_validated_at: new Date().toISOString(),
       });
 
@@ -318,7 +323,7 @@ export default function CriarEvento() {
         console.error("Erro ao notificar:", notifError);
       }
 
-      alert(`✅ Evento "${formData.title}" enviado para análise! Será publicado após validação pela equipe SUBLINX.`);
+      alert(`✅ Evento "${formData.title}" publicado com sucesso! Já está visível no Feed e no Mapa.`);
       navigate(createPageUrl("MeusEventos"));
     } catch (error) {
       console.error("Erro ao criar evento:", error);
