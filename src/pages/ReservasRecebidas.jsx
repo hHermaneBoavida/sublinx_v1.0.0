@@ -83,15 +83,19 @@ export default function ReservasRecebidas() {
           check_in_code: checkInCode,
         });
 
-        // Notificar o usuário solicitante
-        await base44.entities.Notification.create({
-          user_id: reservation.user_id,
-          type: 'reservation_confirmed',
-          title: 'Reserva Confirmada! ✅',
-          message: `Sua reserva em ${reservation.venue_name} foi confirmada! Apresente o código ${checkInCode} no local para o check-in.`,
-          reservation_id: id,
-          is_read: false,
-        });
+        // Notificar o usuário solicitante (silencioso — não bloqueia a aprovação)
+        try {
+          await base44.entities.Notification.create({
+            user_id: reservation.user_id,
+            type: 'reservation_confirmed',
+            title: 'Reserva Confirmada! ✅',
+            message: `Sua reserva em ${reservation.venue_name} foi confirmada! Apresente o código ${checkInCode} no local para o check-in.`,
+            reservation_id: id,
+            is_read: false,
+          });
+        } catch (notifErr) {
+          console.error('Erro ao criar notificação:', notifErr);
+        }
 
         return { success: true, status: 'confirmed', check_in_code: checkInCode };
       }
@@ -103,14 +107,18 @@ export default function ReservasRecebidas() {
           cancelled_by: 'organizer',
         });
 
-        await base44.entities.Notification.create({
-          user_id: reservation.user_id,
-          type: 'reservation_cancelled',
-          title: 'Reserva Cancelada',
-          message: `Infelizmente sua reserva em ${reservation.venue_name} foi cancelada pelo estabelecimento.`,
-          reservation_id: id,
-          is_read: false,
-        });
+        try {
+          await base44.entities.Notification.create({
+            user_id: reservation.user_id,
+            type: 'reservation_cancelled',
+            title: 'Reserva Cancelada',
+            message: `Infelizmente sua reserva em ${reservation.venue_name} foi cancelada pelo estabelecimento.`,
+            reservation_id: id,
+            is_read: false,
+          });
+        } catch (notifErr) {
+          console.error('Erro ao criar notificação:', notifErr);
+        }
 
         return { success: true, status: 'cancelled' };
       }

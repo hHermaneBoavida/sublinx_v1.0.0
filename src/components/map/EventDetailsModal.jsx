@@ -591,14 +591,18 @@ export default function EventDetailsModal({ event, onClose }) {
                           email: user.email,
                         }
                       });
-                      await base44.entities.Notification.create({
-                        user_id: event.organizer_id,
-                        type: 'reservation_request',
-                        title: 'Nova Solicitação',
-                        message: `${user.full_name || user.email} quer participar de "${event.title}"`,
-                        event_id: event.id,
-                        is_read: false,
-                      });
+                      try {
+                        await base44.entities.Notification.create({
+                          user_id: event.organizer_id,
+                          type: 'reservation_request',
+                          title: 'Nova Solicitação',
+                          message: `${user.full_name || user.email} quer participar de "${event.title}"`,
+                          event_id: event.id,
+                          is_read: false,
+                        });
+                      } catch (notifErr) {
+                        console.error('Erro ao notificar organizador:', notifErr);
+                      }
                       setRequestSent(true);
                       queryClient.invalidateQueries(['eventRequest', user.id, event.id]);
                       toast.success('Solicitação enviada! O organizador foi notificado.');

@@ -61,25 +61,33 @@ export default function ReservationModal({ venue, onClose }) {
         status: 'pending',
       });
 
-      // Notificação para o organizador
+      // Notificação para o organizador (silencioso — não bloqueia a reserva)
       if (organizerId && organizerId !== user.id) {
-        await base44.entities.Notification.create({
-          user_id: organizerId,
-          type: 'reservation_request',
-          title: 'Nova Reserva Recebida',
-          message: `${user.full_name || 'Usuário'} fez uma reserva para ${form.party_size} pessoas em ${venue.name} — ${form.date} às ${form.time}.`,
-          reservation_id: reservation.id,
-        });
+        try {
+          await base44.entities.Notification.create({
+            user_id: organizerId,
+            type: 'reservation_request',
+            title: 'Nova Reserva Recebida',
+            message: `${user.full_name || 'Usuário'} fez uma reserva para ${form.party_size} pessoas em ${venue.name} — ${form.date} às ${form.time}.`,
+            reservation_id: reservation.id,
+          });
+        } catch (notifErr) {
+          console.error('Erro ao notificar organizador:', notifErr);
+        }
       }
 
       // Notificação de confirmação para o usuário
-      await base44.entities.Notification.create({
-        user_id: user.id,
-        type: 'reservation_confirmed',
-        title: 'Reserva Registrada',
-        message: `Sua reserva em ${venue.name} foi registrada! Data: ${form.date} às ${form.time}. Aguarde a confirmação do estabelecimento.`,
-        reservation_id: reservation.id,
-      });
+      try {
+        await base44.entities.Notification.create({
+          user_id: user.id,
+          type: 'reservation_confirmed',
+          title: 'Reserva Registrada',
+          message: `Sua reserva em ${venue.name} foi registrada! Data: ${form.date} às ${form.time}. Aguarde a confirmação do estabelecimento.`,
+          reservation_id: reservation.id,
+        });
+      } catch (notifErr) {
+        console.error('Erro ao criar notificação do usuário:', notifErr);
+      }
 
       return reservation;
     },
