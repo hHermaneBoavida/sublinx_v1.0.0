@@ -85,7 +85,7 @@ export default function EventFeedCard({
   });
 
   const organizerName = organizerData?.full_name || event.organizer || 'Organizador';
-  const organizerAvatar = organizerData?.avatar_url || event.organizer_avatar || `https://i.pravatar.cc/40?u=${event.organizer_id}`;
+  const organizerAvatar = organizerData?.avatar_url || event.organizer_avatar || null;
   const isEventOrganizer = user?.id === event.organizer_id;
 
   const handleNavigateToProfile = (e) => {
@@ -525,7 +525,13 @@ export default function EventFeedCard({
           <div className="space-y-4">
             {comments.map((comment) => (
               <div key={comment.id} className="flex gap-3 p-3 bg-gray-800/50 rounded-lg relative group">
-                <img src={`https://i.pravatar.cc/40?u=${comment.user_id}`} alt={comment.user_name} className="w-10 h-10 rounded-full" />
+                {comment.user_avatar ? (
+                  <img src={comment.user_avatar} alt={comment.user_name} className="w-10 h-10 rounded-full" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-cyan-600/30 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-sm flex-shrink-0">
+                    {comment.user_name?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                )}
                 <div className="flex-1">
                   <p className="font-semibold text-sm">{comment.user_name}</p>
                   <p className="text-gray-300 text-sm mt-1">{comment.content}</p>

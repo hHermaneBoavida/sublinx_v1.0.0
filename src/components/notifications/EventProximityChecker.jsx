@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { calculateDistance } from '../shared/helpers';
+import { filterPublicEvents } from '../shared/eventValidation';
 
 const PROXIMITY_RADIUS_KM = 5; // REDUZIDO: 5km (era 10km)
 const CHECK_INTERVAL = 120000; // AUMENTADO: 2min (era 1min)
@@ -23,13 +24,13 @@ export default function EventProximityChecker({ user, userLocation }) {
         
         const data = await base44.entities.Event.list('-date', 50); // REDUZIDO: 50 (era 100)
         
-        return (data || []).filter(e => 
+        return filterPublicEvents((data || []).filter(e => 
           e && 
           e.id && 
           e.date && 
           new Date(e.date) > now && 
           new Date(e.date) < tomorrow
-        );
+        ));
       } catch {
         return [];
       }

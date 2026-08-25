@@ -27,6 +27,8 @@ import {
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { filterPublicEvents } from "@/components/shared/eventValidation";
+import { FALLBACK_EVENT_IMAGE, resolveEventImage } from "@/components/shared/eventImageFallback";
 
 // Função auxiliar para calcular distância
 const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -65,13 +67,13 @@ export default function Recomendacoes() {
     queryFn: async () => {
       const events = await base44.entities.Event.list("-date", 50);
       const now = new Date();
-      return (events || []).filter(e => 
+      return filterPublicEvents((events || []).filter(e => 
         e?.id && 
         e?.title && 
         e?.location?.lat && 
         e?.location?.lng &&
         new Date(e.date) > now
-      );
+      ));
     },
     staleTime: 10 * 60 * 1000,
     initialData: [],
@@ -547,9 +549,10 @@ function EventRecommendationCard({ event, rank, badge, badgeColor, showAttendees
           {/* Image */}
           <div className="w-32 h-32 flex-shrink-0 relative overflow-hidden">
             <img
-              src={event.image_url || `https://picsum.photos/200/200?random=${event.id}`}
+              src={resolveEventImage(event) || FALLBACK_EVENT_IMAGE}
               alt={event.title}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              onError={(e) => { e.target.src = FALLBACK_EVENT_IMAGE; }}
             />
             <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${badgeColor} shadow-lg`}>
               {badge}

@@ -143,8 +143,18 @@ export default function Mapa() {
     const unsub = base44.entities.Event.subscribe((evt) => {
       setEventsRealtime(prev => {
         const current = prev ?? eventsDataRef.current ?? [];
-        if (evt.type === 'create') return [evt.data, ...current];
-        if (evt.type === 'update') return current.map(e => e.id === evt.id ? evt.data : e);
+        if (evt.type === 'create') {
+          // Reaplicar política de publicação — eventos não publicáveis não entram no mapa
+          if (!filterPublicEvents([evt.data]).length) return current;
+          return [evt.data, ...current];
+        }
+        if (evt.type === 'update') {
+          // Se o evento atualizado não for mais publicável, removê-lo do mapa
+          if (!filterPublicEvents([evt.data]).length) {
+            return current.filter(e => e.id !== evt.id);
+          }
+          return current.map(e => e.id === evt.id ? evt.data : e);
+        }
         if (evt.type === 'delete') return current.filter(e => e.id !== evt.id);
         return current;
       });
