@@ -367,12 +367,12 @@ export default function MapView({
     if (events && !Array.isArray(events)) setMapError('Erro ao carregar eventos');
   }, [events]);
 
+  // Cleanup: let react-leaflet's internal MapContainer handle map.remove().
+  // We only clean up the _leaflet_id on the container to prevent
+  // "Map container is being reused by another instance" on remount.
   useEffect(() => {
     return () => {
-      if (mapRef.current) {
-        try { mapRef.current.off(); mapRef.current.remove(); } catch {}
-        mapRef.current = null;
-      }
+      mapRef.current = null;
       if (containerRef.current) {
         const lc = containerRef.current.querySelector('.leaflet-container');
         if (lc?._leaflet_id) delete lc._leaflet_id;
@@ -381,13 +381,9 @@ export default function MapView({
   }, []);
 
   useEffect(() => {
-    if (onMapReady && mapReady && mapRef.current) {
-      onMapReady(() => {
-        if (mapRef.current) {
-          try { mapRef.current.off(); mapRef.current.remove(); } catch {}
-          mapRef.current = null;
-        }
-      });
+    if (onMapReady && mapReady) {
+      // Provide a no-op cleanup — react-leaflet owns the map lifecycle.
+      onMapReady(() => {});
     }
   }, [onMapReady, mapReady]);
 
@@ -678,12 +674,6 @@ export default function MapView({
         style={{ background: '#0f172a' }}
         zoomControl={false}
         whenReady={() => setMapReady(true)}
-        whenCreated={(map) => {
-          if (mapRef.current && mapRef.current !== map) {
-            try { mapRef.current.off(); mapRef.current.remove(); } catch {}
-          }
-          mapRef.current = map;
-        }}
       >
         {/* BASEMAP: OpenStreetMap (free, no API key) + CSS dark filter on tile pane only.
             Markers/popups are in separate panes — unaffected by the filter.
