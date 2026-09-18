@@ -167,9 +167,23 @@ export default function Mapa() {
     queryKey: ['mapVenues'],
     queryFn: async () => {
       try {
-        const data = await base44.entities.Venue.list("", 100);
-        return (data || []).filter(v => v?.location?.lat && v?.location?.lng);
-      } catch { return []; }
+        // Buscar todos os estabelecimentos — sem limite artificial
+        const data = await base44.entities.Venue.list("", 500);
+        const venues = (data || []).filter(v => v?.location?.lat && v?.location?.lng);
+        // Log estruturado temporário — auditoria de NULL/vazio
+        console.log('[Mapa] Venues carregados:', {
+          total_recebido: (data || []).length,
+          validos_com_coords: venues.length,
+          descartados: (data || []).length - venues.length,
+        });
+        return venues;
+      } catch (err) {
+        console.error('[Mapa] Erro ao carregar venues:', {
+          status: err?.status || err?.response?.status,
+          message: err?.message,
+        });
+        return [];
+      }
     },
     staleTime: 10 * 60 * 1000,
   });

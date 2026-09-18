@@ -685,10 +685,14 @@ export default function MapView({
           mapRef.current = map;
         }}
       >
+        {/* BASEMAP: OpenStreetMap (free, no API key) + CSS dark filter on tile pane only.
+            Markers/popups are in separate panes — unaffected by the filter.
+            errorTileUrl ensures failed tiles show dark background instead of broken icons. */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           errorTileUrl="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+          maxZoom={19}
         />
         <ZoomControl position="bottomright" />
         <MapUpdater center={center} />
@@ -825,6 +829,13 @@ export default function MapView({
       </AnimatePresence>
 
       <style>{`
+        /* Dark basemap filter — scoped to tile pane ONLY.
+           Marker pane, overlay pane, and popup pane are separate Leaflet layers
+           and remain unaffected, ensuring markers/icons always render correctly. */
+        .leaflet-tile-pane {
+          filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.4);
+        }
+        /* Ensure marker/cluster containers have no Leaflet default background */
         .custom-marker, .custom-cluster {
           background: none !important;
           border: none !important;
