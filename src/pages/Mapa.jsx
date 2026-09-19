@@ -9,7 +9,7 @@ import EventDetailsModal from "../components/map/EventDetailsModal";
 import VenueDetailsModal from "../components/map/VenueDetailsModal";
 import { Loader2, MapPin, Sparkles, Play } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { matchesVibe, calculateDistance } from "../components/shared/helpers";
+import { matchesVibe, calculateDistance, isValidCoord } from "../components/shared/helpers";
 import { filterPublicEvents } from "../components/shared/eventValidation";
 
 import { isWithinInterval, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
@@ -162,28 +162,23 @@ export default function Mapa() {
     return unsub;
   }, []);
 
-  // Buscar venues
-  const { data: venuesData = [] } = useQuery({
+  // Buscar venues — erros propagam para isError (NÃO mascarar como [])
+  const {
+    data: venuesData = [],
+    isError: isVenuesError,
+    error: venuesErrorObj,
+    refetch: refetchVenues,
+  } = useQuery({
     queryKey: ['mapVenues'],
     queryFn: async () => {
-      try {
-        // Buscar todos os estabelecimentos — sem limite artificial
-        const data = await base44.entities.Venue.list("", 500);
-        const venues = (data || []).filter(v => v?.location?.lat && v?.location?.lng);
-        // Log estruturado temporário — auditoria de NULL/vazio
-        console.log('[Mapa] Venues carregados:', {
-          total_recebido: (data || []).length,
-          validos_com_coords: venues.length,
-          descartados: (data || []).length - venues.length,
-        });
-        return venues;
-      } catch (err) {
-        console.error('[Mapa] Erro ao carregar venues:', {
-          status: err?.status || err?.response?.status,
-          message: err?.message,
-        });
-        return [];
+      const data = await base44.entities.Venue.list("", 500);
+      if (!Array.isArray(data)) {
+        const err = new Error('invalid_response');
+        err.raw = data;
+        throw err;
       }
+      // Resposta parcial: descarta somente registros com coordenadas inválidas
+      return data.filter(v => isValidCoord(v?.location?.lat, v?.location?.lng));
     },
     staleTime: 10 * 60 * 1000,
   });
@@ -258,7 +253,7 @@ export default function Mapa() {
       const venueName = (event.location?.venue_name || '').toLowerCase().trim();
       if (venueName) {
         const matchedVenue = venuesData.find(v => (v.name || '').toLowerCase().trim() === venueName);
-        if (matchedVenue?.location?.lat) {
+        if (isValidCoord(matchedVenue?.location?.lat, matchedVenue?.location?.lng)) {
           return {
             ...event,
             location: {
@@ -270,7 +265,7 @@ export default function Mapa() {
         }
       }
       return event;
-    }).filter(e => e.location?.lat && e.location?.lng);
+    }).filter(e => isValidCoord(e.location?.lat, e.location?.lng));
   }, [rawEvents, venuesData]);
 
   const effectiveLocation = userLocation || { lat: -23.5505, lng: -46.6333 };
@@ -286,7 +281,7 @@ export default function Mapa() {
       const vibeMatch = matchesVibe(event, activeVibe);
 
       let distanceMatch = true;
-      if (distanceFilter && event.location?.lat && event.location?.lng) {
+      if (distanceFilter && isValidCoord(event.location?.lat, event.location?.lng)) {
         const distance = calculateDistance(
           effectiveLocation.lat, effectiveLocation.lng,
           event.location.lat, event.location.lng
@@ -368,6 +363,30 @@ export default function Mapa() {
         </motion.div>
         <p className="text-gray-300 mb-2 text-lg">Procurando a cena perto de você...</p>
         <p className="text-gray-500 text-sm">📍 Ativando localização</p>
+      </div>
+    );
+  }
+
+  if (isVenuesError) {
+    const isInvalid = venuesErrorObj?.message === 'invalid_response';
+    return (
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-900/20 px-4">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="max-w-md bg-gray-900/80 backdrop-blur-xl border border-red-500/30 rounded-2xl p-8 text-center"
+        >
+          <MapPin className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-3">Erro ao Carregar</h2>
+          <p className="text-gray-300 mb-6">
+            {isInvalid
+              ? 'Não foi possível interpretar os dados dos estabelecimentos.'
+              : 'Não foi possível carregar os estabelecimentos. Verifique sua conexão.'}
+          </p>
+          <button onClick={() => refetchVenues()} className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 h-12 text-lg rounded-lg text-white font-semibold">
+            Tentar Novamente
+          </button>
+        </motion.div>
       </div>
     );
   }

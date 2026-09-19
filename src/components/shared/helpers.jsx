@@ -8,8 +8,29 @@ import { VIBES, DEFAULT_AVATAR as DEFAULT_AVATAR_CONST, MUSIC_GENRES as MUSIC_GE
 const distanceCache = new Map();
 const CACHE_SIZE_LIMIT = 200;
 
+/**
+ * Validação centralizada de coordenadas geográficas.
+ * Aceita números e strings numéricas (com espaços).
+ * Rejeita null, undefined, NaN, Infinity, fora de range e (0,0).
+ * A rejeição de (0,0) é específica do SUBLINX para evitar registros sem geolocalização útil.
+ */
+export function isValidCoord(lat, lng) {
+  if (lat == null || lng == null) return false;
+  const nLat = Number(lat);
+  const nLng = Number(lng);
+  return (
+    Number.isFinite(nLat) &&
+    Number.isFinite(nLng) &&
+    nLat >= -90 &&
+    nLat <= 90 &&
+    nLng >= -180 &&
+    nLng <= 180 &&
+    !(nLat === 0 && nLng === 0)
+  );
+}
+
 export function calculateDistance(lat1, lon1, lat2, lon2) {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  if (!isValidCoord(lat1, lon1) || !isValidCoord(lat2, lon2)) return Infinity;
   
   const key = `${lat1.toFixed(4)},${lon1.toFixed(4)},${lat2.toFixed(4)},${lon2.toFixed(4)}`;
   

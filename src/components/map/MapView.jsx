@@ -9,6 +9,7 @@ import { Search, Menu, X, Filter, AlertCircle, Building2, Zap } from 'lucide-rea
 import { createPageUrl } from '@/utils';
 import { useNavigate } from 'react-router-dom';
 import AdvancedFilters from './AdvancedFilters';
+import { isValidCoord } from '@/components/shared/helpers';
 import { AnimatePresence, motion } from 'framer-motion';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -43,9 +44,23 @@ function safeImgSrc(url) {
 function MapUpdater({ center }) {
   const map = useMap();
   const initializedRef = useRef(false);
+  const userMovedRef = useRef(false);
+
   useEffect(() => {
-    if (center && !initializedRef.current) {
+    const onDragStart = () => { userMovedRef.current = true; };
+    map.on('dragstart', onDragStart);
+    return () => map.off('dragstart', onDragStart);
+  }, [map]);
+
+  useEffect(() => {
+    if (!center) return;
+    if (!initializedRef.current) {
       initializedRef.current = true;
+      map.setView(center, map.getZoom());
+      return;
+    }
+    // GPS tardio: recentraliza somente se o usuário não moveu manualmente
+    if (!userMovedRef.current) {
       map.setView(center, map.getZoom());
     }
   }, [center, map]);
@@ -338,13 +353,11 @@ export default function MapView({
   const [zoomLevel, setZoomLevel] = useState(13);
   const [mapError, setMapError] = useState(null);
   const [mapKey] = useState(0);
-  const [localAdvancedFilters, setLocalAdvancedFilters] = useState({
+  const advancedFilters = externalFilters || {
     genre: 'all', type: 'all', dateRange: 'all',
     maxDistance: 50, minAttendees: 0, maxPrice: 500, sortBy: 'distance'
-  });
-  const advancedFilters = externalFilters || localAdvancedFilters;
+  };
   const setAdvancedFilters = (newFilters) => {
-    setLocalAdvancedFilters(newFilters);
     if (onFiltersChange) onFiltersChange(newFilters);
   };
   const [localSearch, setLocalSearch] = useState(searchTerm);
@@ -392,7 +405,7 @@ export default function MapView({
     if (!events || events.length === 0) return [];
 
     let filtered = events.filter(event => {
-      if (!event?.location?.lat || !event?.location?.lng) return false;
+      if (!isValidCoord(event?.location?.lat, event?.location?.lng)) return false;
 
       if (localSearch) {
         const lower = localSearch.toLowerCase();
@@ -443,11 +456,11 @@ export default function MapView({
   const visibleVenues = useMemo(() => {
     if (!venues || venues.length === 0) return [];
     return venues.filter(v => {
-      if (!v?.location?.lat || !v?.location?.lng) return false;
+      if (!isValidCoord(v?.location?.lat, v?.location?.lng)) return false;
       if (localSearch) {
         const lower = localSearch.toLowerCase();
         return v.name?.toLowerCase().includes(lower) ||
-          v.category?.toLowerCase().includes(lower) ||
+          v.type?.toLowerCase().includes(lower) ||
           v.genres?.some(g => g.toLowerCase().includes(lower));
       }
       return true;
@@ -558,7 +571,7 @@ export default function MapView({
   };
 
   return (
-    <div ref={containerRef} className="w-full h-full relative">
+    <div ref={containerRef} className="sublinx-map-container w-full h-full relative">
       {/* Search Bar — luxury minimalist, NO neon */}
       <div className="absolute z-[1000] left-0 right-0 px-3 sm:px-4" style={{ top: hideSearch ? 'calc(env(safe-area-inset-top) + 56px)' : 'max(12px, env(safe-area-inset-top))' }}>
         <div className={`flex items-center gap-1.5 sm:gap-2 max-w-3xl mx-auto ${!searchSlot && hideSearch ? 'justify-end' : ''}`}>
@@ -743,7 +756,7 @@ export default function MapView({
           const live = marker.isLive;
           return (
             <Marker
-              key={`event-${event.id || index}`}
+              key={`event-${event.id}`}
               position={cluster.center}
               icon={createEventIcon(event, live, showLabels)}
               zIndexOffset={marker.priority}
@@ -771,7 +784,7 @@ export default function MapView({
           const config = getCategoryConfig(venue.type);
           return (
             <Marker
-              key={`venue-${venue.id || index}`}
+              key={`venue-${venue.id}`}
               position={[marker.lat, marker.lng]}
               icon={createVenueIcon(venue, showLabels)}
               zIndexOffset={marker.priority}
@@ -822,7 +835,7 @@ export default function MapView({
         /* Dark basemap filter — scoped to tile pane ONLY.
            Marker pane, overlay pane, and popup pane are separate Leaflet layers
            and remain unaffected, ensuring markers/icons always render correctly. */
-        .leaflet-tile-pane {
+        .sublinx-map-container .leaflet-tile-pane {
           filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.4);
         }
         /* Ensure marker/cluster containers have no Leaflet default background */
