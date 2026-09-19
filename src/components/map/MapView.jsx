@@ -555,9 +555,12 @@ export default function MapView({
 
   const liveCount = filteredEvents.filter(isEventLive).length;
 
-  // Cluster click — zoom in to disperse (pseudo-spiderfy), or open details for single
+  // Cluster click — zoom in to disperse (pseudo-spiderfy), or open details for single.
+  // At max zoom, stop flying and let the Popup open with the event list,
+  // so events at the same coordinates remain accessible.
   const handleClusterClick = (cluster) => {
     if (cluster.count > 1 && mapRef.current) {
+      if (zoomLevel >= 18) return;
       const targetZoom = Math.min(zoomLevel + 2, 18);
       mapRef.current.flyTo(cluster.center, targetZoom, { duration: 0.5 });
     } else if (cluster.count === 1) {
@@ -722,7 +725,7 @@ export default function MapView({
           if (cluster.count > 1) {
             return (
               <Marker
-                key={`cluster-${index}`}
+                key={`cluster-${cluster.markers.map(m => m.id).sort().join('_')}`}
                 position={cluster.center}
                 icon={createClusterIcon(cluster.count, cluster.dominantColor)}
                 eventHandlers={{
