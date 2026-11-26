@@ -1,4 +1,6 @@
 import './App.css'
+import { useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -61,6 +63,12 @@ const AuthenticatedApp = () => {
 
 
 function App() {
+
+  useEffect(() => {
+    if (sessionStorage.getItem('app_opened_tracked')) return;
+    sessionStorage.setItem('app_opened_tracked', '1');
+    base44.analytics.track({ eventName: 'app_opened' });
+  }, []);
 
   return (
     <AuthProvider>

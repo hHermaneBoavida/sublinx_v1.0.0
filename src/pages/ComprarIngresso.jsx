@@ -113,6 +113,10 @@ export default function ComprarIngresso() {
       return data.ticket;
     },
     onSuccess: (ticket) => {
+      base44.analytics.track({
+        eventName: 'ticket_purchased',
+        properties: { event_id: eventId, quantity: ticket.quantity, price: ticket.price }
+      });
       queryClient.invalidateQueries(['event', eventId]);
       queryClient.invalidateQueries(['userTickets']);
       setGeneratedTicket(ticket);

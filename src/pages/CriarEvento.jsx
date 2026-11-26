@@ -299,6 +299,11 @@ export default function CriarEvento() {
         last_validated_at: new Date().toISOString(),
       });
 
+      base44.analytics.track({
+        eventName: 'event_created',
+        properties: { event_id: newEvent.id, genre: formData.genre }
+      });
+
       // Notificar seguidores
       try {
         const followers = await base44.entities.Follow.filter({ following_id: user.id });
