@@ -1,0 +1,86 @@
+{
+  "name": "Signal",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo do alerta"
+    },
+    "body": {
+      "type": "string",
+      "description": "Conte\u00fado do alerta"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "evento",
+        "aviso",
+        "promocao",
+        "surpresa"
+      ],
+      "default": "evento",
+      "description": "Tipo do alerta"
+    },
+    "city": {
+      "type": "string",
+      "description": "Cidade do alerta"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        },
+        "address": {
+          "type": "string"
+        }
+      }
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "link_url": {
+      "type": "string"
+    },
+    "author_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio criador (nunca exposto no payload p\u00fablico)"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expira\u00e7\u00e3o calculada exclusivamente no servidor (cria\u00e7\u00e3o + 24h)"
+    }
+  },
+  "required": [
+    "title",
+    "body",
+    "author_id",
+    "expires_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
