@@ -1,0 +1,45 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "alerta_capacidade_90",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "verificar_capacidade": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "checkCapacityAlerts",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Verificar 90% da capacidade",
+            "description": "Soma ingressos vendidos e convidados confirmados e avisa o organizador"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Alerta de Capacidade 90%",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 * * * *",
+      "one_time_date": null,
+      "timezone": "America/Sao_Paulo",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "A cada hora verifica a ocupa\u00e7\u00e3o dos eventos (ingressos vendidos + convidados confirmados da lista) e avisa o organizador quando atinge 90% da capacidade."
+}

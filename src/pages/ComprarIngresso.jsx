@@ -117,6 +117,8 @@ export default function ComprarIngresso() {
         eventName: 'ticket_purchased',
         properties: { event_id: eventId, quantity: ticket.quantity, price: ticket.price }
       });
+      // Avisa o organizador se o evento acabou de passar de 90% da capacidade
+      base44.functions.invoke('checkCapacityAlerts', { event_id: eventId }).catch(() => {});
       queryClient.invalidateQueries(['event', eventId]);
       queryClient.invalidateQueries(['userTickets']);
       setGeneratedTicket(ticket);
